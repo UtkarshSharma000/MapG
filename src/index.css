@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+@theme {
+  --color-on-tertiary-fixed-variant: #004e60;
+  --color-on-surface-variant: #e1bfb5;
+  --color-primary: #ffb59d;
+  --color-surface-container: #2a1c18;
+  --color-primary-fixed-dim: #ffb59d;
+  --color-on-secondary: #003351;
+  --color-error-container: #93000a;
+  --color-tertiary: #59d5fb;
+  --color-on-surface: #f7ddd5;
+  --color-background: #1d100c;
+  --color-surface-dim: #1d100c;
+  --color-on-error-container: #ffdad6;
+  --color-on-background: #f7ddd5;
+  --color-surface-container-low: #261814;
+  --color-surface-container-highest: #41312c;
+  --color-on-primary-fixed-variant: #832600;
+  --color-on-primary-fixed: #390c00;
+  --color-primary-container: #ff6b35;
+  --color-surface: #1d100c;
+  --color-secondary-fixed-dim: #92ccff;
+  --color-on-secondary-fixed-variant: #004b73;
+  --color-surface-variant: #41312c;
+  --color-surface-container-high: #352722;
+  --color-tertiary-container: #00a7cb;
+  --color-secondary-container: #1b98e0;
+  --color-on-secondary-fixed: #001e31;
+  --color-secondary: #92ccff;
+  --color-on-tertiary: #003543;
+  --color-outline: #a98a80;
+  --color-secondary-fixed: #cce5ff;
+  --color-error: #ffb4ab;
+  --color-surface-container-lowest: #170b08;
+  --color-on-secondary-container: #002c47;
+  --color-primary-fixed: #ffdbd0;
+  --color-on-primary: #5d1900;
+  --color-inverse-primary: #ab3500;
+  --color-tertiary-fixed-dim: #59d5fb;
+  --color-surface-tint: #ffb59d;
+  --color-inverse-on-surface: #3c2d28;
+  --color-on-tertiary-container: #003744;
+  --color-on-primary-container: #5f1900;
+  --color-outline-variant: #594139;
+  --color-tertiary-fixed: #b5ebff;
+  --color-surface-bright: #463630;
+  --color-inverse-surface: #f7ddd5;
+  --color-on-tertiary-fixed: #001f28;
+  --color-on-error: #690005;
+
+  --spacing-gutter: 16px;
+  --spacing-panel_padding: 24px;
+  --spacing-screen_margin: 32px;
+  --spacing-base_unit: 4px;
+
+  --font-display-lg: "Space Grotesk", sans-serif;
+  --font-label-caps: "JetBrains Mono", monospace;
+  --font-headline-md: "Space Grotesk", sans-serif;
+  --font-data-lg: "JetBrains Mono", monospace;
+  --font-body-rg: "Geist", sans-serif;
+}
+
+body {
+  background-color: #050505;
+  overflow: hidden;
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    rgba(27, 152, 224, 0.05) 0%,
+    transparent 50%
+  );
+}
+
+.fade-edge {
+  mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+.glass-panel {
+  backdrop-filter: blur(12px);
+  background: linear-gradient(
+    135deg,
+    rgba(38, 24, 20, 0.6) 0%,
+    rgba(23, 11, 8, 0.4) 100%
+  );
+  border: 1px solid transparent;
+  border-image: linear-gradient(
+      to bottom right,
+      rgba(169, 138, 128, 0.3),
+      rgba(0, 0, 0, 0)
+    )
+    1;
+}
+
+.glow-primary {
+  box-shadow: 0 0 16px rgba(255, 107, 53, 0.3);
+}
+
+.glow-secondary {
+  box-shadow: 0 0 16px rgba(27, 152, 224, 0.3);
+}
+
+.orbit-path {
+  border: 0.5px solid rgba(169, 138, 128, 0.2);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.orbit-active {
+  border-color: rgba(255, 107, 53, 0.8);
+  box-shadow: 0 0 8px rgba(255, 107, 53, 0.4);
+}
+
+.btn-telemetry {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.btn-telemetry:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 16px rgba(27, 152, 224, 0.3);
+  border-color: #1b98e0;
+}
+
+.btn-telemetry-orange:hover {
+  box-shadow: 0 0 16px rgba(255, 107, 53, 0.3);
+  border-color: #ff6b35;
+}
+
+.status-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.status-nominal {
+  background-color: #1b98e0;
+  box-shadow: 0 0 8px rgba(27, 152, 224, 0.6);
+}
+.status-warning {
+  background-color: #ff6b35;
+  box-shadow: 0 0 8px rgba(255, 107, 53, 0.6);
+}
+
+.glow-text-blue {
+  text-shadow: 0 0 10px rgba(27, 152, 224, 0.5);
+}
+.glow-text-orange {
+  text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+}
