@@ -8,48 +8,36 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Compile C++ Engine if needed
-  console.log("Ensuring C++ engine is built...");
+  // Compile C++ Engine and Install Python Deps
+  console.log("Ensuring environment is ready...");
   try {
     execSync("bash local_backend/build.sh", { stdio: "inherit" });
+    execSync("python3 -m pip install -r local_backend/requirements.txt", { stdio: "inherit" });
   } catch (error) {
-    console.error("Failed to build C++ engine:", error);
+    console.error("Setup failed:", error);
   }
 
   let latestTelemetry: any = { status: "waiting_for_engine" };
 
-  // Start the C++ Engine
-  console.log("Starting C++ physics engine...");
-  const engineProcess = spawn("./engine", [], { cwd: path.join(process.cwd(), "local_backend") });
-
-  engineProcess.stdout.on("data", (data) => {
-    const lines = data.toString().split("\n");
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      try {
-        latestTelemetry = JSON.parse(line);
-      } catch (err) {
-        console.warn("Failed to parse engine output:", line);
-      }
+  // API Route setup - Proxy to FastAPI bridge
+  app.get("/api/telemetry", async (req, res) => {
+    try {
+      const response = await fetch("http://localhost:8000/telemetry");
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      res.status(503).json({ status: "engine_starting", error: "FastAPI not ready" });
     }
   });
 
-  engineProcess.stderr.on("data", (data) => {
-    console.error("Engine Error:", data.toString());
+  // Start the Python FastAPI Bridge
+  console.log("Starting Python FastAPI bridge...");
+  const pythonProcess = spawn("python3", ["-m", "uvicorn", "main:app", "--port", "8000"], {
+    cwd: path.join(process.cwd(), "local_backend"),
   });
 
-  engineProcess.on("close", (code) => {
-    console.log(`Engine process exited with code ${code}`);
-  });
-
-  process.on("exit", () => {
-    engineProcess.kill();
-  });
-
-  // API Route setup
-  app.get("/api/telemetry", (req, res) => {
-    res.json(latestTelemetry);
-  });
+  pythonProcess.stdout.on("data", (data) => console.log("Python:", data.toString()));
+  pythonProcess.stderr.on("data", (data) => console.error("Python Error:", data.toString()));
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

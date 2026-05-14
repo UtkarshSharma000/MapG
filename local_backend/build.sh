@@ -1,34 +1,28 @@
 #!/bin/bash
+# Odyssey 2026 Build Script
 set -e
 
-# Change into the directory of the script
-cd "$(dirname "$0")"
-
-echo "=== Odyssey Local-Core Build Script ==="
-
-# 1. Download Eigen if it doesn't exist
-if [ ! -d "eigen" ]; then
-    echo "[1/3] Downloading Eigen (3.4.0) library..."
-    curl -L -o eigen.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
-    tar -xzf eigen.tar.gz
-    mv eigen-3.4.0 eigen
-    rm eigen.tar.gz
+echo "--- Installing Dependencies ---"
+# Note: In the AI Studio container, we use the local eigen directory if apt fails
+if ! dpkg -s libeigen3-dev >/dev/null 2>&1; then
+    echo "libeigen3-dev not found, attempting local fallback..."
+    if [ ! -d "local_backend/eigen" ]; then
+        cd local_backend
+        curl -L -o eigen.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+        tar -xzf eigen.tar.gz
+        mv eigen-3.4.0 eigen
+        rm eigen.tar.gz
+        cd ..
+    fi
+    EIGEN_INC="-I./local_backend/eigen"
 else
-    echo "[1/3] Eigen library already present."
+    EIGEN_INC="-I/usr/include/eigen3"
 fi
 
-# 2. Compile the C++ Physics Engine
-echo "[2/3] Compiling C++ engine with g++ -O3..."
-g++ -O3 -std=c++17 -I./eigen engine.cpp -o engine
-echo "-- Compilation successful. Output: ./engine"
+echo "--- Compiling Propagator ---"
+g++ -O3 -std=c++17 $EIGEN_INC local_backend/Propagator.cpp -o local_backend/odyssey_engine
 
-# 3. Setup Python environment (Optional/Info)
-echo "[3/3] Build complete!"
-echo ""
-echo "=== How to run the local API ==="
-echo "1. Ensure Python dependencies are installed:"
-echo "   pip install -r requirements.txt"
-echo "2. Start the FastAPI server:"
-echo "   uvicorn main:app --reload --host 0.0.0.0 --port 8000"
-echo ""
-echo "The API will be available at http://localhost:8000/telemetry"
+echo "--- Setting Permissions ---"
+chmod +x local_backend/odyssey_engine
+
+echo "--- Build Successful: ./local_backend/odyssey_engine ---"
