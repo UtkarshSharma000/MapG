@@ -4,7 +4,8 @@ import { X, Map, Target, Crosshair } from "lucide-react";
 
 export function Planet2DMap({ planetName, onClose, onSelectLocation }: any) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [clickPoint, setClickPoint] = useState<{lat: number, lon: number, x: number, y: number, type: "launch" | "target"} | null>(null);
+  const [launchPoint, setLaunchPoint] = useState<{lat: number, lon: number, x: number, y: number} | null>(null);
+  const [targetPoint, setTargetPoint] = useState<{lat: number, lon: number, x: number, y: number} | null>(null);
 
   const nodeRef = useRef<HTMLDivElement>(null);
 
@@ -19,7 +20,12 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation }: any) {
     const lon = (x / rect.width) * 360 - 180;
     const lat = 90 - (y / rect.height) * 180;
     
-    setClickPoint({ lat, lon, x, y, type: clickType });
+    if (clickType === "launch") {
+      setLaunchPoint({ lat, lon, x, y });
+    } else {
+      setTargetPoint({ lat, lon, x, y });
+    }
+    
     if (onSelectLocation) {
       onSelectLocation(clickType, planetName, lat, lon);
     }
@@ -83,12 +89,20 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation }: any) {
           </div>
 
           {/* Click Marker */}
-          {clickPoint && (
+          {targetPoint && (
             <div 
               className="absolute w-4 h-4 -ml-2 -mt-2 text-primary pointer-events-none"
-              style={{ left: clickPoint.x, top: clickPoint.y }}
+              style={{ left: targetPoint.x, top: targetPoint.y }}
             >
-              {clickPoint.type === "target" ? <Target className="w-4 h-4 animate-pulse" color="#ff4444" /> : <Crosshair className="w-4 h-4 text-primary animate-spin-slow" />}
+              <Target className="w-4 h-4 animate-pulse" color="#ff4444" />
+            </div>
+          )}
+          {launchPoint && (
+            <div 
+              className="absolute w-4 h-4 -ml-2 -mt-2 text-primary pointer-events-none"
+              style={{ left: launchPoint.x, top: launchPoint.y }}
+            >
+              <Crosshair className="w-4 h-4 text-primary animate-spin-slow" />
             </div>
           )}
         </div>
@@ -96,13 +110,21 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation }: any) {
         {/* Footer info */}
         <div className="bg-surface border-t border-outline p-2 px-4 flex justify-between items-center text-xs font-mono">
           <span>PROJECTION: EQUIRECTANGULAR</span>
-          {clickPoint ? (
-            <span className={clickPoint.type === "target" ? "text-red-400" : "text-primary"}>
-              {clickPoint.type === "target" ? "TARGET" : "LAUNCH"} LAT: {clickPoint.lat.toFixed(4)}° / LON: {clickPoint.lon.toFixed(4)}°
-            </span>
-          ) : (
-            <span className="text-outline">NO COORDINATES SELECTED</span>
-          )}
+          <div className="flex gap-4">
+            {targetPoint ? (
+              <span className="text-red-400">
+                TARGET LAT: {targetPoint.lat.toFixed(4)}° / LON: {targetPoint.lon.toFixed(4)}°
+              </span>
+            ) : null}
+            {launchPoint ? (
+              <span className="text-primary">
+                LAUNCH LAT: {launchPoint.lat.toFixed(4)}° / LON: {launchPoint.lon.toFixed(4)}°
+              </span>
+            ) : null}
+            {!targetPoint && !launchPoint && (
+              <span className="text-outline">NO COORDINATES SELECTED</span>
+            )}
+          </div>
         </div>
       </div>
     </Draggable>
