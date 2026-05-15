@@ -9,7 +9,7 @@ import {
   useTexture,
 } from "@react-three/drei";
 import * as THREE from "three";
-import { AU, propagateOrbit, KeplerianElements, simulateInterplanetaryRK4 } from "./physics";
+import { AU, propagateOrbit, KeplerianElements, simulateInterplanetaryRK4, solveLambert } from "./physics";
 import axios from "axios";
 
 // 1 AU = 100 units in our 3D scene
@@ -370,34 +370,27 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
         const time = globalTimeRef.current;
         const startPos = propagateOrbit(earth.elements, time);
         
-        // Calculate Earth's heliocentric velocity
-        const dt = 1.0; 
-        const p1_v = propagateOrbit(earth.elements, time - dt/2);
-        const p2_v = propagateOrbit(earth.elements, time + dt/2);
-        const eVel = [
-          (p2_v[0] - p1_v[0]) / dt,
-          (p2_v[1] - p1_v[1]) / dt,
-          (p2_v[2] - p1_v[2]) / dt
-        ];
+        // Approximate Hohmann transfer time for dt
+        const r1 = earth.elements.a;
+        const r2 = target.elements.a;
+        // MU_SUN is 1.32712440018e20; G * M_SUN
+        const MU_SUN = 6.6743015e-11 * 1.989e30;
+        const tof = Math.PI * Math.sqrt(Math.pow(r1 + r2, 3) / (8 * MU_SUN));
         
-        // Rocket velocity relative to earth
-        const speed = (v0 || 8) * 1000; // km/s to m/s
-        const pitchRad = ((pitch || 0) * Math.PI) / 180;
-        const yawRad = ((yaw || 0) * Math.PI) / 180;
+        // Target's future position
+        const targetPosFuture = propagateOrbit(target.elements, time + tof);
         
-        const rVx = speed * Math.cos(pitchRad) * Math.cos(yawRad);
-        const rVy = speed * Math.sin(pitchRad);
-        const rVz = -speed * Math.cos(pitchRad) * Math.sin(yawRad); 
+        const reqVel = solveLambert(startPos as [number, number, number], targetPosFuture as [number, number, number], tof, MU_SUN);
         
         const startVel: [number, number, number] = [
-          eVel[0] + rVx,
-          eVel[1] + rVy,
-          eVel[2] + rVz
+          reqVel[0],
+          reqVel[1],
+          reqVel[2]
         ];
         
         // To find a realistic path, we integrate forward over 900 days max. 
         // We use a small timestep for interplanetary speed to not pass through planets
-        const simDuration = 3600 * 24 * 900; 
+        const simDuration = tof * 1.5; // Simulate a bit past the expected arrival
         const simDt = 600; // 10 minute timesteps for accurate N-body and gravity assist captures
         
         const { points: rawPoints, arrivalTime } = simulateInterplanetaryRK4(
