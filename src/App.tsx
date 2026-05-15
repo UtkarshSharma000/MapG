@@ -32,6 +32,8 @@ export default function App() {
   const [targetLocation, setTargetLocation] = useState<{lat: number, lon: number} | null>(null);
   const [isLaunched, setIsLaunched] = useState(false);
 
+  const [targetPlanet, setTargetPlanet] = useState<string | null>(null);
+
   const handleLaunch = () => {
     setIsLaunched(true);
   };
@@ -40,6 +42,7 @@ export default function App() {
     if (planet === "Earth") {
       setLaunchLocation({ lat, lon });
     } else {
+      setTargetPlanet(planet);
       setTargetLocation({ lat, lon });
     }
   };
@@ -207,7 +210,7 @@ export default function App() {
         isRunning={isSimulatorRunning}
         timeMult={timeMult}
         selectedTarget={selectedTarget}
-        launchParams={{ v0, pitch, yaw, nbody, launchLocation, targetLocation, timeMult, isLaunched }}
+        launchParams={{ v0, pitch, yaw, nbody, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched }}
         onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
       />
 

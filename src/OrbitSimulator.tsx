@@ -247,10 +247,12 @@ function Planet({
   data,
   globalTimeRef,
   onDoubleClick,
+  launchParams,
 }: {
   data: (typeof PLANETS)[0];
   globalTimeRef: React.MutableRefObject<number>;
   onDoubleClick?: (name: string) => void;
+  launchParams?: any;
 }) {
   const ref = useRef<THREE.Group>(null);
 
@@ -300,6 +302,9 @@ function Planet({
           if (onDoubleClick) onDoubleClick(data.name);
         }}
       >
+        {data.name === "Earth" && launchParams && !launchParams.targetPlanet && (
+          <GhostPath launchParams={launchParams} />
+        )}
         <mesh>
           <TexturedPlanet
             radius={radius}
@@ -349,7 +354,7 @@ function GhostPath({ launchParams }: { launchParams: any }) {
   useEffect(() => {
     if (!launchParams || launchParams.isLaunched) return;
     
-    const { v0, pitch, yaw, nbody, launchLocation, targetLocation } = launchParams;
+    const { v0, pitch, yaw, nbody, launchLocation, targetLocation, targetPlanet } = launchParams;
     const startLat = launchLocation?.lat || 0;
     const startLon = launchLocation?.lon || 0;
     const targetLat = targetLocation?.lat || 0;
@@ -358,12 +363,13 @@ function GhostPath({ launchParams }: { launchParams: any }) {
     const fetchPreview = async () => {
       try {
         const res = await axios.get("/api/trajectory-preview", {
-          params: { v0, pitch, yaw, nbody, startLat, startLon, targetLat, targetLon }
+          params: { v0, pitch, yaw, nbody, startLat, startLon, targetLat, targetLon, targetPlanet }
         });
         if (res.data.path) {
-          const orbitPoints = res.data.path.map((p: number[]) => 
-            new THREE.Vector3(p[0] * POS_SCALE, p[1] * POS_SCALE, p[2] * POS_SCALE)
-          );
+          const orbitPoints = res.data.path.map((p: number[]) => {
+            const scale = targetPlanet ? POS_SCALE : PLANET_SIZE_SCALE;
+            return new THREE.Vector3(p[0] * scale, p[1] * scale, p[2] * scale);
+          });
           setPoints(orbitPoints);
         }
       } catch (err) {
@@ -497,10 +503,12 @@ function SystemEngine({
       </mesh>
 
       {PLANETS.map((p) => (
-        <Planet key={p.name} data={p} globalTimeRef={globalTimeRef} onDoubleClick={onPlanetDoubleClick} />
+        <Planet key={p.name} data={p} globalTimeRef={globalTimeRef} onDoubleClick={onPlanetDoubleClick} launchParams={launchParams} />
       ))}
 
-      {launchParams && <GhostPath launchParams={launchParams} />}
+      {launchParams && launchParams.targetPlanet && (
+        <GhostPath launchParams={launchParams} />
+      )}
 
       <OrbitControls
         ref={controlsRef}

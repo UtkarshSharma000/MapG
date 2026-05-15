@@ -106,7 +106,42 @@ async def get_telemetry():
     return latest_telemetry
 
 @app.get("/trajectory-preview")
-async def trajectory_preview(v0: float, pitch: float, yaw: float, nbody: bool, start_lat: float = 0, start_lon: float = 0, target_lat: float = 0, target_lon: float = 0):
+async def trajectory_preview(v0: float, pitch: float, yaw: float, nbody: bool, start_lat: float = 0, start_lon: float = 0, target_lat: float = 0, target_lon: float = 0, target_planet: str = ""):
+    if target_planet and target_planet != "Earth":
+        # Generate Hohmann transfer ellipse to the target planet
+        au_km = 1.495978707e8
+        planet_a = {
+            "Mercury": 0.387 * au_km,
+            "Venus": 0.723 * au_km,
+            "Mars": 1.524 * au_km,
+            "Jupiter": 5.204 * au_km,
+            "Saturn": 9.582 * au_km,
+            "Uranus": 19.201 * au_km,
+            "Neptune": 30.047 * au_km,
+        }
+        r1 = 1.0 * au_km
+        r2 = planet_a.get(target_planet, 1.524 * au_km)
+        
+        at = (r1 + r2) / 2.0
+        et = abs(r2 - r1) / (r1 + r2)
+        
+        path = []
+        is_outer = r2 > r1
+        # from 0 to pi
+        steps = 500
+        for i in range(steps + 1):
+            theta = math.pi * i / steps
+            if not is_outer:
+                theta += math.pi # start at aphelion
+            
+            r = at * (1 - et**2) / (1 + et * math.cos(theta))
+            x = r * math.cos(theta)
+            y = r * math.sin(theta)
+            z = r * 0.05 * math.sin(theta) # slight inclination for 3D effect
+            path.append([x, y, z])
+            
+        return {"path": path}
+
     pitch_rad = math.radians(pitch)
     yaw_rad = math.radians(yaw)
     

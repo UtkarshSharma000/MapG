@@ -93,10 +93,10 @@ export function LaunchHUD({
           </div>
 
           <button 
-            className={`w-full py-2 bg-primary/20 border border-primary/50 rounded font-label-caps tracking-[0.15em] text-xs transition-colors mt-2 ${isLaunched ? 'text-green-400 bg-green-500/20 border-green-500/50 cursor-default animate-pulse' : 'text-primary hover:bg-primary/30 cursor-pointer'}`}
-            onClick={!isLaunched ? onLaunch : undefined}
+            className={`w-full py-2 bg-primary/20 border border-primary/50 rounded font-label-caps tracking-[0.15em] text-xs transition-colors mt-2 ${isLaunched ? 'text-yellow-400 bg-yellow-500/20 border-yellow-500/50 cursor-pointer hover:bg-yellow-500/30' : 'text-primary hover:bg-primary/30 cursor-pointer'}`}
+            onClick={isLaunched ? () => window.location.reload() : onLaunch}
           >
-             {isLaunched ? 'LAUNCH IN PROGRESS' : 'SIMULATE LAUNCH'}
+             {isLaunched ? 'RESET SIMULATION' : 'SIMULATE LAUNCH'}
           </button>
         </div>
       </div>

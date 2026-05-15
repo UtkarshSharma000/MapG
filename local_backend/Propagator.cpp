@@ -151,14 +151,14 @@ int main(int argc, char* argv[]) {
     }
 
     double t = 0.0;
-    double dt = preview_mode ? 60.0 : 0.5;
+    double dt = preview_mode ? 100.0 : 0.5;
 
     if (preview_mode) {
         cout << "[";
-        for (int i = 0; i < 2880; ++i) { // 48 hrs output at 60s steps
+        for (int i = 0; i < 8640; ++i) { // 10 days at 100s steps
             step_rk4(state, t, dt, nbody_enabled);
             cout << "[" << state(0) << "," << state(1) << "," << state(2) << "]";
-            if (i < 2879) cout << ",";
+            if (i < 8639) cout << ",";
         }
         cout << "]" << endl;
         return 0;
