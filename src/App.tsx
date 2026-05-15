@@ -32,6 +32,7 @@ export default function App() {
   const [targetLocation, setTargetLocation] = useState<{lat: number, lon: number} | null>(null);
   const [isLaunched, setIsLaunched] = useState(false);
 
+  const [launchPlanet, setLaunchPlanet] = useState<string | null>("Earth");
   const [targetPlanet, setTargetPlanet] = useState<string | null>(null);
 
   const handleLaunch = () => {
@@ -40,13 +41,10 @@ export default function App() {
 
   const handleSelectLocation = (type: "launch" | "target", planet: string, lat: number, lon: number) => {
     if (type === "launch") {
+      setLaunchPlanet(planet);
       setLaunchLocation({ lat, lon });
     } else {
-      if (planet !== "Earth") {
-        setTargetPlanet(planet);
-      } else {
-        setTargetPlanet((prev) => prev ? null : null); // Earth is target
-      }
+      setTargetPlanet(planet);
       setTargetLocation({ lat, lon });
     }
   };
@@ -308,6 +306,10 @@ export default function App() {
             planetName={mapPlanet}
             onClose={() => setMapPlanet(null)}
             onSelectLocation={handleSelectLocation}
+            launchPlanet={launchPlanet}
+            targetPlanet={targetPlanet}
+            launchLocation={launchLocation}
+            targetLocation={targetLocation}
           />
         )}
         {/* Orbit Lines HUD Simulation */}

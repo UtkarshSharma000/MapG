@@ -2,10 +2,15 @@ import React, { useState, useRef } from "react";
 import Draggable from "react-draggable";
 import { X, Map, Target, Crosshair } from "lucide-react";
 
-export function Planet2DMap({ planetName, onClose, onSelectLocation }: any) {
+export function Planet2DMap({ planetName, onClose, onSelectLocation, launchPlanet, targetPlanet, launchLocation, targetLocation }: any) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [launchPoint, setLaunchPoint] = useState<{lat: number, lon: number, x: number, y: number} | null>(null);
-  const [targetPoint, setTargetPoint] = useState<{lat: number, lon: number, x: number, y: number} | null>(null);
+  
+  // Use passed down locations if they match the current planet
+  const initialLaunch = launchPlanet === planetName && launchLocation ? launchLocation : null;
+  const initialTarget = targetPlanet === planetName && targetLocation ? targetLocation : null;
+
+  const [launchPoint, setLaunchPoint] = useState<{lat: number, lon: number} | null>(initialLaunch);
+  const [targetPoint, setTargetPoint] = useState<{lat: number, lon: number} | null>(initialTarget);
 
   const nodeRef = useRef<HTMLDivElement>(null);
 
@@ -21,9 +26,9 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation }: any) {
     const lat = 90 - (y / rect.height) * 180;
     
     if (clickType === "launch") {
-      setLaunchPoint({ lat, lon, x, y });
+      setLaunchPoint({ lat, lon });
     } else {
-      setTargetPoint({ lat, lon, x, y });
+      setTargetPoint({ lat, lon });
     }
     
     if (onSelectLocation) {
@@ -32,9 +37,23 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation }: any) {
   };
 
   const handlePointerDown = (e: React.MouseEvent) => {
-    if (e.button === 0) {
+    if (e.button === 0) { // left click = target
+      // Enforce setting launch first
+      if (!launchPlanet) {
+        alert("Please set a launch location first (Right-Click on a planet's map).");
+        return;
+      }
+      // Prevent launch and target on same planet
+      if (launchPlanet === planetName) {
+        alert("Target planet cannot be the same as launch planet.");
+        return;
+      }
       handleMapClick(e, "target");
-    } else if (e.button === 2) {
+    } else if (e.button === 2) { // right click = launch
+      if (targetPlanet === planetName) {
+        alert("Launch planet cannot be the same as target planet.");
+        return;
+      }
       handleMapClick(e, "launch");
     }
   };
@@ -92,7 +111,7 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation }: any) {
           {targetPoint && (
             <div 
               className="absolute w-4 h-4 -ml-2 -mt-2 text-primary pointer-events-none"
-              style={{ left: targetPoint.x, top: targetPoint.y }}
+              style={{ left: `${(targetPoint.lon + 180) / 360 * 100}%`, top: `${(90 - targetPoint.lat) / 180 * 100}%` }}
             >
               <Target className="w-4 h-4 animate-pulse" color="#ff4444" />
             </div>
@@ -100,7 +119,7 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation }: any) {
           {launchPoint && (
             <div 
               className="absolute w-4 h-4 -ml-2 -mt-2 text-primary pointer-events-none"
-              style={{ left: launchPoint.x, top: launchPoint.y }}
+              style={{ left: `${(launchPoint.lon + 180) / 360 * 100}%`, top: `${(90 - launchPoint.lat) / 180 * 100}%` }}
             >
               <Crosshair className="w-4 h-4 text-primary animate-spin-slow" />
             </div>

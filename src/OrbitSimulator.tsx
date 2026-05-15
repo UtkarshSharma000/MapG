@@ -350,6 +350,8 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
   const [points, setPoints] = useState<THREE.Vector3[]>([]);
   const shuttleRef = useRef<THREE.Group>(null);
   const progressRef = useRef(0);
+  const launchTimeRef = useRef<number | null>(null);
+  const transferTimeRef = useRef<number>(1000);
 
   useEffect(() => {
     if (!launchParams || launchParams.isLaunched) return;
@@ -368,6 +370,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
         // The time is in seconds of simulation time.
         // Rough visual calculation of transfer time based on velocity.
         const transferTime = target.elements.period / 2 * (5 / (v0 || 5)); // roughly half the target period based on v0
+        transferTimeRef.current = transferTime;
         const arrivalTime = time + transferTime;
         
         const [eX, eY, eZ] = propagateOrbit(earth.elements, time);
@@ -419,30 +422,46 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
   useFrame((state, delta) => {
     if (!launchParams) return;
 
-    // Update start point of interplanetary curve if not launched, otherwise it disconnects from Earth
-    if (!launchParams.isLaunched && launchParams.targetPlanet && points.length > 0) {
-       const earth = PLANETS.find(p => p.name === "Earth");
-       if (earth) {
-         const time = globalTimeRef.current;
-         const [eX, eY, eZ] = propagateOrbit(earth.elements, time);
-         const p1 = new THREE.Vector3(eX * POS_SCALE, eY * POS_SCALE, eZ * POS_SCALE);
-         // Mutate just the first point to stay attached! Visual trick.
-         setPoints(pts => {
-           const newPts = [...pts];
-           newPts[0] = p1;
-           return newPts;
-         });
-       }
+    if (!launchParams.isLaunched) {
+      launchTimeRef.current = null;
+      progressRef.current = 0;
+      // Update start point of interplanetary curve if not launched, otherwise it disconnects from Earth
+      if (launchParams.targetPlanet && points.length > 0) {
+        const earth = PLANETS.find(p => p.name === "Earth");
+        if (earth) {
+          const time = globalTimeRef.current;
+          const [eX, eY, eZ] = propagateOrbit(earth.elements, time);
+          const p1 = new THREE.Vector3(eX * POS_SCALE, eY * POS_SCALE, eZ * POS_SCALE);
+          // Mutate just the first point to stay attached! Visual trick.
+          setPoints(pts => {
+            const newPts = [...pts];
+            newPts[0] = p1;
+            return newPts;
+          });
+        }
+      }
+      return;
     }
 
-    if (!launchParams.isLaunched || points.length === 0 || !shuttleRef.current) return;
+    if (points.length === 0 || !shuttleRef.current) return;
     
+    if (launchTimeRef.current === null) {
+      launchTimeRef.current = globalTimeRef.current;
+    }
+
     const timeMult = launchParams.timeMult || 1;
-    // Shuttle movement. If we have lots of points (LEO backend), speed needs to be faster
-    const baseSpeed = launchParams.targetPlanet ? 0.05 : 20.0; 
-    progressRef.current += delta * timeMult * baseSpeed;
-    
     const maxIdx = points.length - 1;
+
+    if (launchParams.targetPlanet) {
+      const elapsed = globalTimeRef.current - launchTimeRef.current;
+      const pct = Math.max(0, Math.min(1.0, elapsed / transferTimeRef.current));
+      progressRef.current = pct * maxIdx;
+    } else {
+      // Shuttle movement. If we have lots of points (LEO backend), speed needs to be faster
+      const baseSpeed = 20.0; 
+      progressRef.current += delta * timeMult * baseSpeed;
+    }
+    
     let currentIdx = Math.floor(progressRef.current);
     
     if (currentIdx >= maxIdx) {
