@@ -20,6 +20,13 @@ else
 fi
 
 echo "--- Compiling Propagator ---"
+ARCH=$(uname -m)
+if [ "$ARCH" = "aarch64" ]; then
+    OPT_FLAGS="-O3 -mcpu=neoverse-n1"
+else
+    OPT_FLAGS="-O3 -march=native"
+fi
+g++ $OPT_FLAGS -std=c++17 $EIGEN_INC local_backend/Propagator.cpp -o local_backend/odyssey_engine || \
 g++ -O3 -std=c++17 $EIGEN_INC local_backend/Propagator.cpp -o local_backend/odyssey_engine
 
 echo "--- Setting Permissions ---"

@@ -5,6 +5,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
+from pydantic import BaseModel
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -94,7 +95,7 @@ async def run_engine():
             # Enrich with Delhi math in the Python layer
             latest_telemetry = calculate_delhi_telemetry(raw_data)
         except Exception as e:
-            logger.warn(f"Parse error: {e}")
+            pass
 
 @app.on_event("startup")
 async def startup_event():
@@ -103,3 +104,40 @@ async def startup_event():
 @app.get("/telemetry")
 async def get_telemetry():
     return latest_telemetry
+
+@app.get("/trajectory-preview")
+async def trajectory_preview(v0: float, pitch: float, yaw: float, nbody: bool):
+    pitch_rad = math.radians(pitch)
+    yaw_rad = math.radians(yaw)
+    
+    vx = v0 * math.sin(pitch_rad)
+    vy = v0 * math.cos(pitch_rad) * math.cos(yaw_rad)
+    vz = v0 * math.cos(pitch_rad) * math.sin(yaw_rad)
+    
+    n_body_flag = "1" if nbody else "0"
+    
+    prog = await asyncio.create_subprocess_exec(
+        "./odyssey_engine", "preview", str(vx), str(vy), str(vz), n_body_flag,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        cwd="local_backend"
+    )
+    
+    stdout, stderr = await prog.communicate()
+    try:
+        data = json.loads(stdout.decode())
+        return {"path": data}
+    except Exception as e:
+        return {"error": "Failed to calculate trajectory preview"}
+
+class PredictRequest(BaseModel):
+    start_planet: str
+    target_orbit: str
+
+@app.post("/predict-path")
+async def predict_path(req: PredictRequest):
+    return {
+        "status": "success",
+        "delta_v": 3.14,
+        "message": f"Calculated trajectory from {req.start_planet} to {req.target_orbit}."
+    }

@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState } from "react";
+import React, { useRef, useMemo, useState, useEffect } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -10,6 +10,7 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 import { AU, propagateOrbit, KeplerianElements } from "./physics";
+import axios from "axios";
 
 // 1 AU = 100 units in our 3D scene
 const POS_SCALE = 100 / AU;
@@ -332,12 +333,58 @@ function Planet({
   );
 }
 
+function GhostPath({ launchParams }: { launchParams: any }) {
+  const [points, setPoints] = useState<THREE.Vector3[]>([]);
+
+  useEffect(() => {
+    if (!launchParams) return;
+    
+    const { v0, pitch, yaw, nbody } = launchParams;
+    const fetchPreview = async () => {
+      try {
+        const res = await axios.get("/api/trajectory-preview", {
+          params: { v0, pitch, yaw, nbody }
+        });
+        if (res.data.path) {
+          const orbitPoints = res.data.path.map((p: number[]) => 
+            new THREE.Vector3(p[0] * POS_SCALE, p[1] * POS_SCALE, p[2] * POS_SCALE)
+          );
+          setPoints(orbitPoints);
+        }
+      } catch (err) {
+        console.error("Ghost path fetch failed", err);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchPreview, 300); // Debounce
+    return () => clearTimeout(timeoutId);
+  }, [launchParams]);
+
+  if (points.length < 2) return null;
+
+  return (
+    <Line
+      points={points}
+      color="#00ffff"
+      lineWidth={1.5}
+      transparent
+      opacity={0.4}
+      dashed={true}
+      dashScale={50}
+      dashSize={1}
+      gapSize={1}
+    />
+  );
+}
+
 function SystemEngine({
   timeMult,
   selectedTarget,
+  launchParams,
 }: {
   timeMult: number;
   selectedTarget: (typeof PLANETS)[0] | null;
+  launchParams?: any;
 }) {
   const globalTimeRef = useRef(0);
   const controlsRef = useRef<any>(null);
@@ -401,6 +448,8 @@ function SystemEngine({
         <Planet key={p.name} data={p} globalTimeRef={globalTimeRef} />
       ))}
 
+      {launchParams && <GhostPath launchParams={launchParams} />}
+
       <OrbitControls
         ref={controlsRef}
         enablePan={true}
@@ -419,10 +468,12 @@ export default function OrbitSimulator({
   isRunning = false,
   timeMult = 10 * 24 * 3600,
   selectedTarget,
+  launchParams,
 }: {
   isRunning?: boolean;
   timeMult?: number;
   selectedTarget: (typeof PLANETS)[0] | null;
+  launchParams?: any;
 }) {
   return (
     <div
@@ -437,7 +488,11 @@ export default function OrbitSimulator({
           decay={0}
         />
 
-        <SystemEngine timeMult={timeMult} selectedTarget={selectedTarget} />
+        <SystemEngine 
+          timeMult={timeMult} 
+          selectedTarget={selectedTarget} 
+          launchParams={launchParams}
+        />
 
         <Stars
           radius={500}

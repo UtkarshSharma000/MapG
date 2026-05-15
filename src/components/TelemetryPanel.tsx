@@ -14,7 +14,7 @@ export function TelemetryPanel() {
   }, []);
 
   return (
-    <div className="absolute top-4 left-4 p-4 rounded-xl border border-outline bg-surface/80 backdrop-blur-md text-on-surface w-72 pointer-events-auto">
+    <div className="fixed top-20 left-72 p-4 rounded-xl border border-outline bg-surface/80 backdrop-blur-md text-on-surface w-72 pointer-events-auto z-40">
       <h3 className="font-heading font-medium text-lg uppercase mb-3 flex items-center justify-between">
         Live Telemetry
         <div className="flex items-center gap-2">

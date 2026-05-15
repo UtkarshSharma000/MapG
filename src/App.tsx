@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
 import { TelemetryPanel } from "./components/TelemetryPanel";
+import { LaunchHUD } from "./components/LaunchHUD";
 
 export default function App() {
   const [isSimulatorRunning, setIsSimulatorRunning] = useState(false);
@@ -17,6 +18,13 @@ export default function App() {
     (typeof PLANETS)[0] | null
   >(PLANETS[2]); // Earth
   const [timeMult, setTimeMult] = useState(1); // Realtime / Orbital / Galactic
+
+  // Launch Parameters
+  const [v0, setV0] = useState(7.67);
+  const [pitch, setPitch] = useState(0);
+  const [yaw, setYaw] = useState(0);
+  const [nbody, setNbody] = useState(true);
+  const [targetOrbit, setTargetOrbit] = useState("LEO");
 
   const renderTargetStats = () => {
     if (!selectedTarget) {
@@ -181,8 +189,8 @@ export default function App() {
         isRunning={isSimulatorRunning}
         timeMult={timeMult}
         selectedTarget={selectedTarget}
+        launchParams={{ v0, pitch, yaw, nbody }}
       />
-      {isSimulatorRunning && <TelemetryPanel />}
 
       {/* Landing Page Content */}
       <div
@@ -250,8 +258,23 @@ export default function App() {
 
       {/* Simulator Overlay UI */}
       <div
-        className={`absolute inset-0 z-20 pointer-events-none flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-100" : "opacity-0"}`}
+        className={`absolute inset-0 z-30 pointer-events-none flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-100" : "opacity-0"}`}
       >
+        {isSimulatorRunning && <TelemetryPanel />}
+        {isSimulatorRunning && (
+          <LaunchHUD
+            v0={v0}
+            setV0={setV0}
+            pitch={pitch}
+            setPitch={setPitch}
+            yaw={yaw}
+            setYaw={setYaw}
+            nbody={nbody}
+            setNbody={setNbody}
+            targetOrbit={targetOrbit}
+            setTargetOrbit={setTargetOrbit}
+          />
+        )}
         {/* Orbit Lines HUD Simulation */}
         <div className="absolute inset-0 z-0 pointer-events-none opacity-20">
           <div className="orbit-path w-[800px] h-[800px]"></div>
@@ -353,8 +376,8 @@ export default function App() {
           {/* Central Canvas Area (Interactive / Data Overlays) */}
           <main className="flex-1 ml-64 p-8 relative flex flex-col justify-between pointer-events-none">
             {/* Top Right: Target Selection & Quick Stats */}
-            <div className="absolute top-8 right-8 flex flex-col gap-4 items-end pointer-events-auto">
-              <div className="glass-panel p-4 rounded-lg w-80">
+            <div className="absolute top-20 right-8 flex flex-col gap-4 items-end pointer-events-auto">
+              <div className="glass-panel p-4 rounded-lg w-72">
                 {renderTargetStats()}
               </div>
 

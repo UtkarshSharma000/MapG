@@ -30,6 +30,18 @@ async function startServer() {
     }
   });
 
+  app.get("/api/trajectory-preview", async (req, res) => {
+    try {
+      const { v0, pitch, yaw, nbody } = req.query;
+      const url = `http://localhost:8000/trajectory-preview?v0=${v0}&pitch=${pitch}&yaw=${yaw}&nbody=${nbody}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch trajectory preview" });
+    }
+  });
+
   // Start the Python FastAPI Bridge
   console.log("Starting Python FastAPI bridge...");
   const pythonProcess = spawn("python3", ["-m", "uvicorn", "main:app", "--port", "8000"], {
