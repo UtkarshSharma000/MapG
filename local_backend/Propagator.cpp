@@ -126,11 +126,28 @@ int main(int argc, char* argv[]) {
     state << 7000.0, 0.0, 0.0,  
              0.0, 7.5, 0.5;
 
-    if (argc >= 6 && string(argv[1]) == "preview") {
+    if (argc >= 10 && string(argv[1]) == "preview") {
         preview_mode = true;
-        state << RE + 400.0, 0.0, 0.0,
-                 stod(argv[2]), stod(argv[3]), stod(argv[4]);
+        
+        double vx = stod(argv[2]);
+        double vy = stod(argv[3]);
+        double vz = stod(argv[4]);
         nbody_enabled = stoi(argv[5]) == 1;
+        
+        double start_lat = stod(argv[6]);
+        double start_lon = stod(argv[7]);
+        double target_lat = stod(argv[8]);
+        double target_lon = stod(argv[9]);
+        
+        // Very basic coordinate setup based on start_lat/lon for Earth just as a demonstration
+        double lat_rad = start_lat * M_PI / 180.0;
+        double lon_rad = start_lon * M_PI / 180.0;
+        double rx = (RE + 400.0) * cos(lat_rad) * cos(lon_rad);
+        double ry = (RE + 400.0) * cos(lat_rad) * sin(lon_rad);
+        double rz = (RE + 400.0) * sin(lat_rad);
+        
+        state << rx, ry, rz,
+                 vx, vy, vz;
     }
 
     double t = 0.0;

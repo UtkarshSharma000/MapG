@@ -106,7 +106,7 @@ async def get_telemetry():
     return latest_telemetry
 
 @app.get("/trajectory-preview")
-async def trajectory_preview(v0: float, pitch: float, yaw: float, nbody: bool):
+async def trajectory_preview(v0: float, pitch: float, yaw: float, nbody: bool, start_lat: float = 0, start_lon: float = 0, target_lat: float = 0, target_lon: float = 0):
     pitch_rad = math.radians(pitch)
     yaw_rad = math.radians(yaw)
     
@@ -116,8 +116,10 @@ async def trajectory_preview(v0: float, pitch: float, yaw: float, nbody: bool):
     
     n_body_flag = "1" if nbody else "0"
     
+    # We can pass lat/lon to engine or just let engine generate the curve based on v0, pitch, yaw
+    # Adding start_lat, start_lon, target_lat, target_lon to args
     prog = await asyncio.create_subprocess_exec(
-        "./odyssey_engine", "preview", str(vx), str(vy), str(vz), n_body_flag,
+        "./odyssey_engine", "preview", str(vx), str(vy), str(vz), n_body_flag, str(start_lat), str(start_lon), str(target_lat), str(target_lon),
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
         cwd="."

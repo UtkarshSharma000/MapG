@@ -11,6 +11,7 @@ import {
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
 import { TelemetryPanel } from "./components/TelemetryPanel";
 import { LaunchHUD } from "./components/LaunchHUD";
+import { Planet2DMap } from "./components/Planet2DMap";
 
 export default function App() {
   const [isSimulatorRunning, setIsSimulatorRunning] = useState(false);
@@ -25,6 +26,23 @@ export default function App() {
   const [yaw, setYaw] = useState(0);
   const [nbody, setNbody] = useState(true);
   const [targetOrbit, setTargetOrbit] = useState("LEO");
+
+  const [mapPlanet, setMapPlanet] = useState<string | null>(null);
+  const [launchLocation, setLaunchLocation] = useState<{lat: number, lon: number} | null>(null);
+  const [targetLocation, setTargetLocation] = useState<{lat: number, lon: number} | null>(null);
+  const [isLaunched, setIsLaunched] = useState(false);
+
+  const handleLaunch = () => {
+    setIsLaunched(true);
+  };
+
+  const handleSelectLocation = (planet: string, lat: number, lon: number) => {
+    if (planet === "Earth") {
+      setLaunchLocation({ lat, lon });
+    } else {
+      setTargetLocation({ lat, lon });
+    }
+  };
 
   const renderTargetStats = () => {
     if (!selectedTarget) {
@@ -189,7 +207,8 @@ export default function App() {
         isRunning={isSimulatorRunning}
         timeMult={timeMult}
         selectedTarget={selectedTarget}
-        launchParams={{ v0, pitch, yaw, nbody }}
+        launchParams={{ v0, pitch, yaw, nbody, launchLocation, targetLocation, timeMult, isLaunched }}
+        onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
       />
 
       {/* Landing Page Content */}
@@ -273,6 +292,16 @@ export default function App() {
             setNbody={setNbody}
             targetOrbit={targetOrbit}
             setTargetOrbit={setTargetOrbit}
+            onLaunch={handleLaunch}
+            isLaunched={isLaunched}
+          />
+        )}
+        {mapPlanet && (
+          <Planet2DMap 
+            planetName={mapPlanet}
+            onClose={() => setMapPlanet(null)}
+            onSelectLocation={handleSelectLocation}
+            isTargetSettings={mapPlanet !== "Earth"}
           />
         )}
         {/* Orbit Lines HUD Simulation */}

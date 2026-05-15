@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import Draggable from "react-draggable";
+import { Move } from "lucide-react";
 
 export function LaunchHUD({
   v0,
@@ -10,77 +12,92 @@ export function LaunchHUD({
   nbody,
   setNbody,
   targetOrbit,
-  setTargetOrbit
+  setTargetOrbit,
+  onLaunch,
+  isLaunched
 }: any) {
   return (
-    <div className="fixed right-4 bottom-24 w-72 bg-surface/80 backdrop-blur-md border border-outline rounded-xl p-4 text-on-surface z-40 pointer-events-auto">
-      <h3 className="font-heading font-medium text-lg uppercase mb-4 tracking-wider border-b border-outline/30 pb-2">VAB Launch Profile</h3>
-      
-      <div className="space-y-4">
-        <div>
-          <div className="flex justify-between mb-1">
-            <label className="text-xs font-mono text-outline">Initial Velocity (v0)</label>
-            <span className="text-xs font-mono text-primary">{v0.toFixed(1)} km/s</span>
-          </div>
-          <input 
-            type="range" min="0" max="25" step="0.1" 
-            value={v0} onChange={(e) => setV0(parseFloat(e.target.value))}
-            className="w-full accent-primary"
-          />
-        </div>
-
-        <div>
-          <div className="flex justify-between mb-1">
-            <label className="text-xs font-mono text-outline">Pitch Angle</label>
-            <span className="text-xs font-mono text-primary">{pitch}°</span>
-          </div>
-          <input 
-            type="range" min="-90" max="90" step="1" 
-            value={pitch} onChange={(e) => setPitch(parseFloat(e.target.value))}
-            className="w-full accent-primary"
-          />
-        </div>
-
-        <div>
-           <div className="flex justify-between mb-1">
-            <label className="text-xs font-mono text-outline">Yaw Angle</label>
-            <span className="text-xs font-mono text-primary">{yaw}°</span>
-          </div>
-          <input 
-            type="range" min="-180" max="180" step="1" 
-            value={yaw} onChange={(e) => setYaw(parseFloat(e.target.value))}
-            className="w-full accent-primary"
-          />
+    <Draggable handle=".vab-drag-handle">
+      <div className="fixed right-4 bottom-24 w-72 bg-surface/80 backdrop-blur-md border border-outline rounded-xl p-4 text-on-surface z-40 pointer-events-auto shadow-2xl flex flex-col">
+        <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-outline/30 pb-2 mb-4">
+          <h3 className="font-heading font-medium text-lg uppercase tracking-wider">VAB Launch Profile</h3>
+          <Move className="w-4 h-4 text-outline" />
         </div>
         
-        <div>
-           <label className="text-xs font-mono text-outline block mb-1">Target Orbit</label>
-           <select 
-             value={targetOrbit} 
-             onChange={(e) => setTargetOrbit(e.target.value)}
-             className="w-full bg-[#0a0a0a] border border-outline/50 rounded p-1 text-xs font-mono focus:border-primary outline-none"
-           >
-             <option value="LEO">Low Earth Orbit</option>
-             <option value="Lunar">Lunar Transfer</option>
-             <option value="Mars">Mars Transfer</option>
-           </select>
-        </div>
+        <div className="space-y-4">
+          <div>
+            <div className="flex justify-between mb-1">
+              <label className="text-xs font-mono text-outline">Initial Velocity (v0)</label>
+              <span className="text-xs font-mono text-primary">{v0.toFixed(1)} km/s</span>
+            </div>
+            <input 
+              type="range" min="0" max="25" step="0.1" 
+              value={v0} onChange={(e) => setV0(parseFloat(e.target.value))}
+              className="w-full accent-primary cursor-pointer"
+              disabled={isLaunched}
+            />
+          </div>
 
-        <div className="flex items-center gap-2 pt-2 border-t border-outline/20">
-          <input 
-            type="checkbox" 
-            id="nbody-toggle" 
-            checked={nbody} 
-            onChange={(e) => setNbody(e.target.checked)}
-            className="accent-primary"
-          />
-          <label htmlFor="nbody-toggle" className="text-xs font-mono text-outline">Enable N-Body Perturbations (Deep Space)</label>
-        </div>
+          <div>
+            <div className="flex justify-between mb-1">
+              <label className="text-xs font-mono text-outline">Pitch Angle</label>
+              <span className="text-xs font-mono text-primary">{pitch}°</span>
+            </div>
+            <input 
+              type="range" min="-90" max="90" step="1" 
+              value={pitch} onChange={(e) => setPitch(parseFloat(e.target.value))}
+              className="w-full accent-primary cursor-pointer"
+              disabled={isLaunched}
+            />
+          </div>
 
-        <button className="w-full py-2 bg-primary/20 text-primary border border-primary/50 rounded font-label-caps tracking-[0.15em] text-xs hover:bg-primary/30 transition-colors mt-2">
-           SIMULATE LAUNCH
-        </button>
+          <div>
+             <div className="flex justify-between mb-1">
+              <label className="text-xs font-mono text-outline">Yaw Angle</label>
+              <span className="text-xs font-mono text-primary">{yaw}°</span>
+            </div>
+            <input 
+              type="range" min="-180" max="180" step="1" 
+              value={yaw} onChange={(e) => setYaw(parseFloat(e.target.value))}
+              className="w-full accent-primary cursor-pointer"
+              disabled={isLaunched}
+            />
+          </div>
+          
+          <div>
+             <label className="text-xs font-mono text-outline block mb-1">Target Orbit</label>
+             <select 
+               value={targetOrbit} 
+               onChange={(e) => setTargetOrbit(e.target.value)}
+               className="w-full bg-[#0a0a0a] border border-outline/50 rounded p-1 text-xs font-mono focus:border-primary outline-none cursor-pointer"
+               disabled={isLaunched}
+             >
+               <option value="LEO">Low Earth Orbit</option>
+               <option value="Lunar">Lunar Transfer</option>
+               <option value="Mars">Mars Transfer</option>
+             </select>
+          </div>
+
+          <div className="flex items-center gap-2 pt-2 border-t border-outline/20">
+            <input 
+              type="checkbox" 
+              id="nbody-toggle" 
+              checked={nbody} 
+              onChange={(e) => setNbody(e.target.checked)}
+              className="accent-primary cursor-pointer"
+              disabled={isLaunched}
+            />
+            <label htmlFor="nbody-toggle" className="text-xs font-mono text-outline cursor-pointer">Enable N-Body Perturbations (Deep Space)</label>
+          </div>
+
+          <button 
+            className={`w-full py-2 bg-primary/20 border border-primary/50 rounded font-label-caps tracking-[0.15em] text-xs transition-colors mt-2 ${isLaunched ? 'text-green-400 bg-green-500/20 border-green-500/50 cursor-default animate-pulse' : 'text-primary hover:bg-primary/30 cursor-pointer'}`}
+            onClick={!isLaunched ? onLaunch : undefined}
+          >
+             {isLaunched ? 'LAUNCH IN PROGRESS' : 'SIMULATE LAUNCH'}
+          </button>
+        </div>
       </div>
-    </div>
+    </Draggable>
   );
 }

@@ -246,9 +246,11 @@ function TexturedPlanet({
 function Planet({
   data,
   globalTimeRef,
+  onDoubleClick,
 }: {
   data: (typeof PLANETS)[0];
   globalTimeRef: React.MutableRefObject<number>;
+  onDoubleClick?: (name: string) => void;
 }) {
   const ref = useRef<THREE.Group>(null);
 
@@ -291,7 +293,13 @@ function Planet({
       />
 
       {/* Planet Model */}
-      <group ref={ref}>
+      <group 
+        ref={ref}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          if (onDoubleClick) onDoubleClick(data.name);
+        }}
+      >
         <mesh>
           <TexturedPlanet
             radius={radius}
@@ -335,15 +343,22 @@ function Planet({
 
 function GhostPath({ launchParams }: { launchParams: any }) {
   const [points, setPoints] = useState<THREE.Vector3[]>([]);
+  const shuttleRef = useRef<THREE.Group>(null);
+  const progressRef = useRef(0);
 
   useEffect(() => {
-    if (!launchParams) return;
+    if (!launchParams || launchParams.isLaunched) return;
     
-    const { v0, pitch, yaw, nbody } = launchParams;
+    const { v0, pitch, yaw, nbody, launchLocation, targetLocation } = launchParams;
+    const startLat = launchLocation?.lat || 0;
+    const startLon = launchLocation?.lon || 0;
+    const targetLat = targetLocation?.lat || 0;
+    const targetLon = targetLocation?.lon || 0;
+
     const fetchPreview = async () => {
       try {
         const res = await axios.get("/api/trajectory-preview", {
-          params: { v0, pitch, yaw, nbody }
+          params: { v0, pitch, yaw, nbody, startLat, startLon, targetLat, targetLon }
         });
         if (res.data.path) {
           const orbitPoints = res.data.path.map((p: number[]) => 
@@ -360,20 +375,55 @@ function GhostPath({ launchParams }: { launchParams: any }) {
     return () => clearTimeout(timeoutId);
   }, [launchParams]);
 
+  useFrame((state, delta) => {
+    if (!launchParams?.isLaunched || points.length === 0 || !shuttleRef.current) return;
+    
+    const timeMult = launchParams.timeMult || 1;
+    progressRef.current += delta * timeMult * 0.05; // Base speed + time multiplier
+    
+    const maxIdx = points.length - 1;
+    let currentIdx = Math.floor(progressRef.current);
+    
+    if (currentIdx >= maxIdx) {
+      currentIdx = maxIdx - 1;
+      progressRef.current = maxIdx;
+    }
+    
+    const p1 = points[currentIdx];
+    const p2 = points[currentIdx + 1];
+    
+    // Lerp
+    const t = progressRef.current - currentIdx;
+    shuttleRef.current.position.lerpVectors(p1, p2, t);
+    shuttleRef.current.lookAt(p2);
+  });
+
   if (points.length < 2) return null;
 
   return (
-    <Line
-      points={points}
-      color="#00ffff"
-      lineWidth={1.5}
-      transparent
-      opacity={0.4}
-      dashed={true}
-      dashScale={50}
-      dashSize={1}
-      gapSize={1}
-    />
+    <group>
+      <Line
+        points={points}
+        color={launchParams?.isLaunched ? "#ff4444" : "#00ffff"}
+        lineWidth={1.5}
+        transparent
+        opacity={launchParams?.isLaunched ? 0.7 : 0.4}
+        dashed={true}
+        dashScale={50}
+        dashSize={1}
+        gapSize={1}
+      />
+      
+      {launchParams?.isLaunched && points.length > 0 && (
+        <group ref={shuttleRef} position={points[0]}>
+           <mesh rotation={[Math.PI / 2, 0, 0]}>
+             <coneGeometry args={[0.1, 0.3, 16]} />
+             <meshStandardMaterial color="#ffffff" emissive="#ff4444" emissiveIntensity={0.8} />
+           </mesh>
+           <pointLight color="#ff4444" intensity={5} distance={10} />
+        </group>
+      )}
+    </group>
   );
 }
 
@@ -381,10 +431,12 @@ function SystemEngine({
   timeMult,
   selectedTarget,
   launchParams,
+  onPlanetDoubleClick
 }: {
   timeMult: number;
   selectedTarget: (typeof PLANETS)[0] | null;
   launchParams?: any;
+  onPlanetDoubleClick?: (name: string) => void;
 }) {
   const globalTimeRef = useRef(0);
   const controlsRef = useRef<any>(null);
@@ -445,7 +497,7 @@ function SystemEngine({
       </mesh>
 
       {PLANETS.map((p) => (
-        <Planet key={p.name} data={p} globalTimeRef={globalTimeRef} />
+        <Planet key={p.name} data={p} globalTimeRef={globalTimeRef} onDoubleClick={onPlanetDoubleClick} />
       ))}
 
       {launchParams && <GhostPath launchParams={launchParams} />}
@@ -469,11 +521,13 @@ export default function OrbitSimulator({
   timeMult = 10 * 24 * 3600,
   selectedTarget,
   launchParams,
+  onPlanetDoubleClick,
 }: {
   isRunning?: boolean;
   timeMult?: number;
   selectedTarget: (typeof PLANETS)[0] | null;
   launchParams?: any;
+  onPlanetDoubleClick?: (name: string) => void;
 }) {
   return (
     <div
@@ -492,6 +546,7 @@ export default function OrbitSimulator({
           timeMult={timeMult} 
           selectedTarget={selectedTarget} 
           launchParams={launchParams}
+          onPlanetDoubleClick={onPlanetDoubleClick}
         />
 
         <Stars
