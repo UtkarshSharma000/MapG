@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <Eigen/Dense>
 #include <string>
+#include "GuidanceComputer.hpp"
 
 using namespace std;
 using namespace Eigen;
@@ -139,15 +140,43 @@ int main(int argc, char* argv[]) {
         double target_lat = stod(argv[8]);
         double target_lon = stod(argv[9]);
         
-        // Very basic coordinate setup based on start_lat/lon for Earth just as a demonstration
         double lat_rad = start_lat * M_PI / 180.0;
         double lon_rad = start_lon * M_PI / 180.0;
+        // Start 400km above surface
         double rx = (RE + 400.0) * cos(lat_rad) * cos(lon_rad);
         double ry = (RE + 400.0) * cos(lat_rad) * sin(lon_rad);
         double rz = (RE + 400.0) * sin(lat_rad);
         
         state << rx, ry, rz,
                  vx, vy, vz;
+
+        // If a target is provided (not both 0), run the landing path predictor
+        if (target_lat != 0.0 || target_lon != 0.0) {
+            GuidanceComputer gc(MU_EARTH, RE, 150.0, 2e-12, 8.5, 2.2, 0.01);
+            double earth_rotation_rate = 7.2921159e-5; // rad/s
+            vector<Vector3d> path = gc.find_landing_trajectory(
+                Vector3d(rx, ry, rz), 
+                Vector3d::Zero(), 
+                target_lat, 
+                target_lon, 
+                earth_rotation_rate
+            );
+            
+            cout << "[";
+            int step = max(1, (int)path.size() / 500); // limit to max 500 steps
+            bool first = true;
+            for (size_t i = 0; i < path.size(); i += step) {
+                if (!first) cout << ",";
+                cout << "[" << path[i].x() << "," << path[i].y() << "," << path[i].z() << "]";
+                first = false;
+            }
+            if (path.size() > 0 && (path.size() - 1) % step != 0) {
+                const auto& last = path.back();
+                cout << ",[" << last.x() << "," << last.y() << "," << last.z() << "]";
+            }
+            cout << "]" << endl;
+            return 0;
+        }
     }
 
     double t = 0.0;

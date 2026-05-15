@@ -38,11 +38,15 @@ export default function App() {
     setIsLaunched(true);
   };
 
-  const handleSelectLocation = (planet: string, lat: number, lon: number) => {
-    if (planet === "Earth") {
+  const handleSelectLocation = (type: "launch" | "target", planet: string, lat: number, lon: number) => {
+    if (type === "launch") {
       setLaunchLocation({ lat, lon });
     } else {
-      setTargetPlanet(planet);
+      if (planet !== "Earth") {
+        setTargetPlanet(planet);
+      } else {
+        setTargetPlanet((prev) => prev ? null : null); // Earth is target
+      }
       setTargetLocation({ lat, lon });
     }
   };
@@ -304,7 +308,6 @@ export default function App() {
             planetName={mapPlanet}
             onClose={() => setMapPlanet(null)}
             onSelectLocation={handleSelectLocation}
-            isTargetSettings={mapPlanet !== "Earth"}
           />
         )}
         {/* Orbit Lines HUD Simulation */}

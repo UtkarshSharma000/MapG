@@ -2,28 +2,34 @@ import React, { useState, useRef } from "react";
 import Draggable from "react-draggable";
 import { X, Map, Target, Crosshair } from "lucide-react";
 
-export function Planet2DMap({ planetName, onClose, onSelectLocation, isTargetSettings }: any) {
+export function Planet2DMap({ planetName, onClose, onSelectLocation }: any) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [clickPoint, setClickPoint] = useState<{lat: number, lon: number, x: number, y: number} | null>(null);
+  const [clickPoint, setClickPoint] = useState<{lat: number, lon: number, x: number, y: number, type: "launch" | "target"} | null>(null);
 
   const nodeRef = useRef<HTMLDivElement>(null);
 
-  const handleMiddleClick = (e: React.MouseEvent) => {
-    if (e.button === 1) { // Middle click
-      e.preventDefault();
-      if (!mapRef.current) return;
-      const rect = mapRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      
-      // Calculate Lat/Lon assuming simple equirectangular projection
-      const lon = (x / rect.width) * 360 - 180;
-      const lat = 90 - (y / rect.height) * 180;
-      
-      setClickPoint({ lat, lon, x, y });
-      if (onSelectLocation) {
-        onSelectLocation(planetName, lat, lon);
-      }
+  const handleMapClick = (e: React.MouseEvent, clickType: "launch" | "target") => {
+    e.preventDefault();
+    if (!mapRef.current) return;
+    const rect = mapRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Calculate Lat/Lon assuming simple equirectangular projection
+    const lon = (x / rect.width) * 360 - 180;
+    const lat = 90 - (y / rect.height) * 180;
+    
+    setClickPoint({ lat, lon, x, y, type: clickType });
+    if (onSelectLocation) {
+      onSelectLocation(clickType, planetName, lat, lon);
+    }
+  };
+
+  const handlePointerDown = (e: React.MouseEvent) => {
+    if (e.button === 0) {
+      handleMapClick(e, "target");
+    } else if (e.button === 2) {
+      handleMapClick(e, "launch");
     }
   };
 
@@ -61,8 +67,8 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, isTargetSet
         <div className="relative flex-1 bg-[#0a0f1a] overflow-hidden bg-cover bg-center" 
              style={{ backgroundImage: `url(${getTexture()})` }}
              ref={mapRef}
-             onMouseDown={handleMiddleClick}
-             onContextMenu={(e) => e.preventDefault()} // Prevent context menu if needed
+             onPointerDown={handlePointerDown}
+             onContextMenu={(e) => e.preventDefault()} // Prevent context menu
         >
           {/* Grid lines */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
@@ -73,7 +79,7 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, isTargetSet
 
           {/* Instructions */}
           <div className="absolute top-4 left-4 bg-black/50 p-2 rounded text-xs font-mono text-outline border border-outline/30 pointer-events-none">
-            MIDDLE-CLICK to set {isTargetSettings ? 'Target' : 'Launch'} Location
+            LEFT-CLICK: Set Target | RIGHT-CLICK: Set Launch
           </div>
 
           {/* Click Marker */}
@@ -82,7 +88,7 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, isTargetSet
               className="absolute w-4 h-4 -ml-2 -mt-2 text-primary pointer-events-none"
               style={{ left: clickPoint.x, top: clickPoint.y }}
             >
-              {isTargetSettings ? <Target className="w-4 h-4 animate-pulse" color="#ff4444" /> : <Crosshair className="w-4 h-4 text-primary animate-spin-slow" />}
+              {clickPoint.type === "target" ? <Target className="w-4 h-4 animate-pulse" color="#ff4444" /> : <Crosshair className="w-4 h-4 text-primary animate-spin-slow" />}
             </div>
           )}
         </div>
@@ -91,8 +97,8 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, isTargetSet
         <div className="bg-surface border-t border-outline p-2 px-4 flex justify-between items-center text-xs font-mono">
           <span>PROJECTION: EQUIRECTANGULAR</span>
           {clickPoint ? (
-            <span className={isTargetSettings ? "text-red-400" : "text-primary"}>
-              LAT: {clickPoint.lat.toFixed(4)}° / LON: {clickPoint.lon.toFixed(4)}°
+            <span className={clickPoint.type === "target" ? "text-red-400" : "text-primary"}>
+              {clickPoint.type === "target" ? "TARGET" : "LAUNCH"} LAT: {clickPoint.lat.toFixed(4)}° / LON: {clickPoint.lon.toFixed(4)}°
             </span>
           ) : (
             <span className="text-outline">NO COORDINATES SELECTED</span>
