@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useRef } from "react";
 import Draggable from "react-draggable";
 import { Move } from "lucide-react";
 
@@ -16,9 +16,11 @@ export function LaunchHUD({
   onLaunch,
   isLaunched
 }: any) {
+  const nodeRef = useRef<HTMLDivElement>(null);
+
   return (
-    <Draggable handle=".vab-drag-handle">
-      <div className="fixed right-4 bottom-24 w-72 bg-surface/80 backdrop-blur-md border border-outline rounded-xl p-4 text-on-surface z-40 pointer-events-auto shadow-2xl flex flex-col">
+    <Draggable nodeRef={nodeRef} handle=".vab-drag-handle">
+      <div ref={nodeRef} className="fixed right-4 bottom-24 w-72 bg-surface/80 backdrop-blur-md border border-outline rounded-xl p-4 text-on-surface z-40 pointer-events-auto shadow-2xl flex flex-col">
         <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-outline/30 pb-2 mb-4">
           <h3 className="font-heading font-medium text-lg uppercase tracking-wider">VAB Launch Profile</h3>
           <Move className="w-4 h-4 text-outline" />

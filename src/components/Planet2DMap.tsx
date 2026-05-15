@@ -6,6 +6,8 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, isTargetSet
   const mapRef = useRef<HTMLDivElement>(null);
   const [clickPoint, setClickPoint] = useState<{lat: number, lon: number, x: number, y: number} | null>(null);
 
+  const nodeRef = useRef<HTMLDivElement>(null);
+
   const handleMiddleClick = (e: React.MouseEvent) => {
     if (e.button === 1) { // Middle click
       e.preventDefault();
@@ -26,8 +28,8 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, isTargetSet
   };
 
   return (
-    <Draggable handle=".drag-handle">
-      <div className="fixed top-24 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-surface/90 backdrop-blur-md border border-outline rounded-xl shadow-2xl overflow-hidden z-50 pointer-events-auto flex flex-col">
+    <Draggable nodeRef={nodeRef} handle=".drag-handle">
+      <div ref={nodeRef} className="fixed top-24 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-surface/90 backdrop-blur-md border border-outline rounded-xl shadow-2xl overflow-hidden z-50 pointer-events-auto flex flex-col">
         {/* Header */}
         <div className="drag-handle bg-surface border-b border-outline p-3 flex justify-between items-center cursor-move">
           <div className="flex items-center gap-2">
