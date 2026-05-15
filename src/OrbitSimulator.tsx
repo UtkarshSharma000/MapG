@@ -303,7 +303,7 @@ function Planet({
         }}
       >
         {data.name === "Earth" && launchParams && !launchParams.targetPlanet && (
-          <GhostPath launchParams={launchParams} />
+          <GhostPath launchParams={launchParams} globalTimeRef={globalTimeRef} />
         )}
         <mesh>
           <TexturedPlanet
@@ -346,7 +346,7 @@ function Planet({
   );
 }
 
-function GhostPath({ launchParams }: { launchParams: any }) {
+function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalTimeRef: any }) {
   const [points, setPoints] = useState<THREE.Vector3[]>([]);
   const shuttleRef = useRef<THREE.Group>(null);
   const progressRef = useRef(0);
@@ -360,6 +360,36 @@ function GhostPath({ launchParams }: { launchParams: any }) {
     const targetLat = targetLocation?.lat || 0;
     const targetLon = targetLocation?.lon || 0;
 
+    if (targetPlanet) {
+      const earth = PLANETS.find(p => p.name === "Earth");
+      const target = PLANETS.find(p => p.name === targetPlanet);
+      if (earth && target) {
+        const time = globalTimeRef.current;
+        // The time is in seconds of simulation time.
+        // Rough visual calculation of transfer time based on velocity.
+        const transferTime = target.elements.period / 2 * (5 / (v0 || 5)); // roughly half the target period based on v0
+        const arrivalTime = time + transferTime;
+        
+        const [eX, eY, eZ] = propagateOrbit(earth.elements, time);
+        const [tX, tY, tZ] = propagateOrbit(target.elements, arrivalTime);
+        
+        const p1 = new THREE.Vector3(eX * POS_SCALE, eY * POS_SCALE, eZ * POS_SCALE);
+        const p2 = new THREE.Vector3(tX * POS_SCALE, tY * POS_SCALE, tZ * POS_SCALE);
+        
+        const midR = (earth.elements.a + target.elements.a) / 2 * POS_SCALE;
+        // Approximate a mid point out of plane 
+        const pMid = p1.clone().add(p2).multiplyScalar(0.5);
+        pMid.y += (pitch || 0) * 0.5; // slight out-of-plane effect
+        // push midpoint halfway outwards to make an arc
+        pMid.normalize().multiplyScalar(midR);
+        pMid.y += (pitch || 0);
+        
+        const curve = new THREE.QuadraticBezierCurve3(p1, pMid, p2);
+        setPoints(curve.getPoints(300));
+      }
+      return;
+    }
+
     const fetchPreview = async () => {
       try {
         const res = await axios.get("/api/trajectory-preview", {
@@ -367,8 +397,13 @@ function GhostPath({ launchParams }: { launchParams: any }) {
         });
         if (res.data.path) {
           const orbitPoints = res.data.path.map((p: number[]) => {
-            const scale = targetPlanet ? POS_SCALE : PLANET_SIZE_SCALE;
-            return new THREE.Vector3(p[0] * scale, p[1] * scale, p[2] * scale);
+            // Backend returns km. Earth radius is 6371.0. Scale identically exactly over the planet mesh!
+            // Z needs to be negative Y, because of Unity/Unreal/Three.js handedness differences in physics vs visuals
+            return new THREE.Vector3(
+              (p[0] / 6371.0) * PLANET_SIZE_SCALE * 1.0, 
+              (p[2] / 6371.0) * PLANET_SIZE_SCALE * 1.0, 
+              -(p[1] / 6371.0) * PLANET_SIZE_SCALE * 1.0
+            );
           });
           setPoints(orbitPoints);
         }
@@ -382,10 +417,30 @@ function GhostPath({ launchParams }: { launchParams: any }) {
   }, [launchParams]);
 
   useFrame((state, delta) => {
-    if (!launchParams?.isLaunched || points.length === 0 || !shuttleRef.current) return;
+    if (!launchParams) return;
+
+    // Update start point of interplanetary curve if not launched, otherwise it disconnects from Earth
+    if (!launchParams.isLaunched && launchParams.targetPlanet && points.length > 0) {
+       const earth = PLANETS.find(p => p.name === "Earth");
+       if (earth) {
+         const time = globalTimeRef.current;
+         const [eX, eY, eZ] = propagateOrbit(earth.elements, time);
+         const p1 = new THREE.Vector3(eX * POS_SCALE, eY * POS_SCALE, eZ * POS_SCALE);
+         // Mutate just the first point to stay attached! Visual trick.
+         setPoints(pts => {
+           const newPts = [...pts];
+           newPts[0] = p1;
+           return newPts;
+         });
+       }
+    }
+
+    if (!launchParams.isLaunched || points.length === 0 || !shuttleRef.current) return;
     
     const timeMult = launchParams.timeMult || 1;
-    progressRef.current += delta * timeMult * 0.05; // Base speed + time multiplier
+    // Shuttle movement. If we have lots of points (LEO backend), speed needs to be faster
+    const baseSpeed = launchParams.targetPlanet ? 0.05 : 20.0; 
+    progressRef.current += delta * timeMult * baseSpeed;
     
     const maxIdx = points.length - 1;
     let currentIdx = Math.floor(progressRef.current);
@@ -507,7 +562,7 @@ function SystemEngine({
       ))}
 
       {launchParams && launchParams.targetPlanet && (
-        <GhostPath launchParams={launchParams} />
+        <GhostPath launchParams={launchParams} globalTimeRef={globalTimeRef} />
       )}
 
       <OrbitControls
