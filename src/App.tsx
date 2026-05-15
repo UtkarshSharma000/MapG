@@ -212,7 +212,7 @@ export default function App() {
         isRunning={isSimulatorRunning}
         timeMult={timeMult}
         selectedTarget={selectedTarget}
-        launchParams={{ v0, pitch, yaw, nbody, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched }}
+        launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched }}
         onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
       />
 

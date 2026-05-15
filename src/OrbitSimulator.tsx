@@ -9,7 +9,7 @@ import {
   useTexture,
 } from "@react-three/drei";
 import * as THREE from "three";
-import { AU, propagateOrbit, KeplerianElements } from "./physics";
+import { AU, propagateOrbit, KeplerianElements, simulateInterplanetaryRK4 } from "./physics";
 import axios from "axios";
 
 // 1 AU = 100 units in our 3D scene
@@ -363,32 +363,55 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
     const targetLon = targetLocation?.lon || 0;
 
     if (targetPlanet) {
-      const earth = PLANETS.find(p => p.name === "Earth");
+      const earth = PLANETS.find(p => p.name === (launchParams.launchPlanet || "Earth"));
       const target = PLANETS.find(p => p.name === targetPlanet);
       if (earth && target) {
+        // Run N-body simulation in Javascript to hit target planet
         const time = globalTimeRef.current;
-        // The time is in seconds of simulation time.
-        // Rough visual calculation of transfer time based on velocity.
-        const transferTime = target.elements.period / 2 * (5 / (v0 || 5)); // roughly half the target period based on v0
-        transferTimeRef.current = transferTime;
-        const arrivalTime = time + transferTime;
+        const startPos = propagateOrbit(earth.elements, time);
         
-        const [eX, eY, eZ] = propagateOrbit(earth.elements, time);
-        const [tX, tY, tZ] = propagateOrbit(target.elements, arrivalTime);
+        // Calculate Earth's heliocentric velocity
+        const dt = 1.0; 
+        const p1_v = propagateOrbit(earth.elements, time - dt/2);
+        const p2_v = propagateOrbit(earth.elements, time + dt/2);
+        const eVel = [
+          (p2_v[0] - p1_v[0]) / dt,
+          (p2_v[1] - p1_v[1]) / dt,
+          (p2_v[2] - p1_v[2]) / dt
+        ];
         
-        const p1 = new THREE.Vector3(eX * POS_SCALE, eY * POS_SCALE, eZ * POS_SCALE);
-        const p2 = new THREE.Vector3(tX * POS_SCALE, tY * POS_SCALE, tZ * POS_SCALE);
+        // Rocket velocity relative to earth
+        const speed = (v0 || 8) * 1000; // km/s to m/s
+        const pitchRad = ((pitch || 0) * Math.PI) / 180;
+        const yawRad = ((yaw || 0) * Math.PI) / 180;
         
-        const midR = (earth.elements.a + target.elements.a) / 2 * POS_SCALE;
-        // Approximate a mid point out of plane 
-        const pMid = p1.clone().add(p2).multiplyScalar(0.5);
-        pMid.y += (pitch || 0) * 0.5; // slight out-of-plane effect
-        // push midpoint halfway outwards to make an arc
-        pMid.normalize().multiplyScalar(midR);
-        pMid.y += (pitch || 0);
+        const rVx = speed * Math.cos(pitchRad) * Math.cos(yawRad);
+        const rVy = speed * Math.sin(pitchRad);
+        const rVz = -speed * Math.cos(pitchRad) * Math.sin(yawRad); 
         
-        const curve = new THREE.QuadraticBezierCurve3(p1, pMid, p2);
-        setPoints(curve.getPoints(300));
+        const startVel: [number, number, number] = [
+          eVel[0] + rVx,
+          eVel[1] + rVy,
+          eVel[2] + rVz
+        ];
+        
+        // To find a realistic path, we integrate forward over 900 days max. 
+        // We use a small timestep for interplanetary speed to not pass through planets
+        const simDuration = 3600 * 24 * 900; 
+        const simDt = 600; // 10 minute timesteps for accurate N-body and gravity assist captures
+        
+        const { points: rawPoints, arrivalTime } = simulateInterplanetaryRK4(
+          startPos as [number, number, number],
+          startVel,
+          time,
+          PLANETS,
+          simDuration,
+          simDt,
+          targetPlanet
+        );
+        
+        transferTimeRef.current = arrivalTime - time;
+        setPoints(rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[1] * POS_SCALE, p[2] * POS_SCALE)));
       }
       return;
     }
@@ -427,7 +450,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
       progressRef.current = 0;
       // Update start point of interplanetary curve if not launched, otherwise it disconnects from Earth
       if (launchParams.targetPlanet && points.length > 0) {
-        const earth = PLANETS.find(p => p.name === "Earth");
+        const earth = PLANETS.find(p => p.name === (launchParams.launchPlanet || "Earth"));
         if (earth) {
           const time = globalTimeRef.current;
           const [eX, eY, eZ] = propagateOrbit(earth.elements, time);
