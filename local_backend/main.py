@@ -82,7 +82,7 @@ async def run_engine():
         "./odyssey_engine",
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-        cwd="local_backend"
+        cwd="."
     )
 
     while True:
@@ -120,7 +120,7 @@ async def trajectory_preview(v0: float, pitch: float, yaw: float, nbody: bool):
         "./odyssey_engine", "preview", str(vx), str(vy), str(vz), n_body_flag,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-        cwd="local_backend"
+        cwd="."
     )
     
     stdout, stderr = await prog.communicate()
