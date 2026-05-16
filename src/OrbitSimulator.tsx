@@ -539,7 +539,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
 
       const startPos = propagateOrbit(earth.elements, time);
       const simDuration = tof * 1.5; 
-      const simDt = 600; 
+      const simDt = 1200; // Larger step for faster computation
       
       const { points: rawPoints, arrivalTime, success } = simulateInterplanetaryRK4(
         startPos as [number, number, number],
@@ -552,10 +552,11 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
       );
       
       transferTimeRef.current = arrivalTime - time;
-      setPoints(rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[1] * POS_SCALE, p[2] * POS_SCALE)));
+      const threePoints = rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[1] * POS_SCALE, p[2] * POS_SCALE));
+      setPoints(threePoints);
       setStatus(success ? "Intercept Locked" : "Transfer Optimized");
     }
-  }, [launchParams, globalTimeRef]);
+  }, [launchParams]);
 
   useEffect(() => {
     if (!launchParams || launchParams.isLaunched) return;
@@ -608,7 +609,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
       // Constantly recalculate if not launched (interplanetary)
       if (launchParams.targetPlanet) {
         lastCalcTime.current += delta;
-        if (lastCalcTime.current > 0.3) { // Faster update (0.3s) for smoother sync
+        if (lastCalcTime.current > 1.0) { // Update frequency reduced to 1s
            lastCalcTime.current = 0;
            calculateInterplanetaryPath();
         }

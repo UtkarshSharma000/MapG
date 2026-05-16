@@ -142,7 +142,7 @@ export function solveLambert(
   const A = Math.sin(dnu) * Math.sqrt((norm1 * norm2) / (1 - Math.cos(dnu)));
   
   // Robust bisection
-  let zLow = -40; // Allow hyperbolic transfers
+  let zLow = -4 * Math.PI * Math.PI; 
   let zHigh = 4 * Math.PI * Math.PI;
   let z = 0;
   
@@ -151,12 +151,11 @@ export function solveLambert(
     const cVal = C(z);
     const sVal = S(z);
     
-    y = norm1 + norm2 + A * (z * sVal - 1) / Math.sqrt(cVal);
+    // Safety check for cVal near 0
+    const denom = Math.sqrt(cVal);
+    y = norm1 + norm2 + A * (z * sVal - 1) / denom;
     
-    // If y is negative, A is too large and z needs adjusting
     if (A > 0 && y < 0) {
-      // In some cases y can be negative if the geometry is invalid for that z
-      // Adjust toward positive z
       zLow = z;
       z = (z + zHigh) / 2;
       continue;
@@ -165,7 +164,7 @@ export function solveLambert(
     const x = Math.sqrt(y / cVal);
     const tCalc = (Math.pow(x, 3) * sVal + A * Math.sqrt(y)) / Math.sqrt(mu);
     
-    if (Math.abs(tCalc - tof) < 1.0) { // Accuracy within 1 second
+    if (Math.abs(tCalc - tof) < 0.1) { // Accuracy within 0.1 second
       break;
     }
     
@@ -206,10 +205,10 @@ export function findOptimalTransfer(
   let minDV = Infinity;
   let bestV: Vector3 = [0,0,0];
 
-  // Search range: 100 days to 600 days
-  const minDays = isFast ? 120 : 180;
-  const maxDays = isFast ? 250 : 600;
-  const stepDays = 5;
+  // Search range: adjusted for target planet to be more efficient
+  const minDays = isFast ? 80 : 150;
+  const maxDays = isFast ? 300 : 700;
+  const stepDays = 10; // Coarser search for performance
 
   for (let d = minDays; d <= maxDays; d += stepDays) {
     const tofSeconds = d * 24 * 3600;
@@ -285,7 +284,7 @@ export function simulateInterplanetaryRK4(
   };
 
   let steps = Math.floor(duration / dt);
-  const outRate = Math.max(1, Math.floor(steps / 1000));
+  const outRate = Math.max(1, Math.floor(steps / 400)); // Fewer points for performance (400)
   
   let prevDist = Infinity;
   let success = false;
