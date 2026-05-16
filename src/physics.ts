@@ -187,9 +187,15 @@ export function solveLambert(
   ];
 }
 
+export const J2000_UNIX = 946728000; // Seconds since Unix epoch to J2000
+
+export function getJ2000Time(unixTimeSeconds: number): number {
+  return unixTimeSeconds - J2000_UNIX;
+}
+
 /**
  * Finds the optimal TOF (Time of Flight) for a transfer from Earth at current time to a planet.
- * Brute force optimization over a reasonable range of days.
+ * Brute force optimization over a reasonable range of days with two-pass refinement.
  */
 export function findOptimalTransfer(
   earthElements: KeplerianElements,
@@ -197,7 +203,7 @@ export function findOptimalTransfer(
   currentTime: number,
   mu: number,
   isFast: boolean = false
-): { tof: number, vReq: Vector3 } {
+): { tof: number, vReq: Vector3, dvReq: number } {
   const startPos = propagateOrbit(earthElements, currentTime);
   const startVelBase = getOrbitalVelocity(earthElements, currentTime);
   
@@ -205,18 +211,16 @@ export function findOptimalTransfer(
   let minDV = Infinity;
   let bestV: Vector3 = [0,0,0];
 
-  // Search range: adjusted for target planet to be more efficient
-  const minDays = isFast ? 80 : 150;
-  const maxDays = isFast ? 300 : 700;
-  const stepDays = 10; // Coarser search for performance
-
-  for (let d = minDays; d <= maxDays; d += stepDays) {
+  const minDays = isFast ? 60 : 100;
+  const maxDays = isFast ? 300 : 800;
+  
+  // Pass 1: Coarse search
+  for (let d = minDays; d <= maxDays; d += 5) {
     const tofSeconds = d * 24 * 3600;
     const targetPosFuture = propagateOrbit(targetElements, currentTime + tofSeconds);
     
     try {
       const vLambert = solveLambert(startPos, targetPosFuture, tofSeconds, mu);
-      // Calculate delta V
       const dv = Math.sqrt(
         Math.pow(vLambert[0] - startVelBase[0], 2) +
         Math.pow(vLambert[1] - startVelBase[1], 2) +
@@ -228,12 +232,32 @@ export function findOptimalTransfer(
         bestTOF = tofSeconds;
         bestV = vLambert;
       }
-    } catch (e) {
-      // Skip invalid geometries
+    } catch (e) {}
+  }
+
+  // Pass 2: Refined search
+  if (bestTOF > 0) {
+    const centralDay = bestTOF / (24 * 3600);
+    for (let d = centralDay - 4; d <= centralDay + 4; d += 0.5) {
+      const tofSeconds = d * 24 * 3600;
+      const targetPosFuture = propagateOrbit(targetElements, currentTime + tofSeconds);
+      try {
+        const vLambert = solveLambert(startPos, targetPosFuture, tofSeconds, mu);
+        const dv = Math.sqrt(
+          Math.pow(vLambert[0] - startVelBase[0], 2) +
+          Math.pow(vLambert[1] - startVelBase[1], 2) +
+          Math.pow(vLambert[2] - startVelBase[2], 2)
+        );
+        if (dv < minDV) {
+          minDV = dv;
+          bestTOF = tofSeconds;
+          bestV = vLambert;
+        }
+      } catch (e) {}
     }
   }
 
-  return { tof: bestTOF, vReq: bestV };
+  return { tof: bestTOF, vReq: bestV, dvReq: minDV };
 }
 
 export function simulateInterplanetaryRK4(

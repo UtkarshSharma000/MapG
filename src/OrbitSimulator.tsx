@@ -9,7 +9,7 @@ import {
   useTexture,
 } from "@react-three/drei";
 import * as THREE from "three";
-import { AU, propagateOrbit, KeplerianElements, simulateInterplanetaryRK4, solveLambert, findOptimalTransfer, MU_SUN } from "./physics";
+import { AU, propagateOrbit, KeplerianElements, simulateInterplanetaryRK4, solveLambert, findOptimalTransfer, MU_SUN, getJ2000Time } from "./physics";
 import axios from "axios";
 
 export const MOONS: Record<string, any[]> = {
@@ -126,6 +126,7 @@ export const PLANETS = [
     radius: 2439,
     texture: "/textures/2k_mercury.jpg",
     color: "#a8a8a8",
+    siderealDay: 58.646 * 24 * 3600,
     elements: {
       a: 0.387 * AU,
       e: 0.2056,
@@ -141,6 +142,7 @@ export const PLANETS = [
     radius: 6051,
     texture: "/textures/2k_venus_atmosphere.jpg",
     color: "#e0c080",
+    siderealDay: -243.02 * 24 * 3600, // Retrograde
     elements: {
       a: 0.723 * AU,
       e: 0.0067,
@@ -156,6 +158,7 @@ export const PLANETS = [
     radius: 6371,
     texture: "/textures/2k_earth_daymap.jpg",
     color: "#2b82c9",
+    siderealDay: 0.997269 * 24 * 3600,
     elements: {
       a: 1.0 * AU,
       e: 0.0167,
@@ -171,6 +174,7 @@ export const PLANETS = [
     radius: 3389,
     texture: "/textures/2k_mars.jpg",
     color: "#c1440e",
+    siderealDay: 1.025957 * 24 * 3600,
     elements: {
       a: 1.524 * AU,
       e: 0.0934,
@@ -186,6 +190,7 @@ export const PLANETS = [
     radius: 69911,
     texture: "/textures/2k_jupiter.jpg",
     color: "#e3dccb",
+    siderealDay: 0.41354 * 24 * 3600,
     elements: {
       a: 5.204 * AU,
       e: 0.0489,
@@ -201,6 +206,7 @@ export const PLANETS = [
     radius: 58232,
     texture: "/textures/2k_saturn.jpg",
     color: "#eaddb8",
+    siderealDay: 0.444 * 24 * 3600,
     elements: {
       a: 9.582 * AU,
       e: 0.0565,
@@ -216,6 +222,7 @@ export const PLANETS = [
     radius: 25362,
     texture: "/textures/2k_uranus.jpg",
     color: "#d1e7e7",
+    siderealDay: -0.71833 * 24 * 3600, // Retrograde
     elements: {
       a: 19.201 * AU,
       e: 0.0457,
@@ -231,6 +238,7 @@ export const PLANETS = [
     radius: 24622,
     texture: "/textures/2k_neptune.jpg",
     color: "#5b5ddf",
+    siderealDay: 0.67125 * 24 * 3600,
     elements: {
       a: 30.047 * AU,
       e: 0.0113,
@@ -370,10 +378,13 @@ function Moon({
   }, [data.elements, orbitScale]);
 
   useFrame((state, delta) => {
-    const [x, y, z] = propagateOrbit(data.elements, globalTimeRef.current);
+    const time = globalTimeRef.current;
+    const [x, y, z] = propagateOrbit(data.elements, time);
     if (ref.current) {
       ref.current.position.set(x * orbitScale, y * orbitScale, z * orbitScale);
-      ref.current.rotation.y += delta * 0.2;
+      // Rotation based on period
+      const rotationSpeed = (2 * Math.PI) / (data.elements.siderealRotation || data.elements.period);
+      ref.current.rotation.y = time * rotationSpeed;
     }
   });
 
@@ -431,11 +442,13 @@ function Planet({
   }, [data.elements]);
 
   useFrame((state, delta) => {
-    const [x, y, z] = propagateOrbit(data.elements, globalTimeRef.current);
+    const time = globalTimeRef.current;
+    const [x, y, z] = propagateOrbit(data.elements, time);
     if (ref.current) {
       ref.current.position.set(x * POS_SCALE, y * POS_SCALE, z * POS_SCALE);
-      // self rotation
-      ref.current.rotation.y += delta * 0.5;
+      // Accurate sidereal rotation
+      const daySeconds = (data as any).siderealDay || 86164; // seconds
+      ref.current.rotation.y = (time / daySeconds) * Math.PI * 2;
     }
   });
 
@@ -518,7 +531,10 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
   const progressRef = useRef(0);
   const launchTimeRef = useRef<number | null>(null);
   const transferTimeRef = useRef<number>(1000);
+  const requiredDVRef = useRef<number>(0);
+  const fuelRef = useRef<number>(100); // %
   const [status, setStatus] = useState<string>("Standby");
+  const [daysPassed, setDaysPassed] = useState<number>(0);
   const lastCalcTime = useRef(0);
 
   const calculateInterplanetaryPath = useCallback(() => {
@@ -529,7 +545,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
     
     if (earth && target) {
       const time = globalTimeRef.current;
-      const { tof, vReq } = findOptimalTransfer(
+      const { tof, vReq, dvReq } = findOptimalTransfer(
         earth.elements,
         target.elements,
         time,
@@ -537,9 +553,10 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
         false
       );
 
+      requiredDVRef.current = dvReq;
       const startPos = propagateOrbit(earth.elements, time);
       const simDuration = tof * 1.5; 
-      const simDt = 1200; // Larger step for faster computation
+      const simDt = 600; // Better step for trajectory prediction
       
       const { points: rawPoints, arrivalTime, success } = simulateInterplanetaryRK4(
         startPos as [number, number, number],
@@ -646,8 +663,13 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
       const elapsed = globalTimeRef.current - launchTimeRef.current;
       const pct = Math.max(0, Math.min(1.0, elapsed / transferTimeRef.current));
       progressRef.current = pct * maxIdx;
+      setDaysPassed(Math.floor(elapsed / 86400));
       
-      if (pct >= 0.99) {
+      if (pct < 0.05) {
+        setStatus("Main Engine Burn");
+        // Burn fuel: roughly linear for simplicity in this visualization
+        fuelRef.current = Math.max(10, 100 - (requiredDVRef.current / 100)); // DV / 100 for visual drain
+      } else if (pct >= 0.99) {
         setStatus("Target Reached");
         // Snap to target planet position
         const target = PLANETS.find(p => p.name === launchParams.targetPlanet);
@@ -658,7 +680,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
           return;
         }
       } else {
-        setStatus("En Route");
+        setStatus("Cruising Phase");
       }
     } else {
       // Shuttle movement. If we have lots of points (LEO backend), speed needs to be faster
@@ -705,11 +727,19 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
              <meshStandardMaterial color="#ffffff" emissive="#ff4444" emissiveIntensity={0.8} />
            </mesh>
            <pointLight color="#ff4444" intensity={5} distance={10} />
-           <Html distanceFactor={20} position={[0, 0.5, 0]}>
-             <div className="bg-black/80 px-2 py-1 rounded border border-red-500/50 text-[8px] whitespace-nowrap text-white font-mono uppercase tracking-tighter shadow-lg">
-               {status}
-             </div>
-           </Html>
+            <Html distanceFactor={20} position={[0, 0.5, 0]}>
+              <div className="bg-black/80 px-2 py-1 rounded border border-red-500/50 flex flex-col gap-0.5 shadow-lg min-w-[80px]">
+                <div className="text-[7px] text-white/50 font-mono uppercase tracking-tighter">Status</div>
+                <div className="text-[9px] text-white font-mono uppercase font-bold tracking-tight">{status}</div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-[7px] text-white/50 font-mono">T+ {daysPassed} Days</span>
+                  <span className="text-[7px] text-red-400 font-mono font-bold">{Math.round(fuelRef.current)}%</span>
+                </div>
+                <div className="w-full h-0.5 bg-white/10 mt-0.5 rounded-full overflow-hidden">
+                  <div className="h-full bg-red-500 transition-all duration-500" style={{ width: `${fuelRef.current}%` }}></div>
+                </div>
+              </div>
+            </Html>
         </group>
       )}
     </group>
@@ -731,6 +761,12 @@ function SystemEngine({
   const controlsRef = useRef<any>(null);
   const currentTargetName = useRef(selectedTarget?.name || "Sun");
   const [isLocked, setIsLocked] = useState(true);
+  const [realTimeSeconds, setRealTimeSeconds] = useState(0);
+
+  useEffect(() => {
+    // Sync to J2000 real time
+    globalTimeRef.current = getJ2000Time(Date.now() / 1000);
+  }, []);
 
   // Auto-lock when target changes
   useEffect(() => {
@@ -782,21 +818,38 @@ function SystemEngine({
     <>
       {/* UI Controls overlay inside the 3D scene */}
       <Html fullscreen className="pointer-events-none">
-        <div className="absolute top-20 left-72 pointer-events-auto">
+        <div className="absolute top-20 left-72 pointer-events-auto flex flex-col gap-2">
+          {/* Date and Time Header */}
+          <div className="px-4 py-2 bg-black/60 border border-white/10 backdrop-blur-xl rounded-lg shadow-2xl flex items-center gap-4">
+            <div className="flex flex-col">
+              <span className="text-[9px] text-primary/70 font-mono tracking-[0.2em] uppercase">Epoch Reference</span>
+              <span className="text-sm text-white font-mono font-bold tracking-tight">
+                {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ').slice(0, 4).join(' ')}
+              </span>
+            </div>
+            <div className="w-px h-8 bg-white/10"></div>
+            <div className="flex flex-col">
+              <span className="text-[9px] text-primary/70 font-mono tracking-[0.2em] uppercase">Mission Time</span>
+              <span className="text-sm text-white font-mono font-bold">
+                {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ')[4]}
+              </span>
+            </div>
+          </div>
+
           {!isLocked && (
             <button 
               onClick={() => setIsLocked(true)}
-              className="px-3 py-1.5 bg-primary/20 hover:bg-primary/40 border border-primary/50 text-primary text-[10px] font-mono tracking-widest rounded backdrop-blur-md flex items-center gap-2 group transition-all"
+              className="px-3 py-1.5 bg-primary/20 hover:bg-primary/40 border border-primary/50 text-primary text-[10px] font-mono tracking-widest rounded backdrop-blur-md flex items-center gap-2 group transition-all self-start"
             >
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse group-hover:scale-125"></div>
               RE-LOCK CAMERA TO {selectedTarget ? selectedTarget.name.toUpperCase() : "SOL"}
             </button>
           )}
           {isLocked && (
-            <div className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/50 text-[10px] font-mono tracking-widest rounded backdrop-blur-md flex items-center gap-2">
+            <div className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/50 text-[10px] font-mono tracking-widest rounded backdrop-blur-md flex items-center gap-2 self-start">
               <div className="w-1.5 h-1.5 rounded-full bg-white/20"></div>
               CAMERA TRACKING {selectedTarget ? selectedTarget.name.toUpperCase() : "SOL"}
-              <span className="ml-2 text-[8px] opacity-30">(RIGHT CLICK DRAG TO UNLOCK)</span>
+              <span className="ml-2 text-[8px] opacity-30">(DRAG TO UNLOCK)</span>
             </div>
           )}
         </div>
