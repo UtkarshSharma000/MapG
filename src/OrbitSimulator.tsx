@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState, useEffect } from "react";
+import React, { useRef, useMemo, useState, useEffect, useCallback } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -11,6 +11,107 @@ import {
 import * as THREE from "three";
 import { AU, propagateOrbit, KeplerianElements, simulateInterplanetaryRK4, solveLambert, findOptimalTransfer, MU_SUN } from "./physics";
 import axios from "axios";
+
+export const MOONS: Record<string, any[]> = {
+  Earth: [
+    {
+      name: "Moon",
+      radius: 1737,
+      texture: "/textures/2k_moon.jpg",
+      color: "#dddddd",
+      elements: {
+        a: 384400 * 1000, 
+        e: 0.0549,
+        i: (5.14 * Math.PI) / 180,
+        Omega: (125.08 * Math.PI) / 180,
+        w: (318.15 * Math.PI) / 180,
+        M0: 0,
+        period: 27.32 * 24 * 3600,
+      },
+    },
+  ],
+  Mars: [
+    {
+      name: "Phobos",
+      radius: 11,
+      texture: "/textures/2k_mercury.jpg",
+      color: "#888888",
+      elements: {
+        a: 9376 * 1000,
+        e: 0.0151,
+        i: (1.09 * Math.PI) / 180,
+        Omega: 0,
+        w: 0,
+        M0: 0,
+        period: 0.318 * 24 * 3600,
+      },
+    },
+    {
+      name: "Deimos",
+      radius: 6,
+      texture: "/textures/2k_mercury.jpg",
+      color: "#aaaaaa",
+      elements: {
+        a: 23463 * 1000,
+        e: 0.0002,
+        i: (0.93 * Math.PI) / 180,
+        Omega: 0,
+        w: 0,
+        M0: 0,
+        period: 1.263 * 24 * 3600,
+      },
+    },
+  ],
+  Jupiter: [
+    {
+      name: "Io",
+      radius: 1821,
+      texture: "/textures/2k_mercury.jpg",
+      color: "#ffff00",
+      elements: {
+        a: 421700 * 1000,
+        e: 0.0041,
+        i: 0.036 * Math.PI / 180,
+        Omega: 0,
+        w: 0,
+        M0: 0,
+        period: 1.769 * 24 * 3600,
+      }
+    },
+    {
+      name: "Ganymede",
+      radius: 2634,
+      texture: "/textures/2k_mercury.jpg",
+      color: "#88ccff",
+      elements: {
+        a: 1070400 * 1000,
+        e: 0.0013,
+        i: 0.2 * Math.PI / 180,
+        Omega: 0,
+        w: 0,
+        M0: 0,
+        period: 7.155 * 24 * 3600,
+      }
+    }
+  ],
+  Saturn: [
+    {
+      name: "Titan",
+      radius: 2574,
+      texture: "/textures/2k_mercury.jpg",
+      color: "#ffa500",
+      elements: {
+        a: 1221870 * 1000,
+        e: 0.0288,
+        i: 0.348 * Math.PI / 180,
+        Omega: 0,
+        w: 0,
+        M0: 0,
+        period: 15.945 * 24 * 3600,
+      }
+    }
+  ]
+};
 
 // 1 AU = 100 units in our 3D scene
 const POS_SCALE = 100 / AU;
@@ -243,6 +344,61 @@ function TexturedPlanet({
   );
 }
 
+function Moon({
+  data,
+  globalTimeRef,
+  parentRadius,
+}: {
+  data: any;
+  globalTimeRef: React.MutableRefObject<number>;
+  parentRadius: number;
+}) {
+  const ref = useRef<THREE.Group>(null);
+  const radius = Math.max(0.1, Math.log10(data.radius) * 0.15);
+  // Scale up moon orbits significantly so they appear outside the magnified planet meshes
+  const orbitScale = POS_SCALE * 15; 
+
+  const orbitPoints = useMemo(() => {
+    const pts: THREE.Vector3[] = [];
+    const elements = data.elements;
+    for (let i = 0; i <= 100; i++) {
+      const t = (i / 100) * elements.period;
+      const [x, y, z] = propagateOrbit(elements, t);
+      pts.push(new THREE.Vector3(x * orbitScale, y * orbitScale, z * orbitScale));
+    }
+    return pts;
+  }, [data.elements, orbitScale]);
+
+  useFrame((state, delta) => {
+    const [x, y, z] = propagateOrbit(data.elements, globalTimeRef.current);
+    if (ref.current) {
+      ref.current.position.set(x * orbitScale, y * orbitScale, z * orbitScale);
+      ref.current.rotation.y += delta * 0.2;
+    }
+  });
+
+  return (
+    <group>
+      <Line
+        points={orbitPoints}
+        color="#ffffff"
+        opacity={0.05}
+        transparent
+        lineWidth={0.5}
+      />
+      <group ref={ref}>
+        <mesh>
+          <TexturedPlanet
+            radius={radius}
+            url={data.texture}
+            color={data.color}
+          />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
 function Planet({
   data,
   globalTimeRef,
@@ -331,6 +487,16 @@ function Planet({
           </mesh>
         )}
 
+        {/* Moons */}
+        {MOONS[data.name] && MOONS[data.name].map(moon => (
+          <Moon 
+            key={moon.name} 
+            data={moon} 
+            globalTimeRef={globalTimeRef} 
+            parentRadius={radius} 
+          />
+        ))}
+
         {/* Label */}
         <Html
           distanceFactor={100}
@@ -353,52 +519,60 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
   const launchTimeRef = useRef<number | null>(null);
   const transferTimeRef = useRef<number>(1000);
   const [status, setStatus] = useState<string>("Standby");
+  const lastCalcTime = useRef(0);
+
+  const calculateInterplanetaryPath = useCallback(() => {
+    if (!launchParams || launchParams.isLaunched || !launchParams.targetPlanet) return;
+    
+    const earth = PLANETS.find(p => p.name === (launchParams.launchPlanet || "Earth"));
+    const target = PLANETS.find(p => p.name === launchParams.targetPlanet);
+    
+    if (earth && target) {
+      const time = globalTimeRef.current;
+      const { tof, vReq } = findOptimalTransfer(
+        earth.elements,
+        target.elements,
+        time,
+        MU_SUN,
+        false
+      );
+
+      const startPos = propagateOrbit(earth.elements, time);
+      const simDuration = tof * 1.5; 
+      const simDt = 600; 
+      
+      const { points: rawPoints, arrivalTime, success } = simulateInterplanetaryRK4(
+        startPos as [number, number, number],
+        vReq as [number, number, number],
+        time,
+        PLANETS,
+        simDuration,
+        simDt,
+        launchParams.targetPlanet
+      );
+      
+      transferTimeRef.current = arrivalTime - time;
+      setPoints(rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[1] * POS_SCALE, p[2] * POS_SCALE)));
+      setStatus(success ? "Intercept Locked" : "Transfer Optimized");
+    }
+  }, [launchParams, globalTimeRef]);
 
   useEffect(() => {
     if (!launchParams || launchParams.isLaunched) return;
     
-    const { v0, pitch, yaw, nbody, launchLocation, targetLocation, targetPlanet } = launchParams;
-    const startLat = launchLocation?.lat || 0;
-    const startLon = launchLocation?.lon || 0;
-
-    if (targetPlanet) {
-      const earth = PLANETS.find(p => p.name === (launchParams.launchPlanet || "Earth"));
-      const target = PLANETS.find(p => p.name === targetPlanet);
-      if (earth && target) {
-        const time = globalTimeRef.current;
-        
-        // Find best transfer window
-        const { tof, vReq } = findOptimalTransfer(
-          earth.elements,
-          target.elements,
-          time,
-          MU_SUN,
-          false // Efficient mode
-        );
-
-        const startPos = propagateOrbit(earth.elements, time);
-        const simDuration = tof * 1.5; 
-        const simDt = 600; 
-        
-        const { points: rawPoints, arrivalTime, success } = simulateInterplanetaryRK4(
-          startPos as [number, number, number],
-          vReq as [number, number, number],
-          time,
-          PLANETS,
-          simDuration,
-          simDt,
-          targetPlanet
-        );
-        
-        transferTimeRef.current = arrivalTime - time;
-        setPoints(rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[1] * POS_SCALE, p[2] * POS_SCALE)));
-        setStatus(success ? "Intercept Locked" : "Transfer Optimized");
-      }
+    if (launchParams.targetPlanet) {
+      calculateInterplanetaryPath();
       return;
     }
 
     const fetchPreview = async () => {
       try {
+        const { v0, pitch, yaw, nbody, launchLocation, targetLocation, targetPlanet } = launchParams;
+        const startLat = launchLocation?.lat || 0;
+        const startLon = launchLocation?.lon || 0;
+        const targetLat = targetLocation?.lat || 0;
+        const targetLon = targetLocation?.lon || 0;
+
         const res = await axios.get("/api/trajectory-preview", {
           params: { v0, pitch, yaw, nbody, startLat, startLon, targetLat, targetLon, targetPlanet }
         });
@@ -430,6 +604,16 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
       launchTimeRef.current = null;
       progressRef.current = 0;
       setStatus("Standby");
+
+      // Constantly recalculate if not launched (interplanetary)
+      if (launchParams.targetPlanet) {
+        lastCalcTime.current += delta;
+        if (lastCalcTime.current > 0.3) { // Faster update (0.3s) for smoother sync
+           lastCalcTime.current = 0;
+           calculateInterplanetaryPath();
+        }
+      }
+
       // Update start point of interplanetary curve if not launched, otherwise it disconnects from Earth
       if (launchParams.targetPlanet && points.length > 0) {
         const earth = PLANETS.find(p => p.name === (launchParams.launchPlanet || "Earth"));
@@ -545,13 +729,19 @@ function SystemEngine({
   const globalTimeRef = useRef(0);
   const controlsRef = useRef<any>(null);
   const currentTargetName = useRef(selectedTarget?.name || "Sun");
+  const [isLocked, setIsLocked] = useState(true);
+
+  // Auto-lock when target changes
+  useEffect(() => {
+    setIsLocked(true);
+  }, [selectedTarget]);
 
   useFrame((state, delta) => {
     // Limit delta to prevent huge jumps from tab switching
     const safeDelta = Math.min(delta, 0.1);
     globalTimeRef.current += safeDelta * timeMult;
 
-    if (controlsRef.current) {
+    if (controlsRef.current && isLocked) {
       let targetX = 0,
         targetY = 0,
         targetZ = 0;
@@ -589,6 +779,28 @@ function SystemEngine({
 
   return (
     <>
+      {/* UI Controls overlay inside the 3D scene */}
+      <Html fullscreen className="pointer-events-none">
+        <div className="absolute top-20 left-72 pointer-events-auto">
+          {!isLocked && (
+            <button 
+              onClick={() => setIsLocked(true)}
+              className="px-3 py-1.5 bg-primary/20 hover:bg-primary/40 border border-primary/50 text-primary text-[10px] font-mono tracking-widest rounded backdrop-blur-md flex items-center gap-2 group transition-all"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse group-hover:scale-125"></div>
+              RE-LOCK CAMERA TO {selectedTarget ? selectedTarget.name.toUpperCase() : "SOL"}
+            </button>
+          )}
+          {isLocked && (
+            <div className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/50 text-[10px] font-mono tracking-widest rounded backdrop-blur-md flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-white/20"></div>
+              CAMERA TRACKING {selectedTarget ? selectedTarget.name.toUpperCase() : "SOL"}
+              <span className="ml-2 text-[8px] opacity-30">(RIGHT CLICK DRAG TO UNLOCK)</span>
+            </div>
+          )}
+        </div>
+      </Html>
+
       {/* The Sun */}
       <mesh>
         <sphereGeometry args={[SUN_SIZE, 64, 64]} />
@@ -617,6 +829,12 @@ function SystemEngine({
         enableDamping={true}
         dampingFactor={0.05}
         maxDistance={2000}
+        onStart={(e: any) => {
+          // Check if this was a right-click or drag that should unlock
+          // For simplicity, any start of camera movement unlocks
+          setIsLocked(false);
+        }}
+        makeDefault
       />
     </>
   );

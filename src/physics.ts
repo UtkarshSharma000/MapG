@@ -7,12 +7,22 @@ export const AU = 149597870700; // meters
 export const PLANET_MASSES: Record<string, number> = {
   Mercury: 3.3011e23,
   Venus: 4.8675e24,
-  Earth: 5.972e24,
+  Earth: 5.97216e24,
   Mars: 6.4171e23,
   Jupiter: 1.8982e27,
   Saturn: 5.6834e26,
   Uranus: 8.6810e25,
   Neptune: 1.02413e26,
+  // Moons
+  Moon: 7.34767e22,
+  Phobos: 1.0659e16,
+  Deimos: 1.4762e15,
+  Io: 8.9319e22,
+  Europa: 4.800e22,
+  Ganymede: 1.4819e23,
+  Callisto: 1.0759e23,
+  Titan: 1.3452e23,
+  Triton: 2.14e22,
 };
 
 // Orbital elements format
