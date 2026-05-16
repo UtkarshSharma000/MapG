@@ -9,7 +9,7 @@ import {
   useTexture,
 } from "@react-three/drei";
 import * as THREE from "three";
-import { AU, propagateOrbit, KeplerianElements, simulateInterplanetaryRK4, solveLambert } from "./physics";
+import { AU, propagateOrbit, KeplerianElements, simulateInterplanetaryRK4, solveLambert, findOptimalTransfer, MU_SUN } from "./physics";
 import axios from "axios";
 
 // 1 AU = 100 units in our 3D scene
@@ -352,6 +352,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
   const progressRef = useRef(0);
   const launchTimeRef = useRef<number | null>(null);
   const transferTimeRef = useRef<number>(1000);
+  const [status, setStatus] = useState<string>("Standby");
 
   useEffect(() => {
     if (!launchParams || launchParams.isLaunched) return;
@@ -359,43 +360,29 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
     const { v0, pitch, yaw, nbody, launchLocation, targetLocation, targetPlanet } = launchParams;
     const startLat = launchLocation?.lat || 0;
     const startLon = launchLocation?.lon || 0;
-    const targetLat = targetLocation?.lat || 0;
-    const targetLon = targetLocation?.lon || 0;
 
     if (targetPlanet) {
       const earth = PLANETS.find(p => p.name === (launchParams.launchPlanet || "Earth"));
       const target = PLANETS.find(p => p.name === targetPlanet);
       if (earth && target) {
-        // Run N-body simulation in Javascript to hit target planet
         const time = globalTimeRef.current;
+        
+        // Find best transfer window
+        const { tof, vReq } = findOptimalTransfer(
+          earth.elements,
+          target.elements,
+          time,
+          MU_SUN,
+          false // Efficient mode
+        );
+
         const startPos = propagateOrbit(earth.elements, time);
+        const simDuration = tof * 1.5; 
+        const simDt = 600; 
         
-        // Approximate Hohmann transfer time for dt
-        const r1 = earth.elements.a;
-        const r2 = target.elements.a;
-        // MU_SUN is 1.32712440018e20; G * M_SUN
-        const MU_SUN = 6.6743015e-11 * 1.989e30;
-        const tof = Math.PI * Math.sqrt(Math.pow(r1 + r2, 3) / (8 * MU_SUN));
-        
-        // Target's future position
-        const targetPosFuture = propagateOrbit(target.elements, time + tof);
-        
-        const reqVel = solveLambert(startPos as [number, number, number], targetPosFuture as [number, number, number], tof, MU_SUN);
-        
-        const startVel: [number, number, number] = [
-          reqVel[0],
-          reqVel[1],
-          reqVel[2]
-        ];
-        
-        // To find a realistic path, we integrate forward over 900 days max. 
-        // We use a small timestep for interplanetary speed to not pass through planets
-        const simDuration = tof * 1.5; // Simulate a bit past the expected arrival
-        const simDt = 600; // 10 minute timesteps for accurate N-body and gravity assist captures
-        
-        const { points: rawPoints, arrivalTime } = simulateInterplanetaryRK4(
+        const { points: rawPoints, arrivalTime, success } = simulateInterplanetaryRK4(
           startPos as [number, number, number],
-          startVel,
+          vReq as [number, number, number],
           time,
           PLANETS,
           simDuration,
@@ -405,6 +392,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
         
         transferTimeRef.current = arrivalTime - time;
         setPoints(rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[1] * POS_SCALE, p[2] * POS_SCALE)));
+        setStatus(success ? "Intercept Locked" : "Transfer Optimized");
       }
       return;
     }
@@ -441,6 +429,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
     if (!launchParams.isLaunched) {
       launchTimeRef.current = null;
       progressRef.current = 0;
+      setStatus("Standby");
       // Update start point of interplanetary curve if not launched, otherwise it disconnects from Earth
       if (launchParams.targetPlanet && points.length > 0) {
         const earth = PLANETS.find(p => p.name === (launchParams.launchPlanet || "Earth"));
@@ -472,6 +461,20 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
       const elapsed = globalTimeRef.current - launchTimeRef.current;
       const pct = Math.max(0, Math.min(1.0, elapsed / transferTimeRef.current));
       progressRef.current = pct * maxIdx;
+      
+      if (pct >= 0.99) {
+        setStatus("Target Reached");
+        // Snap to target planet position
+        const target = PLANETS.find(p => p.name === launchParams.targetPlanet);
+        if (target) {
+          const [tx, ty, tz] = propagateOrbit(target.elements, globalTimeRef.current);
+          shuttleRef.current.position.set(tx * POS_SCALE, ty * POS_SCALE, tz * POS_SCALE);
+          shuttleRef.current.rotation.y += delta; // Slow orbit rotation
+          return;
+        }
+      } else {
+        setStatus("En Route");
+      }
     } else {
       // Shuttle movement. If we have lots of points (LEO backend), speed needs to be faster
       const baseSpeed = 20.0; 
@@ -491,7 +494,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
     // Lerp
     const t = progressRef.current - currentIdx;
     shuttleRef.current.position.lerpVectors(p1, p2, t);
-    shuttleRef.current.lookAt(p2);
+    shuttleRef.current.lookAt(p2 || p1);
   });
 
   if (points.length < 2) return null;
@@ -517,6 +520,11 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
              <meshStandardMaterial color="#ffffff" emissive="#ff4444" emissiveIntensity={0.8} />
            </mesh>
            <pointLight color="#ff4444" intensity={5} distance={10} />
+           <Html distanceFactor={20} position={[0, 0.5, 0]}>
+             <div className="bg-black/80 px-2 py-1 rounded border border-red-500/50 text-[8px] whitespace-nowrap text-white font-mono uppercase tracking-tighter shadow-lg">
+               {status}
+             </div>
+           </Html>
         </group>
       )}
     </group>
