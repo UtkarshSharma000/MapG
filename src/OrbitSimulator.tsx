@@ -531,6 +531,8 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
   const progressRef = useRef(0);
   const launchTimeRef = useRef<number | null>(null);
   const transferTimeRef = useRef<number>(1000);
+  const simDurationRef = useRef<number>(1000);
+  const captureInfoRef = useRef<{status?: string, altitude?: number, period?: number}>({});
   const requiredDVRef = useRef<number>(0);
   const fuelRef = useRef<number>(100); // %
   const [status, setStatus] = useState<string>("Standby");
@@ -559,7 +561,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
       const simDuration = tof * 1.5; 
       const simDt = 600; // Better step for trajectory prediction
       
-      const { points: rawPoints, arrivalTime, success } = simulateInterplanetaryRK4(
+      const { points: rawPoints, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod } = simulateInterplanetaryRK4(
         startPos as [number, number, number],
         vReq as [number, number, number],
         time,
@@ -571,6 +573,9 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
       );
       
       transferTimeRef.current = arrivalTime - time;
+      simDurationRef.current = simDuration;
+      captureInfoRef.current = { status: missionStatus, altitude: captureAltitude, period: orbitPeriod };
+      
       const threePoints = rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[1] * POS_SCALE, p[2] * POS_SCALE));
       setPoints(threePoints);
       setStatus(success ? "Intercept Locked" : "Transfer Optimized");
@@ -666,25 +671,20 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
 
     if (launchParams.targetPlanet) {
       const elapsed = globalTimeRef.current - launchTimeRef.current;
-      const pct = Math.max(0, Math.min(1.0, elapsed / transferTimeRef.current));
-      progressRef.current = pct * maxIdx;
+      const pct_sim = Math.max(0, Math.min(1.0, elapsed / simDurationRef.current));
+      progressRef.current = pct_sim * maxIdx;
       setDaysPassed(Math.floor(elapsed / 86400));
       
-      if (pct < 0.05) {
+      const pct_tof = elapsed / transferTimeRef.current;
+      
+      if (pct_tof < 0.05) {
         setStatus("Main Engine Burn");
-        fuelRef.current = Math.max(10, 100 - (requiredDVRef.current / 150) * (pct / 0.05)); 
-      } else if (pct >= 0.98) {
-        setStatus("Insertion Burn");
-        const target = PLANETS.find(p => p.name === launchParams.targetPlanet);
-        if (target) {
-          const [tx, ty, tz] = propagateOrbit(target.elements, globalTimeRef.current);
-          shuttleRef.current.position.set(tx * POS_SCALE, ty * POS_SCALE, tz * POS_SCALE);
-          shuttleRef.current.rotation.y += delta;
-          return;
-        }
+        fuelRef.current = Math.max(10, 100 - (requiredDVRef.current / 150) * (pct_tof / 0.05)); 
+      } else if (pct_tof >= 0.98 && captureInfoRef.current.status) {
+        setStatus(captureInfoRef.current.status);
       } else {
         setStatus("Inertial Cruise");
-        fuelRef.current = Math.max(5, 100 - (requiredDVRef.current / 200) - (pct * 5));
+        fuelRef.current = Math.max(5, 100 - (requiredDVRef.current / 200) - (pct_tof * 5));
       }
     } else {
       // Shuttle movement. If we have lots of points (LEO backend), speed needs to be faster
@@ -758,6 +758,12 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
               <div className="bg-black/80 px-2 py-1 rounded border border-red-500/50 flex flex-col gap-0.5 shadow-lg min-w-[80px]">
                 <div className="text-[7px] text-white/50 font-mono uppercase tracking-tighter">Status</div>
                 <div className="text-[9px] text-white font-mono uppercase font-bold tracking-tight">{status}</div>
+                {status.includes("ORBIT") && captureInfoRef.current.altitude && (
+                  <div className="flex flex-col gap-0 font-mono uppercase mt-0.5 mb-0.5 bg-white/5 px-1 py-0.5 rounded">
+                    <div className="text-[6px] text-zinc-400">ALTITUDE: <span className="text-cyan-400">{Math.round(captureInfoRef.current.altitude).toLocaleString()} KM</span></div>
+                    <div className="text-[6px] text-zinc-400">PERIOD: <span className="text-cyan-400">{captureInfoRef.current.period?.toFixed(1)} DAYS</span></div>
+                  </div>
+                )}
                 <div className="flex justify-between items-center mt-1">
                   <span className="text-[7px] text-white/50 font-mono">T+ {daysPassed} Days</span>
                   <span className="text-[7px] text-red-400 font-mono font-bold">{Math.round(fuelRef.current)}%</span>
