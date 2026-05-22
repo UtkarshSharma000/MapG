@@ -342,17 +342,24 @@ export function simulateInterplanetaryRK4(
   const timeLimit = startTime + duration;
 
   while (t < timeLimit) {
-    // Dynamic timestep: slow down inside SOI of target
+    // Dynamic timestep: slow down inside SOI of ANY planet for accurate flybys
     let currentDt = dt;
     
-    if (targetPlanet) {
-       const [tx, ty, tz] = propagateOrbit(targetPlanet.elements, t);
-       const d2 = (pos[0]-tx)*(pos[0]-tx) + (pos[1]-ty)*(pos[1]-ty) + (pos[2]-tz)*(pos[2]-tz);
-       const d = Math.sqrt(d2);
-       // Inside SOI, scale timestep down based on distance, min dt = dt / 20
-       if (d < soi) {
-         currentDt = Math.max(dt / 20, dt * (d / soi));
-       }
+    // Check all planets for proximity
+    for (const [, p] of Object.entries(planets)) {
+        if (!PLANET_MASSES[p.name]) continue;
+        const [tx, ty, tz] = propagateOrbit(p.elements, t);
+        const d2 = (pos[0]-tx)*(pos[0]-tx) + (pos[1]-ty)*(pos[1]-ty) + (pos[2]-tz)*(pos[2]-tz);
+        const d = Math.sqrt(d2);
+        
+        // Dynamic SOI for checking:
+        // Use a generic 150 * radius for all planets to trigger slowdown
+        const pRadius = (planetRadiiKm[planets.indexOf(p)] || 6000) * 1000;
+        const pSoi = pRadius * 150;
+        
+        if (d < pSoi) {
+             currentDt = Math.min(currentDt, Math.max(dt / 50, dt * (d / pSoi)));
+        }
     }
 
     const k1 = getDeriv(pos, vel, t);

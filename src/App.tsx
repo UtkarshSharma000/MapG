@@ -35,6 +35,7 @@ export default function App() {
 
   const [launchPlanet, setLaunchPlanet] = useState<string | null>("Earth");
   const [targetPlanet, setTargetPlanet] = useState<string | null>(null);
+  const [missionLegs, setMissionLegs] = useState<any[] | null>(null);
 
   // Time Ref for jumping simulation
   const globalTimeRef = React.useRef<number>(Date.now() / 1000);
@@ -71,6 +72,8 @@ export default function App() {
     setYaw(parseFloat((newYaw   * 180 / Math.PI).toFixed(3)))
     globalTimeRef.current = result.launchDay_j2000
     setTimeMult(86400) // 1 day per second
+    setTargetPlanet(null); // Clear single planet target so we rely on legs
+    setMissionLegs(result.legs || null);
   };
 
   const handleLaunch = () => {
@@ -84,6 +87,7 @@ export default function App() {
     } else {
       setTargetPlanet(planet);
       setTargetLocation({ lat, lon });
+      setMissionLegs(null); // Reset legs if picking a single destination
     }
   };
 
@@ -250,7 +254,7 @@ export default function App() {
         isRunning={isSimulatorRunning}
         timeMult={timeMult}
         selectedTarget={selectedTarget}
-        launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current }}
+        launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs }}
         globalTimeRef={globalTimeRef}
         onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
       />

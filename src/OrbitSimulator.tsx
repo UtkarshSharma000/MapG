@@ -9,7 +9,7 @@ import {
   useTexture,
 } from "@react-three/drei";
 import * as THREE from "three";
-import { AU, propagateOrbit, KeplerianElements, simulateInterplanetaryRK4, solveLambert, findOptimalTransfer, MU_SUN, getJ2000Time, J2000_UNIX } from "./physics";
+import { AU, propagateOrbit, KeplerianElements, simulateInterplanetaryRK4, solveLambert, findOptimalTransfer, MU_SUN, getJ2000Time, J2000_UNIX, getOrbitalVelocity } from "./physics";
 import axios from "axios";
 
 export const MOONS: Record<string, any[]> = {
@@ -250,6 +250,91 @@ export const PLANETS = [
     },
   },
 ];
+
+function AsteroidBelt({ timeMult }: { timeMult: number }) {
+  const asteroidsRef = useRef<THREE.Points>(null);
+  const ASTEROID_COUNT = 3000;
+
+  const asteroidPositions = useMemo(() => {
+    const positions = new Float32Array(ASTEROID_COUNT * 3);
+    const GAPS = [2.50, 2.82, 2.95];
+    let i = 0;
+    while (i < ASTEROID_COUNT) {
+      const r = 2.2 + Math.random() * 1.0; // AU
+      const inGap = GAPS.some(g => Math.abs(r - g) < 0.04);
+      if (inGap && Math.random() > 0.1) continue; // 90% rejection in gaps
+
+      const theta = Math.random() * Math.PI * 2;
+      const y = (Math.random() - 0.5) * 0.15 * AU * POS_SCALE; // vertical scatter
+      
+      positions[i * 3] = r * AU * POS_SCALE * Math.cos(theta);
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = r * AU * POS_SCALE * Math.sin(theta);
+      i++;
+    }
+    return positions;
+  }, []);
+
+  useFrame((state, delta) => {
+    if (asteroidsRef.current) {
+      asteroidsRef.current.rotation.y += 0.000012 * timeMult * delta;
+    }
+  });
+
+  return (
+    <points ref={asteroidsRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          array={asteroidPositions}
+          count={ASTEROID_COUNT}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial color="#a89070" size={0.008} sizeAttenuation />
+    </points>
+  );
+}
+
+function KuiperBelt({ timeMult }: { timeMult: number }) {
+  const beltRef = useRef<THREE.Points>(null);
+  const PARTICLE_COUNT = 2000;
+
+  const positions = useMemo(() => {
+    const pos = new Float32Array(PARTICLE_COUNT * 3);
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const r = 30 + Math.random() * 20; // 30-50 AU
+      const theta = Math.random() * Math.PI * 2;
+      const y = (Math.random() - 0.5) * 2.0 * AU * POS_SCALE; 
+      
+      pos[i * 3] = r * AU * POS_SCALE * Math.cos(theta);
+      pos[i * 3 + 1] = y;
+      pos[i * 3 + 2] = r * AU * POS_SCALE * Math.sin(theta);
+    }
+    return pos;
+  }, []);
+
+  useFrame((state, delta) => {
+    if (beltRef.current) {
+      // Much slower rotation for Kuiper belt ~250 years
+      beltRef.current.rotation.y += 0.000000219 * timeMult * delta; 
+    }
+  });
+
+  return (
+    <points ref={beltRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          array={positions}
+          count={PARTICLE_COUNT}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial color="#8899aa" size={0.008} sizeAttenuation />
+    </points>
+  );
+}
 
 function FallbackMaterial({
   fallbackColor,
@@ -541,54 +626,100 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
   const lastCalcTime = useRef(0);
 
   const calculateInterplanetaryPath = useCallback(() => {
-    if (!launchParams || launchParams.isLaunched || !launchParams.targetPlanet) return;
+    if (!launchParams || launchParams.isLaunched) return;
+    if (!launchParams.targetPlanet && !launchParams.missionLegs) return;
+    
+    const time = globalTimeRef.current;
+    let targetName = launchParams.targetPlanet;
+    let simDuration = 0;
     
     const earth = PLANETS.find(p => p.name === (launchParams.launchPlanet || "Earth"));
-    const target = PLANETS.find(p => p.name === launchParams.targetPlanet);
-    
-    if (earth && target) {
-      const time = globalTimeRef.current;
-      const { tof, vReq, dvReq } = findOptimalTransfer(
+    if (!earth) return;
+
+    const startPos = propagateOrbit(earth.elements, time);
+    let vReq: [number, number, number] = [0, 0, 0];
+    let dvLabel = 0;
+
+    if (launchParams.missionLegs && launchParams.missionLegs.length > 0) {
+      const legs = launchParams.missionLegs;
+      const lastDestId = legs[legs.length - 1].destId;
+      const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn' } as Record<number, string>;
+      targetName = planetMap[lastDestId];
+      
+      let totalDays = 0;
+      for (const leg of legs) totalDays += (leg.tof_days || 0);
+      simDuration = Math.max(totalDays * 86400 * 1.5, 86400 * 100);
+
+      // Convert Pitch, Yaw, V0 from launchParams back directly into J2000 heliocentric
+      const p = launchParams.pitch * Math.PI / 180;
+      const y = launchParams.yaw * Math.PI / 180;
+      const v0 = launchParams.v0;
+      
+      const vx_local = v0 * Math.sin(p);
+      const vy_local = v0 * Math.cos(p) * Math.cos(y);
+      const vz_local = v0 * Math.cos(p) * Math.sin(y);
+      
+      const OBLIQUITY = 23.43929111 * (Math.PI / 180);
+      const cosE = Math.cos(OBLIQUITY), sinE = Math.sin(OBLIQUITY);
+      
+      const v_inf_x = vx_local;
+      const v_inf_y = vy_local * cosE + vz_local * sinE;
+      const v_inf_z = -vy_local * sinE + vz_local * cosE;
+      
+      // Get base orbital velocity of Earth at time t0
+      const earthVel = getOrbitalVelocity(earth.elements, time);
+      vReq = [earthVel[0] + v_inf_x, earthVel[1] + v_inf_y, earthVel[2] + v_inf_z];
+      dvLabel = legs.reduce((acc: number, l: any) => acc + (l.dv1_kms || 0), 0);
+    } else if (launchParams.targetPlanet) {
+      const target = PLANETS.find(p => p.name === launchParams.targetPlanet);
+      if (!target) return;
+      const { tof, vReq: v, dvReq } = findOptimalTransfer(
         earth.elements,
         target.elements,
         time,
         MU_SUN,
         false
       );
-
-      requiredDVRef.current = dvReq;
-      const startPos = propagateOrbit(earth.elements, time);
-      const simDuration = tof * 1.5; 
-      const simDt = 600; // Better step for trajectory prediction
-      
-      const { points: rawPoints, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod } = simulateInterplanetaryRK4(
-        startPos as [number, number, number],
-        vReq as [number, number, number],
-        time,
-        PLANETS,
-        simDuration,
-        simDt,
-        launchParams.targetPlanet,
-        false // twoBodyOnly disabled so spacecraft is affected by planet gravity
-      );
-      
-      transferTimeRef.current = arrivalTime - time;
-      simDurationRef.current = simDuration;
-      captureInfoRef.current = { status: missionStatus, altitude: captureAltitude, period: orbitPeriod };
-      
-      const threePoints = rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[1] * POS_SCALE, p[2] * POS_SCALE));
-      setPoints(threePoints);
-      setStatus(success ? "Intercept Locked" : "Transfer Optimized");
-
-      const [ix, iy, iz] = propagateOrbit(target.elements, arrivalTime);
-      setInterceptPoint(new THREE.Vector3(ix * POS_SCALE, iy * POS_SCALE, iz * POS_SCALE));
+      vReq = v as [number, number, number];
+      simDuration = tof * 1.5;
+      dvLabel = dvReq;
     }
+
+    if (!targetName) return;
+    const targetPlanet = PLANETS.find(p => p.name === targetName);
+    if (!targetPlanet) return;
+    
+    requiredDVRef.current = dvLabel;
+    const simDt = 600; // Better step for trajectory prediction
+    
+    const { points: rawPoints, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod } = simulateInterplanetaryRK4(
+      startPos as [number, number, number],
+      vReq,
+      time,
+      PLANETS,
+      simDuration,
+      simDt,
+      targetName,
+      false // twoBodyOnly disabled so spacecraft is affected by planet gravity
+    );
+    
+    transferTimeRef.current = arrivalTime - time;
+    simDurationRef.current = simDuration;
+    captureInfoRef.current = { status: missionStatus, altitude: captureAltitude, period: orbitPeriod };
+    
+    const threePoints = rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[1] * POS_SCALE, p[2] * POS_SCALE));
+    setPoints(threePoints);
+    setStatus(success ? "Intercept Locked" : "Transfer Optimized");
+
+    const [ix, iy, iz] = propagateOrbit(targetPlanet.elements, arrivalTime);
+    setInterceptPoint(new THREE.Vector3(ix * POS_SCALE, iy * POS_SCALE, iz * POS_SCALE));
   }, [launchParams]);
 
   useEffect(() => {
     if (!launchParams || launchParams.isLaunched) return;
     
-    if (launchParams.targetPlanet) {
+    // Interplanetary mode (target select OR mission legs active)
+    if (launchParams.targetPlanet || launchParams.missionLegs) {
       calculateInterplanetaryPath();
       return;
     }
@@ -634,7 +765,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
       setStatus("Standby");
 
       // Constantly recalculate if not launched (interplanetary)
-      if (launchParams.targetPlanet) {
+      if (launchParams.targetPlanet || launchParams.missionLegs) {
         lastCalcTime.current += delta;
         if (lastCalcTime.current > 1.0) { // Update frequency reduced to 1s
            lastCalcTime.current = 0;
@@ -643,7 +774,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
       }
 
       // Update start point of interplanetary curve if not launched, otherwise it disconnects from Earth
-      if (launchParams.targetPlanet && points.length > 0) {
+      if ((launchParams.targetPlanet || launchParams.missionLegs) && points.length > 0) {
         const earth = PLANETS.find(p => p.name === (launchParams.launchPlanet || "Earth"));
         if (earth) {
           const time = globalTimeRef.current;
@@ -899,6 +1030,9 @@ function SystemEngine({
           </div>
         </Html>
       </mesh>
+
+      <AsteroidBelt timeMult={timeMult} />
+      <KuiperBelt timeMult={timeMult} />
 
       {PLANETS.map((p) => (
         <Planet key={p.name} data={p} globalTimeRef={globalTimeRef} onDoubleClick={onPlanetDoubleClick} launchParams={launchParams} />
