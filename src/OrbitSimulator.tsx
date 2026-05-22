@@ -807,7 +807,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
     const timeMult = launchParams.timeMult || 1;
     const maxIdx = points.length - 1;
 
-    if (launchParams.targetPlanet) {
+    if (launchParams.targetPlanet || launchParams.missionLegs) {
       const elapsed = globalTimeRef.current - launchTimeRef.current;
       const pct_sim = Math.max(0, Math.min(1.0, elapsed / simDurationRef.current));
       progressRef.current = pct_sim * maxIdx;
