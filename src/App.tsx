@@ -9,6 +9,7 @@ import {
   LogOut,
 } from "lucide-react";
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
+import TrajectoryOptimizer, { OptimizeResult } from "./TrajectoryOptimizer";
 import { TelemetryPanel } from "./components/TelemetryPanel";
 import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
@@ -34,6 +35,43 @@ export default function App() {
 
   const [launchPlanet, setLaunchPlanet] = useState<string | null>("Earth");
   const [targetPlanet, setTargetPlanet] = useState<string | null>(null);
+
+  // Time Ref for jumping simulation
+  const globalTimeRef = React.useRef<number>(Date.now() / 1000);
+
+  const OBLIQUITY = 23.43929111 * (Math.PI / 180); // J2000 obliquity of ecliptic
+
+  const eclipticToLocal = (vEcl: [number, number, number]): [number, number, number] => {
+    const [x, y, z] = vEcl;
+    const cosE = Math.cos(OBLIQUITY);
+    const sinE = Math.sin(OBLIQUITY);
+
+    // Rotate ecliptic → equatorial (standard J2000 matrix, X-axis rotation)
+    return [
+      x,
+      y * cosE - z * sinE,
+      y * sinE + z * cosE,
+    ];
+  };
+
+  const cartesianToPitchYaw = (v: [number, number, number]): { v0: number; pitch: number; yaw: number } => {
+    const [vx, vy, vz] = v;
+    const v0M    = Math.sqrt(vx**2 + vy**2 + vz**2);
+    const p      = Math.asin(vx / v0M);                // matches Python sin(pitch)
+    const y      = Math.atan2(vz, vy);                // matches Python atan2(vz,vy)
+    return { v0: v0M, pitch: p, yaw: y };
+  };
+
+  const handleApply = (result: OptimizeResult) => {
+    const vLocal = eclipticToLocal(result.v1_ecl)
+    const { v0: newV0, pitch: newPitch, yaw: newYaw } = cartesianToPitchYaw(vLocal)
+
+    setV0(parseFloat(newV0.toFixed(4)))
+    setPitch(parseFloat((newPitch * 180 / Math.PI).toFixed(3)))
+    setYaw(parseFloat((newYaw   * 180 / Math.PI).toFixed(3)))
+    globalTimeRef.current = result.launchDay_j2000
+    setTimeMult(500)
+  };
 
   const handleLaunch = () => {
     setIsLaunched(true);
@@ -212,7 +250,8 @@ export default function App() {
         isRunning={isSimulatorRunning}
         timeMult={timeMult}
         selectedTarget={selectedTarget}
-        launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched }}
+        launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current }}
+        globalTimeRef={globalTimeRef}
         onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
       />
 
@@ -417,6 +456,15 @@ export default function App() {
               <div className="glass-panel p-4 rounded-lg w-72">
                 {renderTargetStats()}
               </div>
+
+              {selectedTarget && selectedTarget.name !== "Sun" && (
+                <TrajectoryOptimizer
+                  originId={3}
+                  destId={Object.entries({1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn'}).find(([_, name]) => name === selectedTarget.name)?.[0] as unknown as number || 4}
+                  globalTimeRef={globalTimeRef}
+                  onApply={handleApply}
+                />
+              )}
 
               {/* Texture Preview Mini-panels */}
               <div className="flex gap-2 max-w-80 flex-wrap justify-end">
