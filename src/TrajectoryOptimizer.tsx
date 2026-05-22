@@ -297,6 +297,17 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const [autoResult, setAutoResult] = useState<any | null>(null)
   const workerRef = useRef<Worker | null>(null)
 
+  // Use refs for values that change over time to avoid stale closures
+  const originIdRef = useRef(originId)
+  const destIdRef = useRef(destId)
+  const legsRef = useRef(legs)
+  const autoModeRef = useRef(autoMode)
+
+  useEffect(() => { originIdRef.current = originId }, [originId])
+  useEffect(() => { destIdRef.current = destId }, [destId])
+  useEffect(() => { legsRef.current = legs }, [legs])
+  useEffect(() => { autoModeRef.current = autoMode }, [autoMode])
+
   // Initialize Web Worker and handlers
   useEffect(() => {
     try {
@@ -395,25 +406,31 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const run = useCallback(() => {
     setLoading(true)
     setAutoResult(null)
+    setResult(null) // Clear previous result so UI / GhostPath updates and doesn't draw stale results
     const t0_days = globalTimeRef.current / 86400
 
     if (workerRef.current) {
-      if (autoMode) {
+      if (autoModeRef.current) {
         workerRef.current.postMessage({
           type: 'AUTO_FLYBY',
-          payload: { originId, destId, t0_days }
+          payload: { originId: originIdRef.current, destId: destIdRef.current, t0_days }
         })
       } else {
         workerRef.current.postMessage({
           type: 'MANUAL_LEGS',
-          payload: { legs, t0_days }
+          payload: { legs: legsRef.current, t0_days }
         })
       }
     } else {
       // Fallback synchronous code
       setTimeout(() => {
-        if (autoMode) {
-          const best = findBestFlyby(originId, destId, t0_days)
+        const currentOriginId = originIdRef.current
+        const currentDestId = destIdRef.current
+        const currentAutoMode = autoModeRef.current
+        const currentLegs = legsRef.current
+
+        if (currentAutoMode) {
+          const best = findBestFlyby(currentOriginId, currentDestId, t0_days)
           if (best && best.flybyId !== -1) {
             setAutoResult(best)
             const initialLeg = best.legs[0]
@@ -433,8 +450,8 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
           let currentT0 = t0_days
           const computedLegs: MissionLeg[] = []
           let failed = false
-          for (let i = 0; i < legs.length; i++) {
-            const leg = legs[i]
+          for (let i = 0; i < currentLegs.length; i++) {
+            const leg = currentLegs[i]
             const res = scanPorkchop(leg.originId, leg.destId, currentT0)
             if (!res) {
               failed = true
@@ -460,7 +477,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
         setLoading(false)
       }, 0)
     }
-  }, [originId, destId, globalTimeRef, legs, autoMode])
+  }, [globalTimeRef])
 
   const apply = () => { if (result) onApply(result) }
 

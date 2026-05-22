@@ -42,6 +42,46 @@ export default function App() {
   // Time Ref for jumping simulation
   const globalTimeRef = React.useRef<number>(Date.now() / 1000);
 
+  // Prevention guard for duplicate TEI execution calls
+  const teiAppliedRef = React.useRef(false);
+
+  // Background Web Worker references for Earth return trajectory optimizer
+  const returnWorkerRef = React.useRef<Worker | null>(null);
+  const returnDestIdRef = React.useRef<number>(4);
+
+  React.useEffect(() => {
+    try {
+      const w = new Worker(
+        new URL("./workers/trajectory.worker.ts", import.meta.url),
+        { type: "module" }
+      );
+      w.onmessage = (e) => {
+        const { type, result } = e.data;
+        if (type === "RESULT") {
+          if (result) {
+            const leg: any = {
+              originId: returnDestIdRef.current,
+              destId: 3, // Earth
+              type: "capture",
+              dv1_kms: result.dv1_kms,
+              dv2_kms: result.dv2_kms,
+              tof_days: result.tof_days,
+              v1_ecl: result.v1_ecl,
+            };
+            result.legs = [leg];
+          }
+          setReturnWindow(result);
+        }
+      };
+      returnWorkerRef.current = w;
+    } catch (err) {
+      console.warn("Could not load return trajectory Web Worker, falling back to sync:", err);
+    }
+    return () => {
+      returnWorkerRef.current?.terminate();
+    };
+  }, []);
+
   const OBLIQUITY = 23.43929111 * (Math.PI / 180); // J2000 obliquity of ecliptic
 
   const eclipticToLocal = (vEcl: [number, number, number]): [number, number, number] => {
@@ -66,6 +106,11 @@ export default function App() {
   };
 
   const handleApply = (result: OptimizeResult) => {
+    if (result.legs && result.legs.length === 1 && result.legs[0].destId === 3) {
+      if (teiAppliedRef.current) return;
+      teiAppliedRef.current = true;
+    }
+
     const vLocal = eclipticToLocal(result.v1_ecl)
     const { v0: newV0, pitch: newPitch, yaw: newYaw } = cartesianToPitchYaw(vLocal)
 
@@ -88,6 +133,7 @@ export default function App() {
   };
 
   const handleLaunch = () => {
+    teiAppliedRef.current = false;
     setIsLaunched(true);
   };
 
@@ -100,29 +146,48 @@ export default function App() {
       const planetMap = { 'Mercury': 1, 'Venus': 2, 'Earth': 3, 'Mars': 4, 'Jupiter': 5, 'Saturn': 6 } as any;
       currentDestId = planetMap[targetPlanet] || 4;
     }
+    returnDestIdRef.current = currentDestId;
+    setReturnWindow(null); // Clear previous return window so UI knows it is computing
 
-    const result = scanPorkchop(
-      currentDestId,
-      3, // Earth
-      globalTimeRef.current / 86400,
-      900,
-      150,
-      500
-    );
+    const t0 = globalTimeRef.current / 86400; // live sim clock
 
-    if (result) {
-      const leg: any = {
-        originId: currentDestId,
-        destId: 3, // Earth
-        type: 'capture',
-        dv1_kms: result.dv1_kms,
-        dv2_kms: result.dv2_kms,
-        tof_days: result.tof_days,
-        v1_ecl: result.v1_ecl,
-      };
-      result.legs = [leg];
+    if (returnWorkerRef.current) {
+      returnWorkerRef.current.postMessage({
+        type: 'SCAN',
+        payload: {
+          originId: currentDestId,
+          destId: 3, // Earth
+          t0_days: t0,
+          searchDays: 900,
+          tofMin: 150,
+          tofMax: 500,
+          steps: 60
+        }
+      });
+    } else {
+      const result = scanPorkchop(
+        currentDestId,
+        3, // Earth
+        t0,
+        900,
+        150,
+        500
+      );
+
+      if (result) {
+        const leg: any = {
+          originId: currentDestId,
+          destId: 3, // Earth
+          type: 'capture',
+          dv1_kms: result.dv1_kms,
+          dv2_kms: result.dv2_kms,
+          tof_days: result.tof_days,
+          v1_ecl: result.v1_ecl,
+        };
+        result.legs = [leg];
+      }
+      setReturnWindow(result);
     }
-    setReturnWindow(result);
   };
 
   const handleSelectLocation = (type: "launch" | "target", planet: string, lat: number, lon: number) => {
