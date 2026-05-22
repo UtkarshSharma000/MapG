@@ -719,6 +719,8 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
   }, [launchParams]);
 
   useEffect(() => {
+    setPoints([]); // Clear old visual points/trail immediately when launchParams change
+
     if (!launchParams || launchParams.isLaunched) return;
     
     // Interplanetary mode (target select OR mission legs active)
