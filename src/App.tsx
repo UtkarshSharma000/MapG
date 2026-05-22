@@ -9,7 +9,7 @@ import {
   LogOut,
 } from "lucide-react";
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
-import TrajectoryOptimizer, { OptimizeResult } from "./TrajectoryOptimizer";
+import TrajectoryOptimizer, { OptimizeResult, scanPorkchop } from "./TrajectoryOptimizer";
 import { TelemetryPanel } from "./components/TelemetryPanel";
 import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
@@ -32,7 +32,7 @@ export default function App() {
   const [launchLocation, setLaunchLocation] = useState<{lat: number, lon: number} | null>(null);
   const [targetLocation, setTargetLocation] = useState<{lat: number, lon: number} | null>(null);
   const [isLaunched, setIsLaunched] = useState(false);
-  const [missionStatus, setMissionStatus] = useState<string | null>(null);
+  const [missionStatus, setMissionStatus] = useState<string>("STANDBY");
 
   const [launchPlanet, setLaunchPlanet] = useState<string | null>("Earth");
   const [targetPlanet, setTargetPlanet] = useState<string | null>(null);
