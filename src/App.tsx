@@ -70,7 +70,7 @@ export default function App() {
     setPitch(parseFloat((newPitch * 180 / Math.PI).toFixed(3)))
     setYaw(parseFloat((newYaw   * 180 / Math.PI).toFixed(3)))
     globalTimeRef.current = result.launchDay_j2000
-    setTimeMult(500)
+    setTimeMult(86400) // 1 day per second
   };
 
   const handleLaunch = () => {
