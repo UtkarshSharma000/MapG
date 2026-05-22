@@ -610,11 +610,12 @@ function Planet({
   );
 }
 
-function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalTimeRef: any }) {
+function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchParams: any, globalTimeRef: any, onStatusUpdate?: (s: string | null) => void }) {
   const [points, setPoints] = useState<THREE.Vector3[]>([]);
   const shuttleRef = useRef<THREE.Group>(null);
   const progressRef = useRef(0);
   const launchTimeRef = useRef<number | null>(null);
+  const captureTimeRef = useRef<number | null>(null);
   const transferTimeRef = useRef<number>(1000);
   const simDurationRef = useRef<number>(1000);
   const captureInfoRef = useRef<{status?: string, altitude?: number, period?: number}>({});
@@ -622,8 +623,10 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
   const fuelRef = useRef<number>(100); // %
   const [status, setStatus] = useState<string>("Standby");
   const [daysPassed, setDaysPassed] = useState<number>(0);
+  const [stayTimeDays, setStayTimeDays] = useState<number>(0);
   const [interceptPoint, setInterceptPoint] = useState<THREE.Vector3 | null>(null);
   const lastCalcTime = useRef(0);
+  const lastStatusRef = useRef<string | null>(null);
 
   const calculateInterplanetaryPath = useCallback(() => {
     if (!launchParams || launchParams.isLaunched) return;
@@ -769,7 +772,11 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
         lastCalcTime.current += delta;
         if (lastCalcTime.current > 1.0) { // Update frequency reduced to 1s
            lastCalcTime.current = 0;
-           calculateInterplanetaryPath();
+           try {
+             calculateInterplanetaryPath();
+           } catch (err) {
+             console.error('RK4 prediction error:', err);
+           }
         }
       }
 
@@ -813,9 +820,19 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
         fuelRef.current = Math.max(10, 100 - (requiredDVRef.current / 150) * (pct_tof / 0.05)); 
       } else if (pct_tof >= 0.98 && captureInfoRef.current.status) {
         setStatus(captureInfoRef.current.status);
+        if (!captureTimeRef.current) {
+          captureTimeRef.current = globalTimeRef.current;
+        }
+        setStayTimeDays(Math.floor((globalTimeRef.current - captureTimeRef.current) / 86400));
       } else {
         setStatus("Inertial Cruise");
         fuelRef.current = Math.max(5, 100 - (requiredDVRef.current / 200) - (pct_tof * 5));
+        captureTimeRef.current = null;
+      }
+
+      if (lastStatusRef.current !== status) {
+        lastStatusRef.current = status;
+        if (onStatusUpdate) onStatusUpdate(status);
       }
     } else {
       // Shuttle movement. If we have lots of points (LEO backend), speed needs to be faster
@@ -893,6 +910,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
                   <div className="flex flex-col gap-0 font-mono uppercase mt-0.5 mb-0.5 bg-white/5 px-1 py-0.5 rounded">
                     <div className="text-[6px] text-zinc-400">ALTITUDE: <span className="text-cyan-400">{Math.round(captureInfoRef.current.altitude).toLocaleString()} KM</span></div>
                     <div className="text-[6px] text-zinc-400">PERIOD: <span className="text-cyan-400">{captureInfoRef.current.period?.toFixed(1)} DAYS</span></div>
+                    <div className="text-[6px] text-zinc-400">STAY TIME: <span className="text-orange-400">{stayTimeDays} DAYS</span></div>
                   </div>
                 )}
                 <div className="flex justify-between items-center mt-1">
@@ -915,13 +933,15 @@ function SystemEngine({
   selectedTarget,
   launchParams,
   globalTimeRef,
-  onPlanetDoubleClick
+  onPlanetDoubleClick,
+  onStatusUpdate
 }: {
   timeMult: number;
   selectedTarget: (typeof PLANETS)[0] | null;
   launchParams?: any;
   globalTimeRef: React.MutableRefObject<number>;
   onPlanetDoubleClick?: (name: string) => void;
+  onStatusUpdate?: (status: string | null) => void;
 }) {
   const controlsRef = useRef<any>(null);
   const currentTargetName = useRef(selectedTarget?.name || "Sun");
@@ -1038,8 +1058,8 @@ function SystemEngine({
         <Planet key={p.name} data={p} globalTimeRef={globalTimeRef} onDoubleClick={onPlanetDoubleClick} launchParams={launchParams} />
       ))}
 
-      {launchParams && launchParams.targetPlanet && (
-        <GhostPath launchParams={launchParams} globalTimeRef={globalTimeRef} />
+      {launchParams && (launchParams.targetPlanet || launchParams.missionLegs) && (
+        <GhostPath launchParams={launchParams} globalTimeRef={globalTimeRef} onStatusUpdate={onStatusUpdate} />
       )}
 
       <OrbitControls
@@ -1069,6 +1089,7 @@ export default function OrbitSimulator({
   launchParams,
   globalTimeRef,
   onPlanetDoubleClick,
+  onStatusUpdate,
 }: {
   isRunning?: boolean;
   timeMult?: number;
@@ -1076,6 +1097,7 @@ export default function OrbitSimulator({
   launchParams?: any;
   globalTimeRef?: React.MutableRefObject<number>;
   onPlanetDoubleClick?: (name: string) => void;
+  onStatusUpdate?: (status: string | null) => void;
 }) {
   const fallbackRef = useRef(0);
   const activeTimeRef = globalTimeRef || fallbackRef;
@@ -1099,6 +1121,7 @@ export default function OrbitSimulator({
           launchParams={launchParams}
           globalTimeRef={activeTimeRef}
           onPlanetDoubleClick={onPlanetDoubleClick}
+          onStatusUpdate={onStatusUpdate}
         />
 
         <Stars

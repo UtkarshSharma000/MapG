@@ -98,6 +98,34 @@ export function LaunchHUD({
           >
              {isLaunched ? 'RESET SIMULATION' : 'SIMULATE LAUNCH'}
           </button>
+
+          {missionStatus && missionStatus.includes('ORBIT') && (
+            <div className="pt-2 border-t border-outline/20 flex flex-col gap-2">
+              <button 
+                onClick={onPlanReturn}
+                className="w-full py-2 bg-orange-600/20 border border-orange-500/50 hover:bg-orange-600/30 text-orange-400 rounded font-label-caps tracking-[0.15em] text-[10px] transition-all"
+              >
+                Plan return window → Earth
+              </button>
+              
+              {returnWindow && (
+                <div className="bg-black/40 p-2 rounded border border-white/10 flex flex-col gap-2">
+                  <div className="text-[9px] font-mono text-white/50 uppercase tracking-tighter">
+                    Optimal Window: <span className="text-white">{returnWindow.tof_days} Days TOF</span>
+                  </div>
+                  <div className="text-[9px] font-mono text-white/50 uppercase tracking-tighter">
+                    Burn Required: <span className="text-white">{returnWindow.dv1_kms.toFixed(2)} KM/S</span>
+                  </div>
+                  <button 
+                    onClick={onApplyReturn}
+                    className="w-full py-1.5 bg-cyan-600/20 border border-cyan-500/50 hover:bg-cyan-600/30 text-cyan-400 rounded font-mono text-[9px] uppercase tracking-widest"
+                  >
+                    Confirm & Execute TEI
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </Draggable>

@@ -192,7 +192,7 @@ function lambertIzzo(
 }
 
 // ── Porkchop scan ──────────────────────────────────────────────────────────
-function scanPorkchop(
+export function scanPorkchop(
   originId: number,
   destId: number,
   t0_days: number,
