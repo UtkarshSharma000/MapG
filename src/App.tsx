@@ -579,7 +579,7 @@ export default function App() {
               {selectedTarget && selectedTarget.name !== "Sun" && (
                 <TrajectoryOptimizer
                   originId={3}
-                  destId={Object.entries({1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn'}).find(([_, name]) => name === selectedTarget.name)?.[0] as unknown as number || 4}
+                  destId={Number(Object.entries({1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn'}).find(([_, name]) => name === selectedTarget.name)?.[0] || 4)}
                   globalTimeRef={globalTimeRef}
                   onApply={handleApply}
                 />

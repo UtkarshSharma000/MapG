@@ -297,6 +297,15 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const [autoResult, setAutoResult] = useState<any | null>(null)
   const workerRef = useRef<Worker | null>(null)
 
+  // Keep legs and results synced when originId or destId changes
+  useEffect(() => {
+    setLegs([
+      { originId: originId || 3, destId: destId || 4, type: 'capture' }
+    ])
+    setResult(null)
+    setAutoResult(null)
+  }, [originId, destId])
+
   // Use refs for values that change over time to avoid stale closures
   const originIdRef = useRef(originId)
   const destIdRef = useRef(destId)
