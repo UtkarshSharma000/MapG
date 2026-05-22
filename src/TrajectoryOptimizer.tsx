@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export interface OptimizeResult {
@@ -200,7 +200,7 @@ export function scanPorkchop(
   tofMin = 60,
   tofMax = 800,
   steps = 60
-): OptimizeResult {
+): OptimizeResult | null {
   const AU_to_km = AU_KM
   let best: OptimizeResult | null = null
   let bestDv = Infinity
@@ -226,6 +226,9 @@ export function scanPorkchop(
       const dv2  = norm([sol.v2[0]-s2.vel[0], sol.v2[1]-s2.vel[1], sol.v2[2]-s2.vel[2]])
       const dvTotal = dv1 + dv2
 
+      if (!isFinite(dv1) || !isFinite(dv2)) continue
+      if (dv1 > 50 || dv2 > 50) continue              // skip absurd values
+
       if (dvTotal < bestDv) {
         bestDv = dvTotal
         best = {
@@ -239,14 +242,14 @@ export function scanPorkchop(
     }
   }
 
-  return best!
+  return best
 }
 
 function findBestFlyby(
   originId: number,
   destId: number,
   t0_days: number
-): { flybyId: number; totalDv: number; legs: MissionLeg[], all: {flybyId: number, dv: number}[] } {
+): { flybyId: number; totalDv: number; legs: MissionLeg[], all: {flybyId: number, dv: number}[] } | null {
 
   const candidates = PLANET_IDS.filter(id => id !== originId && id !== destId)
   let best = { flybyId: -1, totalDv: Infinity, legs: [] as MissionLeg[], all: [] as {flybyId: number, dv: number}[] }
@@ -275,6 +278,7 @@ function findBestFlyby(
       }
     }
   }
+  if (best.flybyId === -1) return null
   best.all = allRes;
   best.all.sort((a,b) => a.dv - b.dv)
   return best
@@ -290,7 +294,67 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
     { originId: originId || 3, destId: destId || 4, type: 'capture' }
   ])
   
-  const [autoResult, setAutoResult] = useState<ReturnType<typeof findBestFlyby> | null>(null)
+  const [autoResult, setAutoResult] = useState<any | null>(null)
+  const workerRef = useRef<Worker | null>(null)
+
+  // Initialize Web Worker and handlers
+  useEffect(() => {
+    try {
+      const w = new Worker(
+        new URL('./workers/trajectory.worker.ts', import.meta.url),
+        { type: 'module' }
+      )
+      w.onmessage = (e) => {
+        const { type, result: wResult, legs: returnedLegs } = e.data
+        if (type === 'RESULT') {
+          if (wResult) {
+            setResult(wResult)
+          } else {
+            setResult(null)
+          }
+          setLoading(false)
+        } else if (type === 'AUTO_RESULT') {
+          if (wResult && wResult.flybyId !== -1) {
+            setAutoResult(wResult)
+            const initialLeg = wResult.legs[0]
+            setResult({
+              dv1_kms: initialLeg.dv1_kms!,
+              dv2_kms: initialLeg.dv2_kms!,
+              tof_days: initialLeg.tof_days!,
+              launchDay_j2000: (globalTimeRef.current / 86400) * 86400,
+              v1_ecl: initialLeg.v1_ecl!,
+              legs: wResult.legs
+            })
+          } else {
+            setAutoResult(null)
+            setResult(null)
+          }
+          setLoading(false)
+        } else if (type === 'MANUAL_RESULT') {
+          if (returnedLegs && returnedLegs.length > 0) {
+            setLegs(returnedLegs)
+            setResult({
+              dv1_kms: returnedLegs[0].dv1_kms!,
+              dv2_kms: returnedLegs[returnedLegs.length - 1].dv2_kms!,
+              tof_days: returnedLegs.reduce((sum: number, l: any) => sum + (l.tof_days || 0), 0),
+              launchDay_j2000: (globalTimeRef.current / 86400) * 86400,
+              v1_ecl: returnedLegs[0].v1_ecl!,
+              legs: returnedLegs
+            })
+          } else {
+            setResult(null)
+          }
+          setLoading(false)
+        }
+      }
+      workerRef.current = w
+    } catch (err) {
+      console.warn("Could not load trajectory Web Worker, falling back to sync:", err)
+    }
+    return () => {
+      workerRef.current?.terminate()
+    }
+  }, [globalTimeRef])
 
   const updateLeg = (i: number, changes: Partial<MissionLeg>) => {
     setLegs(prev => {
@@ -331,48 +395,71 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const run = useCallback(() => {
     setLoading(true)
     setAutoResult(null)
-    setTimeout(() => {
-      const t0_days = globalTimeRef.current / 86400
-      
+    const t0_days = globalTimeRef.current / 86400
+
+    if (workerRef.current) {
       if (autoMode) {
-        const best = findBestFlyby(originId, destId, t0_days)
-        if (best.flybyId !== -1) {
-          setAutoResult(best)
-          // Default to the first leg for the initial burn
-          const initialLeg = best.legs[0]
-          setResult({
-            dv1_kms: initialLeg.dv1_kms!,
-            dv2_kms: initialLeg.dv2_kms!,
-            tof_days: initialLeg.tof_days!,
-            launchDay_j2000: (t0_days * 86400), 
-            v1_ecl: initialLeg.v1_ecl!,
-            legs: best.legs
-          })
-        }
+        workerRef.current.postMessage({
+          type: 'AUTO_FLYBY',
+          payload: { originId, destId, t0_days }
+        })
       } else {
-        // Manual mode: solve legs sequentially
-        let currentT0 = t0_days
-        const computedLegs: MissionLeg[] = []
-        for (let i = 0; i < legs.length; i++) {
-          const leg = legs[i]
-          const res = scanPorkchop(leg.originId, leg.destId, currentT0)
-          computedLegs.push({ ...leg, dv1_kms: res.dv1_kms, dv2_kms: res.dv2_kms, tof_days: res.tof_days, v1_ecl: res.v1_ecl })
-          currentT0 += res.tof_days
-        }
-        setLegs(computedLegs)
-        if (computedLegs.length > 0) {
-          setResult({
-            dv1_kms: computedLegs[0].dv1_kms!,
-            dv2_kms: computedLegs[computedLegs.length - 1].dv2_kms!,
-            tof_days: computedLegs.reduce((sum, l) => sum + (l.tof_days || 0), 0),
-            launchDay_j2000: (t0_days * 86400),
-            v1_ecl: computedLegs[0].v1_ecl!,
-            legs: computedLegs
-          })
-        }
+        workerRef.current.postMessage({
+          type: 'MANUAL_LEGS',
+          payload: { legs, t0_days }
+        })
       }
-      setLoading(false)
-    }, 0)
+    } else {
+      // Fallback synchronous code
+      setTimeout(() => {
+        if (autoMode) {
+          const best = findBestFlyby(originId, destId, t0_days)
+          if (best && best.flybyId !== -1) {
+            setAutoResult(best)
+            const initialLeg = best.legs[0]
+            setResult({
+              dv1_kms: initialLeg.dv1_kms!,
+              dv2_kms: initialLeg.dv2_kms!,
+              tof_days: initialLeg.tof_days!,
+              launchDay_j2000: t0_days * 86400,
+              v1_ecl: initialLeg.v1_ecl!,
+              legs: best.legs
+            })
+          } else {
+            setAutoResult(null)
+            setResult(null)
+          }
+        } else {
+          let currentT0 = t0_days
+          const computedLegs: MissionLeg[] = []
+          let failed = false
+          for (let i = 0; i < legs.length; i++) {
+            const leg = legs[i]
+            const res = scanPorkchop(leg.originId, leg.destId, currentT0)
+            if (!res) {
+              failed = true
+              break
+            }
+            computedLegs.push({ ...leg, dv1_kms: res.dv1_kms, dv2_kms: res.dv2_kms, tof_days: res.tof_days, v1_ecl: res.v1_ecl })
+            currentT0 += res.tof_days
+          }
+          if (!failed && computedLegs.length > 0) {
+            setLegs(computedLegs)
+            setResult({
+              dv1_kms: computedLegs[0].dv1_kms!,
+              dv2_kms: computedLegs[computedLegs.length - 1].dv2_kms!,
+              tof_days: computedLegs.reduce((sum, l) => sum + (l.tof_days || 0), 0),
+              launchDay_j2000: t0_days * 86400,
+              v1_ecl: computedLegs[0].v1_ecl!,
+              legs: computedLegs
+            })
+          } else {
+            setResult(null)
+          }
+        }
+        setLoading(false)
+      }, 0)
+    }
   }, [originId, destId, globalTimeRef, legs, autoMode])
 
   const apply = () => { if (result) onApply(result) }

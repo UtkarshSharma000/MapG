@@ -76,6 +76,15 @@ export default function App() {
     setTimeMult(86400) // 1 day per second
     setTargetPlanet(null); // Clear single planet target so we rely on legs
     setMissionLegs(result.legs || null);
+    setIsLaunched(false); // Reset launch state so return trajectory propagates in the HUD first
+
+    if (result.legs && result.legs.length > 0) {
+      const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn' } as Record<number, string>;
+      const originName = planetMap[result.legs[0].originId];
+      if (originName) {
+        setLaunchPlanet(originName);
+      }
+    }
   };
 
   const handleLaunch = () => {
@@ -100,6 +109,19 @@ export default function App() {
       150,
       500
     );
+
+    if (result) {
+      const leg: any = {
+        originId: currentDestId,
+        destId: 3, // Earth
+        type: 'capture',
+        dv1_kms: result.dv1_kms,
+        dv2_kms: result.dv2_kms,
+        tof_days: result.tof_days,
+        v1_ecl: result.v1_ecl,
+      };
+      result.legs = [leg];
+    }
     setReturnWindow(result);
   };
 
