@@ -271,7 +271,7 @@ export function simulateInterplanetaryRK4(
   dt: number,
   targetPlanetName: string,
   twoBodyOnly: boolean = false
-): { points: Vector3[], arrivalTime: number, success: boolean } {
+): { points: Vector3[], arrivalTime: number, success: boolean, missionStatus?: string, captureAltitude?: number, orbitPeriod?: number } {
   let pos = [...startPos] as Vector3;
   let vel = [...startVel] as Vector3;
   let t = startTime;
@@ -320,6 +320,11 @@ export function simulateInterplanetaryRK4(
     return {dp: [v[0], v[1], v[2]], dv: [ax, ay, az]};
   };
 
+  let captured = false;
+  let missionStatus: string | undefined;
+  let captureAltitude: number | undefined;
+  let orbitPeriod: number | undefined;
+
   let prevDist = Infinity;
   let success = false;
   let arrivalTime = startTime + duration;
@@ -332,6 +337,8 @@ export function simulateInterplanetaryRK4(
   let i = 0;
   let outSteps = 0;
   const targetOutSteps = 400; // Aim for ~400 points output
+  const outDt = duration / targetOutSteps;
+  let lastOutTime = startTime;
   const timeLimit = startTime + duration;
 
   while (t < timeLimit) {
@@ -367,11 +374,10 @@ export function simulateInterplanetaryRK4(
     vel[2] += (currentDt/6) * (k1.dv[2] + 2*k2.dv[2] + 2*k3.dv[2] + k4.dv[2]);
     
     t += currentDt;
-    i++;
     
-    // Save points roughly every dt * (duration/dt / 400) time
-    if (i % Math.max(1, Math.floor((duration/dt) / targetOutSteps)) === 0) {
+    if (t - lastOutTime >= outDt) {
       points.push([...pos]);
+      lastOutTime += outDt;
     }
     
     if (targetPlanet) {
@@ -379,18 +385,30 @@ export function simulateInterplanetaryRK4(
       const d2 = (pos[0]-tx)*(pos[0]-tx) + (pos[1]-ty)*(pos[1]-ty) + (pos[2]-tz)*(pos[2]-tz);
       const d = Math.sqrt(d2);
       
-      if (d < radius * 8) {
-        success = true;
-        arrivalTime = t;
-        points.push([tx, ty, tz]);
-        break;
-      }
-      
-      if (d < soi && d > prevDist) {
-        // Just fly by, don't stop the simulation! Keep simulating escape trajectory!
-        // The previous code stopped the simulation when passing periapsis.
-        // We will remove the break so the craft escapes Mars and continues its sun orbit.
-        success = d < radius * 40; 
+      if (d < soi) {
+        if (!captured) {
+            const targetVel = getOrbitalVelocity(targetPlanet.elements, t);
+            const relVel: Vector3 = [vel[0] - targetVel[0], vel[1] - targetVel[1], vel[2] - targetVel[2]];
+            const relV = Math.sqrt(relVel[0]*relVel[0] + relVel[1]*relVel[1] + relVel[2]*relVel[2]);
+            const muTarget = G * (PLANET_MASSES[targetPlanet.name] || 0);
+            
+            const energy = 0.5 * relV * relV - muTarget / d;
+            
+            if (energy >= 0) {
+              const vCirc = Math.sqrt(muTarget / d);
+              const vHat = [relVel[0]/relV, relVel[1]/relV, relVel[2]/relV];
+              vel[0] = targetVel[0] + vHat[0] * vCirc;
+              vel[1] = targetVel[1] + vHat[1] * vCirc;
+              vel[2] = targetVel[2] + vHat[2] * vCirc;
+            }
+            
+            captured = true;
+            success = true;
+            arrivalTime = t;
+            missionStatus = `${targetPlanet.name.toUpperCase()}_ORBIT`;
+            captureAltitude = (d - radius) / 1000;
+            orbitPeriod = (2 * Math.PI * Math.sqrt(Math.pow(d, 3) / muTarget)) / 86400;
+        }
       }
       prevDist = d;
     }
@@ -401,7 +419,7 @@ export function simulateInterplanetaryRK4(
     arrivalTime = t;
   }
   
-  return { points, arrivalTime, success };
+  return { points, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod };
 }
 
 
