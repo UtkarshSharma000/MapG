@@ -719,9 +719,10 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
   }, [launchParams]);
 
   useEffect(() => {
-    setPoints([]); // Clear old visual points/trail immediately when launchParams change
+    if (!launchParams) return;
+    if (launchParams.isLaunched) return; // Preserve active trajectory path during launch/cruise
 
-    if (!launchParams || launchParams.isLaunched) return;
+    setPoints([]); // Clear old visual points/trail immediately when launchParams change
     
     // Interplanetary mode (target select OR mission legs active)
     if (launchParams.targetPlanet || launchParams.missionLegs) {
