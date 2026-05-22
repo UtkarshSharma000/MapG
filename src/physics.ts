@@ -311,39 +311,57 @@ export function simulateInterplanetaryRK4(
     return {dp: [v[0], v[1], v[2]], dv: [ax, ay, az]};
   };
 
-  let steps = Math.floor(duration / dt);
-  const outRate = Math.max(1, Math.floor(steps / 400));
-  
   let prevDist = Infinity;
   let success = false;
   let arrivalTime = startTime + duration;
   
   const planetRadiiKm = [2439, 6051, 6371, 3389, 69911, 58232, 25362, 24622];
   const radius = (planetRadiiKm[targetIndex] || 6000) * 1000;
-  const soi = radius * 100;
+  // Mars SOI is roughly 577,000 km, we'll use a dynamic SOI formula or just a large bubble
+  const soi = radius * 150; 
+  
+  let i = 0;
+  let outSteps = 0;
+  const targetOutSteps = 400; // Aim for ~400 points output
+  const timeLimit = startTime + duration;
 
-  for (let i = 0; i < steps; i++) {
+  while (t < timeLimit) {
+    // Dynamic timestep: slow down inside SOI of target
+    let currentDt = dt;
+    
+    if (targetPlanet) {
+       const [tx, ty, tz] = propagateOrbit(targetPlanet.elements, t);
+       const d2 = (pos[0]-tx)*(pos[0]-tx) + (pos[1]-ty)*(pos[1]-ty) + (pos[2]-tz)*(pos[2]-tz);
+       const d = Math.sqrt(d2);
+       // Inside SOI, scale timestep down based on distance, min dt = dt / 20
+       if (d < soi) {
+         currentDt = Math.max(dt / 20, dt * (d / soi));
+       }
+    }
+
     const k1 = getDeriv(pos, vel, t);
-    const p2: Vector3 = [pos[0] + 0.5*dt*k1.dp[0], pos[1] + 0.5*dt*k1.dp[1], pos[2] + 0.5*dt*k1.dp[2]];
-    const v2: Vector3 = [vel[0] + 0.5*dt*k1.dv[0], vel[1] + 0.5*dt*k1.dv[1], vel[2] + 0.5*dt*k1.dv[2]];
-    const k2 = getDeriv(p2, v2, t + 0.5*dt);
-    const p3: Vector3 = [pos[0] + 0.5*dt*k2.dp[0], pos[1] + 0.5*dt*k2.dp[1], pos[2] + 0.5*dt*k2.dp[2]];
-    const v3: Vector3 = [vel[0] + 0.5*dt*k2.dv[0], vel[1] + 0.5*dt*k2.dv[1], vel[2] + 0.5*dt*k2.dv[2]];
-    const k3 = getDeriv(p3, v3, t + 0.5*dt);
-    const p4: Vector3 = [pos[0] + dt*k3.dp[0], pos[1] + dt*k3.dp[1], pos[2] + dt*k3.dp[2]];
-    const v4: Vector3 = [vel[0] + dt*k3.dv[0], vel[1] + dt*k3.dv[1], vel[2] + dt*k3.dv[2]];
-    const k4 = getDeriv(p4, v4, t + dt);
+    const p2: Vector3 = [pos[0] + 0.5*currentDt*k1.dp[0], pos[1] + 0.5*currentDt*k1.dp[1], pos[2] + 0.5*currentDt*k1.dp[2]];
+    const v2: Vector3 = [vel[0] + 0.5*currentDt*k1.dv[0], vel[1] + 0.5*currentDt*k1.dv[1], vel[2] + 0.5*currentDt*k1.dv[2]];
+    const k2 = getDeriv(p2, v2, t + 0.5*currentDt);
+    const p3: Vector3 = [pos[0] + 0.5*currentDt*k2.dp[0], pos[1] + 0.5*currentDt*k2.dp[1], pos[2] + 0.5*currentDt*k2.dp[2]];
+    const v3: Vector3 = [vel[0] + 0.5*currentDt*k2.dv[0], vel[1] + 0.5*currentDt*k2.dv[1], vel[2] + 0.5*currentDt*k2.dv[2]];
+    const k3 = getDeriv(p3, v3, t + 0.5*currentDt);
+    const p4: Vector3 = [pos[0] + currentDt*k3.dp[0], pos[1] + currentDt*k3.dp[1], pos[2] + currentDt*k3.dp[2]];
+    const v4: Vector3 = [vel[0] + currentDt*k3.dv[0], vel[1] + currentDt*k3.dv[1], vel[2] + currentDt*k3.dv[2]];
+    const k4 = getDeriv(p4, v4, t + currentDt);
     
-    pos[0] += (dt/6) * (k1.dp[0] + 2*k2.dp[0] + 2*k3.dp[0] + k4.dp[0]);
-    pos[1] += (dt/6) * (k1.dp[1] + 2*k2.dp[1] + 2*k3.dp[1] + k4.dp[1]);
-    pos[2] += (dt/6) * (k1.dp[2] + 2*k2.dp[2] + 2*k3.dp[2] + k4.dp[2]);
-    vel[0] += (dt/6) * (k1.dv[0] + 2*k2.dv[0] + 2*k3.dv[0] + k4.dv[0]);
-    vel[1] += (dt/6) * (k1.dv[1] + 2*k2.dv[1] + 2*k3.dv[1] + k4.dv[1]);
-    vel[2] += (dt/6) * (k1.dv[2] + 2*k2.dv[2] + 2*k3.dv[2] + k4.dv[2]);
+    pos[0] += (currentDt/6) * (k1.dp[0] + 2*k2.dp[0] + 2*k3.dp[0] + k4.dp[0]);
+    pos[1] += (currentDt/6) * (k1.dp[1] + 2*k2.dp[1] + 2*k3.dp[1] + k4.dp[1]);
+    pos[2] += (currentDt/6) * (k1.dp[2] + 2*k2.dp[2] + 2*k3.dp[2] + k4.dp[2]);
+    vel[0] += (currentDt/6) * (k1.dv[0] + 2*k2.dv[0] + 2*k3.dv[0] + k4.dv[0]);
+    vel[1] += (currentDt/6) * (k1.dv[1] + 2*k2.dv[1] + 2*k3.dv[1] + k4.dv[1]);
+    vel[2] += (currentDt/6) * (k1.dv[2] + 2*k2.dv[2] + 2*k3.dv[2] + k4.dv[2]);
     
-    t += dt;
+    t += currentDt;
+    i++;
     
-    if (i % outRate === 0 || i === steps - 1) {
+    // Save points roughly every dt * (duration/dt / 400) time
+    if (i % Math.max(1, Math.floor((duration/dt) / targetOutSteps)) === 0) {
       points.push([...pos]);
     }
     
@@ -360,12 +378,18 @@ export function simulateInterplanetaryRK4(
       }
       
       if (d < soi && d > prevDist) {
-        arrivalTime = t;
+        // Just fly by, don't stop the simulation! Keep simulating escape trajectory!
+        // The previous code stopped the simulation when passing periapsis.
+        // We will remove the break so the craft escapes Mars and continues its sun orbit.
         success = d < radius * 40; 
-        break;
       }
       prevDist = d;
     }
+  }
+  
+  if (!success && targetPlanet) {
+    // If simulation ends without intercept, let arrivalTime be max time
+    arrivalTime = t;
   }
   
   return { points, arrivalTime, success };
