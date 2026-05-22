@@ -45,6 +45,15 @@ export default function App() {
   // Prevention guard for duplicate TEI execution calls
   const teiAppliedRef = React.useRef(false);
 
+  const getSimulatedOriginId = (): number => {
+    if (missionStatus && missionStatus.endsWith("_ORBIT")) {
+      const pName = missionStatus.replace("_ORBIT", "").toUpperCase();
+      const nameMap = { "MERCURY": 1, "VENUS": 2, "EARTH": 3, "MARS": 4, "JUPITER": 5, "SATURN": 6 } as any;
+      if (nameMap[pName]) return nameMap[pName];
+    }
+    return 3; // default Earth
+  };
+
   // Background Web Worker references for Earth return trajectory optimizer
   const returnWorkerRef = React.useRef<Worker | null>(null);
   const returnDestIdRef = React.useRef<number>(4);
@@ -456,7 +465,10 @@ export default function App() {
             missionStatus={missionStatus}
             onPlanReturn={planReturn}
             returnWindow={returnWindow}
-            onApplyReturn={() => handleApply(returnWindow!)}
+            onApplyReturn={() => {
+              handleApply(returnWindow!);
+              setIsLaunched(true);
+            }}
           />
         )}
         {mapPlanet && (
@@ -578,7 +590,7 @@ export default function App() {
 
               {selectedTarget && selectedTarget.name !== "Sun" && (
                 <TrajectoryOptimizer
-                  originId={3}
+                  originId={getSimulatedOriginId()}
                   destId={Number(Object.entries({1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn'}).find(([_, name]) => name === selectedTarget.name)?.[0] || 4)}
                   globalTimeRef={globalTimeRef}
                   onApply={handleApply}
