@@ -9,7 +9,7 @@ import {
   useTexture,
 } from "@react-three/drei";
 import * as THREE from "three";
-import { AU, propagateOrbit, KeplerianElements, simulateInterplanetaryRK4, solveLambert, findOptimalTransfer, MU_SUN, getJ2000Time } from "./physics";
+import { AU, propagateOrbit, KeplerianElements, simulateInterplanetaryRK4, solveLambert, findOptimalTransfer, MU_SUN, getJ2000Time, J2000_UNIX } from "./physics";
 import axios from "axios";
 
 export const MOONS: Record<string, any[]> = {
@@ -535,6 +535,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
   const fuelRef = useRef<number>(100); // %
   const [status, setStatus] = useState<string>("Standby");
   const [daysPassed, setDaysPassed] = useState<number>(0);
+  const [interceptPoint, setInterceptPoint] = useState<THREE.Vector3 | null>(null);
   const lastCalcTime = useRef(0);
 
   const calculateInterplanetaryPath = useCallback(() => {
@@ -565,13 +566,17 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
         PLANETS,
         simDuration,
         simDt,
-        launchParams.targetPlanet
+        launchParams.targetPlanet,
+        true // twoBodyOnly for preview path to hit perfectly
       );
       
       transferTimeRef.current = arrivalTime - time;
       const threePoints = rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[1] * POS_SCALE, p[2] * POS_SCALE));
       setPoints(threePoints);
       setStatus(success ? "Intercept Locked" : "Transfer Optimized");
+
+      const [ix, iy, iz] = propagateOrbit(target.elements, arrivalTime);
+      setInterceptPoint(new THREE.Vector3(ix * POS_SCALE, iy * POS_SCALE, iz * POS_SCALE));
     }
   }, [launchParams]);
 
@@ -667,20 +672,19 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
       
       if (pct < 0.05) {
         setStatus("Main Engine Burn");
-        // Burn fuel: roughly linear for simplicity in this visualization
-        fuelRef.current = Math.max(10, 100 - (requiredDVRef.current / 100)); // DV / 100 for visual drain
-      } else if (pct >= 0.99) {
-        setStatus("Target Reached");
-        // Snap to target planet position
+        fuelRef.current = Math.max(10, 100 - (requiredDVRef.current / 150) * (pct / 0.05)); 
+      } else if (pct >= 0.98) {
+        setStatus("Insertion Burn");
         const target = PLANETS.find(p => p.name === launchParams.targetPlanet);
         if (target) {
           const [tx, ty, tz] = propagateOrbit(target.elements, globalTimeRef.current);
           shuttleRef.current.position.set(tx * POS_SCALE, ty * POS_SCALE, tz * POS_SCALE);
-          shuttleRef.current.rotation.y += delta; // Slow orbit rotation
+          shuttleRef.current.rotation.y += delta;
           return;
         }
       } else {
-        setStatus("Cruising Phase");
+        setStatus("Inertial Cruise");
+        fuelRef.current = Math.max(5, 100 - (requiredDVRef.current / 200) - (pct * 5));
       }
     } else {
       // Shuttle movement. If we have lots of points (LEO backend), speed needs to be faster
@@ -720,12 +724,35 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
         gapSize={1}
       />
       
+      {interceptPoint && !launchParams?.isLaunched && (
+        <group position={interceptPoint}>
+          <mesh>
+            <ringGeometry args={[0.3, 0.5, 32]} />
+            <meshBasicMaterial color="#00ffff" transparent opacity={0.6} side={THREE.DoubleSide} />
+          </mesh>
+          <Html distanceFactor={20} position={[0, -0.6, 0]}>
+            <div className="bg-black/80 px-2 py-1 rounded border border-cyan-500/50 text-[6px] whitespace-nowrap text-cyan-400 font-mono uppercase tracking-widest shadow-lg">
+              Intercept Lock
+            </div>
+          </Html>
+        </group>
+      )}
+
       {launchParams?.isLaunched && points.length > 0 && (
         <group ref={shuttleRef} position={points[0]}>
            <mesh rotation={[Math.PI / 2, 0, 0]}>
              <coneGeometry args={[0.1, 0.3, 16]} />
              <meshStandardMaterial color="#ffffff" emissive="#ff4444" emissiveIntensity={0.8} />
            </mesh>
+           
+           {/* Thruster Flame effect while burning */}
+           {status.includes("Burn") && (
+             <mesh position={[0, -0.25, 0]} rotation={[Math.PI / 2, 0, 0]}>
+               <coneGeometry args={[0.07, 0.4, 8]} />
+               <meshStandardMaterial color="#ffff00" emissive="#ff8800" emissiveIntensity={2.0} transparent opacity={0.8} />
+             </mesh>
+           )}
+
            <pointLight color="#ff4444" intensity={5} distance={10} />
             <Html distanceFactor={20} position={[0, 0.5, 0]}>
               <div className="bg-black/80 px-2 py-1 rounded border border-red-500/50 flex flex-col gap-0.5 shadow-lg min-w-[80px]">
@@ -750,14 +777,15 @@ function SystemEngine({
   timeMult,
   selectedTarget,
   launchParams,
+  globalTimeRef,
   onPlanetDoubleClick
 }: {
   timeMult: number;
   selectedTarget: (typeof PLANETS)[0] | null;
   launchParams?: any;
+  globalTimeRef: React.MutableRefObject<number>;
   onPlanetDoubleClick?: (name: string) => void;
 }) {
-  const globalTimeRef = useRef(0);
   const controlsRef = useRef<any>(null);
   const currentTargetName = useRef(selectedTarget?.name || "Sun");
   const [isLocked, setIsLocked] = useState(true);
@@ -899,14 +927,19 @@ export default function OrbitSimulator({
   timeMult = 10 * 24 * 3600,
   selectedTarget,
   launchParams,
+  globalTimeRef,
   onPlanetDoubleClick,
 }: {
   isRunning?: boolean;
   timeMult?: number;
   selectedTarget: (typeof PLANETS)[0] | null;
   launchParams?: any;
+  globalTimeRef?: React.MutableRefObject<number>;
   onPlanetDoubleClick?: (name: string) => void;
 }) {
+  const fallbackRef = useRef(0);
+  const activeTimeRef = globalTimeRef || fallbackRef;
+
   return (
     <div
       className={`absolute inset-0 transition-opacity duration-1000 ${isRunning ? "opacity-100 z-10 pointer-events-auto bg-[#03060f]" : "opacity-0 z-[-10] pointer-events-none"}`}
@@ -924,6 +957,7 @@ export default function OrbitSimulator({
           timeMult={timeMult} 
           selectedTarget={selectedTarget} 
           launchParams={launchParams}
+          globalTimeRef={activeTimeRef}
           onPlanetDoubleClick={onPlanetDoubleClick}
         />
 

@@ -147,6 +147,7 @@ export function solveLambert(
   let z = 0;
   
   let y = 0;
+  const tol = 1e-4; // Better precision
   for (let iter = 0; iter < 100; iter++) {
     const cVal = C(z);
     const sVal = S(z);
@@ -164,7 +165,7 @@ export function solveLambert(
     const x = Math.sqrt(y / cVal);
     const tCalc = (Math.pow(x, 3) * sVal + A * Math.sqrt(y)) / Math.sqrt(mu);
     
-    if (Math.abs(tCalc - tof) < 0.1) { // Accuracy within 0.1 second
+    if (Math.abs(tCalc - tof) < 0.01) { // Accuracy within 0.01 second
       break;
     }
     
@@ -174,6 +175,7 @@ export function solveLambert(
       zHigh = z;
     }
     z = (zHigh + zLow) / 2;
+    if (Math.abs(zHigh - zLow) < tol) break;
   }
   
   const f = 1 - y / norm1;
@@ -267,7 +269,8 @@ export function simulateInterplanetaryRK4(
   planetsData: { name: string, elements: KeplerianElements }[],
   duration: number,
   dt: number,
-  targetPlanetName: string
+  targetPlanetName: string,
+  twoBodyOnly: boolean = false
 ): { points: Vector3[], arrivalTime: number, success: boolean } {
   let pos = [...startPos] as Vector3;
   let vel = [...startVel] as Vector3;
@@ -286,29 +289,30 @@ export function simulateInterplanetaryRK4(
     ay += m_r3 * p[1];
     az += m_r3 * p[2];
     
-    for (const data of planetsData) {
-      const mass = PLANET_MASSES[data.name];
-      if (!mass) continue;
-      const [px, py, pz] = propagateOrbit(data.elements, time);
-      const dx = px - p[0];
-      const dy = py - p[1];
-      const dz = pz - p[2];
-      const dist2 = dx*dx + dy*dy + dz*dz;
-      const dist = Math.sqrt(dist2);
-      
-      const softDist2 = Math.max(dist2, 1e12); 
-      const p_r3 = (G * mass) / (softDist2 * Math.sqrt(softDist2));
-      
-      ax += p_r3 * dx;
-      ay += p_r3 * dy;
-      az += p_r3 * dz;
+    if (!twoBodyOnly) {
+      for (const data of planetsData) {
+        const mass = PLANET_MASSES[data.name];
+        if (!mass) continue;
+        const [px, py, pz] = propagateOrbit(data.elements, time);
+        const dx = px - p[0];
+        const dy = py - p[1];
+        const dz = pz - p[2];
+        const dist2 = dx*dx + dy*dy + dz*dz;
+        
+        const softDist2 = Math.max(dist2, 1e12); 
+        const p_r3 = (G * mass) / (softDist2 * Math.sqrt(softDist2));
+        
+        ax += p_r3 * dx;
+        ay += p_r3 * dy;
+        az += p_r3 * dz;
+      }
     }
     
     return {dp: [v[0], v[1], v[2]], dv: [ax, ay, az]};
   };
 
   let steps = Math.floor(duration / dt);
-  const outRate = Math.max(1, Math.floor(steps / 400)); // Fewer points for performance (400)
+  const outRate = Math.max(1, Math.floor(steps / 400));
   
   let prevDist = Infinity;
   let success = false;
@@ -316,7 +320,7 @@ export function simulateInterplanetaryRK4(
   
   const planetRadiiKm = [2439, 6051, 6371, 3389, 69911, 58232, 25362, 24622];
   const radius = (planetRadiiKm[targetIndex] || 6000) * 1000;
-  const soi = radius * 50; // Increased SOI for detection
+  const soi = radius * 100;
 
   for (let i = 0; i < steps; i++) {
     const k1 = getDeriv(pos, vel, t);
@@ -348,19 +352,16 @@ export function simulateInterplanetaryRK4(
       const d2 = (pos[0]-tx)*(pos[0]-tx) + (pos[1]-ty)*(pos[1]-ty) + (pos[2]-tz)*(pos[2]-tz);
       const d = Math.sqrt(d2);
       
-      if (d < radius * 5) {
+      if (d < radius * 8) {
         success = true;
         arrivalTime = t;
-        points.push([tx, ty, tz]); // Force snap to target center for last point
+        points.push([tx, ty, tz]);
         break;
       }
       
       if (d < soi && d > prevDist) {
-        // We missed the close intercept but we were close enough to call it a "pass"
-        // In a simplified sim, we can stop here or continue.
-        // Let's break to show the landing/pass.
         arrivalTime = t;
-        success = d < radius * 20;
+        success = d < radius * 40; 
         break;
       }
       prevDist = d;
