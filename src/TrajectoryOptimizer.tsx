@@ -1,23 +1,34 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export interface OptimizeResult {
-  dv1_kms: number          // departure Δv magnitude → maps to v0
-  dv2_kms: number          // arrival Δv (for display)
-  tof_days: number         // transfer time
-  launchDay_j2000: number  // seconds since J2000 → feed globalTimeRef
-  v1_ecl: [number, number, number] // Raw departure velocity in J2000 ecliptic (km/s)
+  dv1_kms: number
+  dv2_kms: number
+  tof_days: number
+  launchDay_j2000: number
+  v1_ecl: [number, number, number]
+  legs?: MissionLeg[]
+}
+
+export interface MissionLeg {
+  originId: number
+  destId: number
+  type: 'transfer' | 'flyby' | 'capture'
+  tof_days?: number
+  dv1_kms?: number
+  dv2_kms?: number
+  v1_ecl?: [number, number, number]
 }
 
 interface Props {
   originId: number
   destId: number
-  globalTimeRef: React.MutableRefObject<number>   // Read inside run() directly
+  globalTimeRef: React.MutableRefObject<number>
   onApply: (result: OptimizeResult) => void
 }
 
 // ── Orbital data (J2000 epoch, ecliptic frame) ─────────────────────────────
-const PLANETS: Record<number, {
+export const PLANETS: Record<number, {
   name: string; a: number; e: number; inc_deg: number;
   raan_deg: number; argp_deg: number; M0_deg: number; T_days: number
 }> = {
@@ -28,6 +39,7 @@ const PLANETS: Record<number, {
   5: { name:'Jupiter', a:5.2034, e:0.0489, inc_deg:1.30,  raan_deg:100.46, argp_deg:273.87, M0_deg:34.40,  T_days:4332.6 },
   6: { name:'Saturn',  a:9.5371, e:0.0565, inc_deg:2.49,  raan_deg:113.66, argp_deg:339.39, M0_deg:50.08,  T_days:10759  },
 }
+const PLANET_IDS = [1, 2, 3, 4, 5, 6]
 
 const AU_KM  = 1.496e8
 const GM_SUN = 1.327124e20  // m³/s²
@@ -230,52 +242,252 @@ function scanPorkchop(
   return best!
 }
 
+function findBestFlyby(
+  originId: number,
+  destId: number,
+  t0_days: number
+): { flybyId: number; totalDv: number; legs: MissionLeg[], all: {flybyId: number, dv: number}[] } {
+
+  const candidates = PLANET_IDS.filter(id => id !== originId && id !== destId)
+  let best = { flybyId: -1, totalDv: Infinity, legs: [] as MissionLeg[], all: [] as {flybyId: number, dv: number}[] }
+  const allRes = [];
+
+  for (const flybyId of candidates) {
+    const leg1 = scanPorkchop(originId, flybyId, t0_days, 600, 60, 500, 40)
+    if (!leg1) continue
+
+    const leg2ArrivalDay = (leg1.launchDay_j2000 / 86400) + leg1.tof_days
+    const leg2 = scanPorkchop(flybyId, destId, leg2ArrivalDay, 600, 60, 800, 40)
+    if (!leg2) continue
+
+    const totalDv = leg1.dv1_kms + leg2.dv1_kms
+    allRes.push({ flybyId, dv: totalDv })
+
+    if (totalDv < best.totalDv) {
+      best = {
+        flybyId,
+        totalDv,
+        legs: [
+          { originId, destId: flybyId, type: 'flyby', ...leg1 },
+          { originId: flybyId, destId, type: 'capture', ...leg2 },
+        ],
+        all: allRes
+      }
+    }
+  }
+  best.all = allRes;
+  best.all.sort((a,b) => a.dv - b.dv)
+  return best
+}
+
 // ── Component ──────────────────────────────────────────────────────────────
 export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, onApply }: Props) {
   const [result, setResult] = useState<OptimizeResult | null>(null)
   const [loading, setLoading] = useState(false)
+  const [autoMode, setAutoMode] = useState(false)
+
+  const [legs, setLegs] = useState<MissionLeg[]>([
+    { originId: originId || 3, destId: destId || 4, type: 'capture' }
+  ])
+  
+  const [autoResult, setAutoResult] = useState<ReturnType<typeof findBestFlyby> | null>(null)
+
+  const updateLeg = (i: number, changes: Partial<MissionLeg>) => {
+    setLegs(prev => {
+      const newLegs = [...prev]
+      newLegs[i] = { ...newLegs[i], ...changes }
+      if (i + 1 < newLegs.length && changes.destId) {
+        newLegs[i + 1].originId = changes.destId
+      }
+      return newLegs
+    })
+  }
+
+  const addFlyby = () => {
+    setLegs(prev => {
+      const newLegs = [...prev]
+      const last = newLegs[newLegs.length - 1]
+      newLegs.splice(newLegs.length - 1, 0, {
+        originId: last.originId,
+        destId: Math.max(1, (last.originId - 1) % 6) || 2,
+        type: 'flyby'
+      })
+      newLegs[newLegs.length - 1].originId = newLegs[newLegs.length - 2].destId
+      return newLegs
+    })
+  }
+
+  const removeFlyby = (i: number) => {
+    setLegs(prev => {
+      const newLegs = [...prev]
+      newLegs.splice(i, 1)
+      if (i < newLegs.length) {
+        newLegs[i].originId = i > 0 ? newLegs[i-1].destId : originId
+      }
+      return newLegs
+    })
+  }
 
   const run = useCallback(() => {
     setLoading(true)
-    // Defer to next tick so React renders the loading state first
+    setAutoResult(null)
     setTimeout(() => {
       const t0_days = globalTimeRef.current / 86400
-      const res = scanPorkchop(originId, destId, t0_days)
-      setResult(res)
+      
+      if (autoMode) {
+        const best = findBestFlyby(originId, destId, t0_days)
+        if (best.flybyId !== -1) {
+          setAutoResult(best)
+          // Default to the first leg for the initial burn
+          const initialLeg = best.legs[0]
+          setResult({
+            dv1_kms: initialLeg.dv1_kms!,
+            dv2_kms: initialLeg.dv2_kms!,
+            tof_days: initialLeg.tof_days!,
+            launchDay_j2000: (t0_days * 86400), 
+            v1_ecl: initialLeg.v1_ecl!,
+            legs: best.legs
+          })
+        }
+      } else {
+        // Manual mode: solve legs sequentially
+        let currentT0 = t0_days
+        const computedLegs: MissionLeg[] = []
+        for (let i = 0; i < legs.length; i++) {
+          const leg = legs[i]
+          const res = scanPorkchop(leg.originId, leg.destId, currentT0)
+          computedLegs.push({ ...leg, dv1_kms: res.dv1_kms, dv2_kms: res.dv2_kms, tof_days: res.tof_days, v1_ecl: res.v1_ecl })
+          currentT0 += res.tof_days
+        }
+        setLegs(computedLegs)
+        if (computedLegs.length > 0) {
+          setResult({
+            dv1_kms: computedLegs[0].dv1_kms!,
+            dv2_kms: computedLegs[computedLegs.length - 1].dv2_kms!,
+            tof_days: computedLegs.reduce((sum, l) => sum + (l.tof_days || 0), 0),
+            launchDay_j2000: (t0_days * 86400),
+            v1_ecl: computedLegs[0].v1_ecl!,
+            legs: computedLegs
+          })
+        }
+      }
       setLoading(false)
     }, 0)
-  }, [originId, destId, globalTimeRef])
+  }, [originId, destId, globalTimeRef, legs, autoMode])
 
   const apply = () => { if (result) onApply(result) }
 
   return (
-    <div className="glass-panel p-4 rounded-lg w-72 mb-4 pointer-events-auto">
-      <p className="font-label-caps text-[10px] tracking-[0.15em] text-outline mb-3">
-        {PLANETS[originId]?.name} → {PLANETS[destId]?.name}
-      </p>
-      <button onClick={run} disabled={loading}
-        className="w-full mb-3 px-3 py-2 rounded border border-primary/50 bg-primary/20 hover:bg-primary/30 text-primary transition-all disabled:opacity-40 font-label-caps tracking-[0.15em] text-[10px]">
-        {loading ? 'SCANNING LAUNCH WINDOWS...' : 'FIND OPTIMAL WINDOW'}
-      </button>
-      {result && (
-        <>
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            {[
-              ['DEP. Δv',  `${result.dv1_kms} km/s`],
-              ['ARR. Δv',  `${result.dv2_kms} km/s`],
-              ['TOF',      `${result.tof_days} days`],
-            ].map(([k,v]) => (
-              <div key={k} className="bg-surface-variant/30 rounded p-2">
-                <div className="font-label-caps tracking-[0.15em] text-[8px] text-outline mb-1">{k}</div>
-                <div className="font-data-lg text-[14px] text-on-surface">{v}</div>
+    <div className="glass-panel p-4 rounded-lg w-80 mb-4 pointer-events-auto shadow-2xl relative overflow-hidden backdrop-blur-3xl z-[1000] border border-white/10">
+      <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+        <h3 className="font-label-caps tracking-[0.2em] text-[10px] text-primary">MISSION PLANNER</h3>
+        <button 
+          onClick={() => setAutoMode(!autoMode)}
+          className={`px-3 py-1 rounded font-mono text-[9px] uppercase tracking-widest transition-all ${
+            autoMode ? 'bg-primary text-black font-bold shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]' : 'bg-white/10 text-white/70 hover:bg-white/20'
+          }`}
+        >
+          {autoMode ? 'AUTO: GRAVITY ASSIST' : 'MANUAL'}
+        </button>
+      </div>
+
+      {!autoMode ? (
+        <div className="flex flex-col gap-2 mb-4">
+          {legs.map((leg, i) => (
+            <div key={i} className="flex flex-col gap-1 bg-black/40 p-2 rounded border border-white/5 relative group">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-mono text-outline-variant uppercase">
+                  {i === 0 ? 'DEPARTURE' : `LEG ${i+1}`}
+                </span>
+                {leg.type === 'flyby' && (
+                  <button onClick={() => removeFlyby(i)} className="text-red-400/50 hover:text-red-400 text-[10px]">✕</button>
+                )}
               </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="text-xs font-mono text-white/50 w-16">{PLANETS[leg.originId]?.name}</div>
+                <div className="flex-1 border-b border-dashed border-white/20 relative">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[8px] font-mono text-cyan-400/70">
+                    {leg.dv1_kms ? `${leg.dv1_kms.toFixed(2)} km/s` : '—'}
+                  </div>
+                </div>
+                {i < legs.length - 1 ? (
+                  <select 
+                    value={leg.destId} 
+                    onChange={e => updateLeg(i, { destId: +e.target.value })}
+                    className="bg-black/60 border border-white/10 rounded px-1 py-0.5 text-xs font-mono text-white outline-none cursor-pointer"
+                  >
+                    {PLANET_IDS.map(id => <option key={id} value={id}>{PLANETS[id].name}</option>)}
+                  </select>
+                ) : (
+                  <div className="text-xs font-mono text-primary font-bold">{PLANETS[leg.destId]?.name}</div>
+                )}
+              </div>
+              <div className="flex justify-end pt-1">
+                <span className="text-[8px] font-mono text-white/30 tracking-widest uppercase">{leg.type}</span>
+              </div>
+            </div>
+          ))}
+          <button 
+            onClick={addFlyby}
+            className="w-full py-1.5 mt-1 rounded border border-dashed border-white/20 text-white/40 hover:text-white/80 hover:bg-white/5 text-[9px] font-mono tracking-widest transition-colors"
+          >
+            + ADD FLYBY
+          </button>
+        </div>
+      ) : (
+        <div className="text-[10px] font-mono text-white/50 mb-4 bg-black/40 p-3 rounded">
+          <div className="text-cyan-400 mb-2">Automated Optimization active.</div>
+          The navigation computer will search all viable single-flyby trajectories to minimize initial departure ΔV to {PLANETS[destId]?.name}.
+        </div>
+      )}
+
+      <button onClick={run} disabled={loading}
+        className="w-full mb-4 px-3 py-2.5 rounded border border-primary/50 bg-primary/20 hover:bg-primary/30 text-primary transition-all disabled:opacity-40 font-label-caps tracking-[0.2em] text-[10px] glow-primary inline-flex justify-center items-center">
+        {loading ? (
+          <><div className="w-2 h-2 rounded-full bg-primary animate-ping mr-2"></div>COMPUTING...</>
+        ) : 'FIND OPTIMAL LAUNCH WINDOW'}
+      </button>
+
+      {result && (
+        <div className="bg-surface-variant/20 rounded-lg p-3 border border-white/5">
+          {autoMode && autoResult && (
+             <div className="mb-4 bg-black/50 p-2 rounded">
+                <div className="text-[10px] font-mono text-primary mb-2">AUTO RESULT:</div>
+                <div className="text-xs font-mono mb-1">
+                  {PLANETS[originId].name} <span className="text-white/40">→</span> {PLANETS[autoResult.flybyId]?.name} <span className="text-cyan-400/50">(flyby)</span> <span className="text-white/40">→</span> {PLANETS[destId].name}
+                </div>
+                <div className="text-[10px] font-mono text-white/50 mb-3 mt-2 border-b border-white/10 pb-2">
+                   Total Δv: <span className="text-white">{autoResult.totalDv.toFixed(2)} km/s</span>
+                </div>
+                <div className="text-[9px] font-mono text-white/40 mb-1">OTHER CANDIDATES:</div>
+                {autoResult.all.map((c, idx) => (
+                  <div key={c.flybyId} className="flex justify-between text-[9px] font-mono mt-0.5">
+                    <span>{PLANETS[c.flybyId]?.name} flyby:</span>
+                    <span className={idx === 0 ? 'text-primary font-bold' : ''}>{c.dv.toFixed(2)} km/s {idx === 0 && '✓ OPTIMAL'}</span>
+                  </div>
+                ))}
+             </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {[
+              ['DEP. Δv',  `${result.dv1_kms.toFixed(2)} km/s`],
+              ['ARR. Δv',  `${result.dv2_kms.toFixed(2)} km/s`],
+              ['EST TOF',  `${result.tof_days} days`],
+            ].map(([k,v]) => (
+               <div key={k} className="bg-black/30 rounded p-2">
+                 <div className="font-label-caps tracking-[0.15em] text-[8px] text-outline mb-1">{k}</div>
+                 <div className="font-data-lg text-[14px] text-on-surface">{v}</div>
+               </div>
             ))}
           </div>
+
           <button onClick={apply}
-            className="w-full px-3 py-2 rounded bg-tertiary-container/30 border border-tertiary/50 hover:bg-tertiary-container/50 text-tertiary transition-all font-label-caps tracking-[0.15em] text-[10px]">
-            APPLY PARAMETERS ↗
+            className="w-full px-3 py-2.5 rounded bg-tertiary-container/30 border border-tertiary/50 hover:bg-tertiary-container/50 text-tertiary transition-all font-label-caps tracking-[0.15em] text-[10px] flex items-center justify-center gap-2">
+            APPLY TO NAVIGATION COMPUTER ↗
           </button>
-        </>
+        </div>
       )}
     </div>
   )
