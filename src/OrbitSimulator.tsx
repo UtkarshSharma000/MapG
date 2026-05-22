@@ -625,11 +625,14 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
   const [daysPassed, setDaysPassed] = useState<number>(0);
   const [stayTimeDays, setStayTimeDays] = useState<number>(0);
   const [interceptPoint, setInterceptPoint] = useState<THREE.Vector3 | null>(null);
+  const [reachedDestination, setReachedDestination] = useState(false);
   const lastCalcTime = useRef(0);
   const lastStatusRef = useRef<string | null>(null);
+  const lastTargetPlanetRef = useRef<string | null>(null);
+  const lastMissionLegsRef = useRef<any>(null);
 
   const calculateInterplanetaryPath = useCallback(() => {
-    if (!launchParams || launchParams.isLaunched) return;
+    if (!launchParams) return;
     if (!launchParams.targetPlanet && !launchParams.missionLegs) return;
     
     const time = globalTimeRef.current;
@@ -720,13 +723,23 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
 
   useEffect(() => {
     if (!launchParams) return;
-    if (launchParams.isLaunched) return; // Preserve active trajectory path during launch/cruise
 
-    setPoints([]); // Clear old visual points/trail immediately when launchParams change
-    
-    // Interplanetary mode (target select OR mission legs active)
-    if (launchParams.targetPlanet || launchParams.missionLegs) {
-      calculateInterplanetaryPath();
+    const legsChanged = JSON.stringify(launchParams.missionLegs) !== JSON.stringify(lastMissionLegsRef.current);
+    const targetChanged = launchParams.targetPlanet !== lastTargetPlanetRef.current;
+
+    lastMissionLegsRef.current = launchParams.missionLegs;
+    lastTargetPlanetRef.current = launchParams.targetPlanet;
+
+    // Reset points ONLY if not launched OR if legs/target changed (e.g. planning return trip)
+    if (!launchParams.isLaunched || legsChanged || targetChanged) {
+      setPoints([]);
+      
+      // Interplanetary mode (target select OR mission legs active)
+      if (launchParams.targetPlanet || launchParams.missionLegs) {
+        calculateInterplanetaryPath();
+        return;
+      }
+    } else {
       return;
     }
 
@@ -769,6 +782,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
       launchTimeRef.current = null;
       progressRef.current = 0;
       setStatus("Standby");
+      setReachedDestination(false);
 
       // Constantly recalculate if not launched (interplanetary)
       if (launchParams.targetPlanet || launchParams.missionLegs) {
@@ -817,6 +831,10 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
       setDaysPassed(Math.floor(elapsed / 86400));
       
       const pct_tof = elapsed / transferTimeRef.current;
+      const arrived = pct_tof >= 1.0;
+      if (arrived !== reachedDestination) {
+        setReachedDestination(arrived);
+      }
       
       if (pct_tof < 0.05) {
         setStatus("Main Engine Burn");
@@ -843,20 +861,55 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
       progressRef.current += delta * timeMult * baseSpeed;
     }
     
-    let currentIdx = Math.floor(progressRef.current);
-    
-    if (currentIdx >= maxIdx) {
-      currentIdx = maxIdx - 1;
-      progressRef.current = maxIdx;
+    let targetName = launchParams.targetPlanet;
+    if (launchParams.missionLegs && launchParams.missionLegs.length > 0) {
+      const legs = launchParams.missionLegs;
+      const lastDestId = legs[legs.length - 1].destId;
+      const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn' } as Record<number, string>;
+      targetName = planetMap[lastDestId];
     }
-    
-    const p1 = points[currentIdx];
-    const p2 = points[currentIdx + 1];
-    
-    // Lerp
-    const t = progressRef.current - currentIdx;
-    shuttleRef.current.position.lerpVectors(p1, p2, t);
-    shuttleRef.current.lookAt(p2 || p1);
+    const targetPlanet = PLANETS.find(p => p.name === targetName);
+
+    const elapsed = globalTimeRef.current - (launchTimeRef.current || globalTimeRef.current);
+    const pct_tof = elapsed / transferTimeRef.current;
+
+    if (pct_tof >= 1.0 && targetPlanet) {
+      const time = globalTimeRef.current;
+      const [tpX, tpY, tpZ] = propagateOrbit(targetPlanet.elements, time);
+      
+      // Let shuttle orbit the target planet so it is visibly locked to it!
+      const orbitalRadius = 1.2;
+      const ang = (time / 86400) * 0.5; // Slow rotation
+      const ox = Math.cos(ang) * orbitalRadius;
+      const oz = Math.sin(ang) * orbitalRadius;
+      
+      shuttleRef.current.position.set(
+        tpX * POS_SCALE + ox,
+        tpY * POS_SCALE,
+        tpZ * POS_SCALE + oz
+      );
+      
+      // Orient the shuttle tangent to its captured orbital trajectory
+      const nextAng = ang + 0.01;
+      const nox = Math.cos(nextAng) * orbitalRadius;
+      const noz = Math.sin(nextAng) * orbitalRadius;
+      const nextPos = new THREE.Vector3(tpX * POS_SCALE + nox, tpY * POS_SCALE, tpZ * POS_SCALE + noz);
+      shuttleRef.current.lookAt(nextPos);
+    } else {
+      let currentIdx = Math.floor(progressRef.current);
+      if (currentIdx >= maxIdx) {
+        currentIdx = maxIdx - 1;
+        progressRef.current = maxIdx;
+      }
+      
+      const p1 = points[currentIdx];
+      const p2 = points[currentIdx + 1];
+      
+      // Lerp
+      const t = progressRef.current - currentIdx;
+      shuttleRef.current.position.lerpVectors(p1, p2, t);
+      shuttleRef.current.lookAt(p2 || p1);
+    }
   });
 
   if (points.length < 2) return null;
@@ -868,7 +921,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
         color={launchParams?.isLaunched ? "#ff4444" : "#00ffff"}
         lineWidth={1.5}
         transparent
-        opacity={launchParams?.isLaunched ? 0.7 : 0.4}
+        opacity={reachedDestination ? 0.0 : (launchParams?.isLaunched ? 0.7 : 0.4)}
         dashed={true}
         dashScale={50}
         dashSize={1}
