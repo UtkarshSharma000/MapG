@@ -32,10 +32,12 @@ export default function App() {
   const [launchLocation, setLaunchLocation] = useState<{lat: number, lon: number} | null>(null);
   const [targetLocation, setTargetLocation] = useState<{lat: number, lon: number} | null>(null);
   const [isLaunched, setIsLaunched] = useState(false);
+  const [missionStatus, setMissionStatus] = useState<string | null>(null);
 
   const [launchPlanet, setLaunchPlanet] = useState<string | null>("Earth");
   const [targetPlanet, setTargetPlanet] = useState<string | null>(null);
   const [missionLegs, setMissionLegs] = useState<any[] | null>(null);
+  const [returnWindow, setReturnWindow] = useState<OptimizeResult | null>(null);
 
   // Time Ref for jumping simulation
   const globalTimeRef = React.useRef<number>(Date.now() / 1000);
@@ -78,6 +80,27 @@ export default function App() {
 
   const handleLaunch = () => {
     setIsLaunched(true);
+  };
+
+  const planReturn = () => {
+    // Current planet is the last destination in missionLegs or targetPlanet
+    let currentDestId = 4; // Mars default
+    if (missionLegs && missionLegs.length > 0) {
+      currentDestId = missionLegs[missionLegs.length - 1].destId;
+    } else if (targetPlanet) {
+      const planetMap = { 'Mercury': 1, 'Venus': 2, 'Earth': 3, 'Mars': 4, 'Jupiter': 5, 'Saturn': 6 } as any;
+      currentDestId = planetMap[targetPlanet] || 4;
+    }
+
+    const result = scanPorkchop(
+      currentDestId,
+      3, // Earth
+      globalTimeRef.current / 86400,
+      900,
+      150,
+      500
+    );
+    setReturnWindow(result);
   };
 
   const handleSelectLocation = (type: "launch" | "target", planet: string, lat: number, lon: number) => {
@@ -257,6 +280,7 @@ export default function App() {
         launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs }}
         globalTimeRef={globalTimeRef}
         onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
+        onStatusUpdate={setMissionStatus}
       />
 
       {/* Landing Page Content */}
@@ -342,6 +366,10 @@ export default function App() {
             setTargetOrbit={setTargetOrbit}
             onLaunch={handleLaunch}
             isLaunched={isLaunched}
+            missionStatus={missionStatus}
+            onPlanReturn={planReturn}
+            returnWindow={returnWindow}
+            onApplyReturn={() => handleApply(returnWindow!)}
           />
         )}
         {mapPlanet && (

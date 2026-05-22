@@ -346,7 +346,7 @@ export function simulateInterplanetaryRK4(
     let currentDt = dt;
     
     // Check all planets for proximity
-    for (const [, p] of Object.entries(planets)) {
+    for (const p of planetsData) {
         if (!PLANET_MASSES[p.name]) continue;
         const [tx, ty, tz] = propagateOrbit(p.elements, t);
         const d2 = (pos[0]-tx)*(pos[0]-tx) + (pos[1]-ty)*(pos[1]-ty) + (pos[2]-tz)*(pos[2]-tz);
@@ -354,7 +354,7 @@ export function simulateInterplanetaryRK4(
         
         // Dynamic SOI for checking:
         // Use a generic 150 * radius for all planets to trigger slowdown
-        const pRadius = (planetRadiiKm[planets.indexOf(p)] || 6000) * 1000;
+        const pRadius = (planetRadiiKm[planetsData.indexOf(p)] || 6000) * 1000;
         const pSoi = pRadius * 150;
         
         if (d < pSoi) {
