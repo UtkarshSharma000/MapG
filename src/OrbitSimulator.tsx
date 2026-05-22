@@ -567,7 +567,7 @@ function GhostPath({ launchParams, globalTimeRef }: { launchParams: any, globalT
         simDuration,
         simDt,
         launchParams.targetPlanet,
-        true // twoBodyOnly for preview path to hit perfectly
+        false // twoBodyOnly disabled so spacecraft is affected by planet gravity
       );
       
       transferTimeRef.current = arrivalTime - time;
