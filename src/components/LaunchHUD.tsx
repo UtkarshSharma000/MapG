@@ -2,6 +2,25 @@ import React, { useRef } from "react";
 import Draggable from "react-draggable";
 import { Move } from "lucide-react";
 
+interface LaunchHUDProps {
+  v0: number;
+  setV0: (v: number) => void;
+  pitch: number;
+  setPitch: (v: number) => void;
+  yaw: number;
+  setYaw: (v: number) => void;
+  nbody: boolean;
+  setNbody: (v: boolean) => void;
+  targetOrbit: string;
+  setTargetOrbit: (v: string) => void;
+  onLaunch: () => void;
+  isLaunched: boolean;
+  missionStatus: string | null;
+  onPlanReturn: () => void;
+  returnWindow: any;
+  onApplyReturn: () => void;
+}
+
 export function LaunchHUD({
   v0,
   setV0,
@@ -14,9 +33,18 @@ export function LaunchHUD({
   targetOrbit,
   setTargetOrbit,
   onLaunch,
-  isLaunched
-}: any) {
+  isLaunched,
+  missionStatus,
+  onPlanReturn,
+  returnWindow,
+  onApplyReturn
+}: LaunchHUDProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
+
+  if (missionStatus === undefined) {
+    console.error('LaunchHUD: missionStatus prop is required');
+    return <div className="fixed bottom-4 left-4 bg-red-900/80 p-2 text-white text-[10px] font-mono border border-red-500 rounded z-[100]">LaunchHUD: missing props</div>;
+  }
 
   return (
     <Draggable nodeRef={nodeRef} handle=".vab-drag-handle">
