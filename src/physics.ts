@@ -280,6 +280,12 @@ export function simulateInterplanetaryRK4(
   const targetPlanet = planetsData.find(p => p.name === targetPlanetName);
   const targetIndex = planetsData.findIndex(p => p.name === targetPlanetName);
   
+  const launchPlanet = planetsData.find(p => {
+    const ppos = propagateOrbit(p.elements, startTime);
+    const d2 = Math.pow(ppos[0]-startPos[0],2) + Math.pow(ppos[1]-startPos[1],2) + Math.pow(ppos[2]-startPos[2],2);
+    return Math.sqrt(d2) < 1e9; // Within 1 million km at launch translates to launch planet
+  });
+
   const getDeriv = (p: Vector3, v: Vector3, time: number) => {
     let ax = 0, ay = 0, az = 0;
     const r2 = p[0]*p[0] + p[1]*p[1] + p[2]*p[2];
@@ -291,6 +297,7 @@ export function simulateInterplanetaryRK4(
     
     if (!twoBodyOnly) {
       for (const data of planetsData) {
+        if (data.name === launchPlanet?.name) continue; // Earth's escape is already in V_inf Lambert solution
         const mass = PLANET_MASSES[data.name];
         if (!mass) continue;
         const [px, py, pz] = propagateOrbit(data.elements, time);
@@ -299,8 +306,10 @@ export function simulateInterplanetaryRK4(
         const dz = pz - p[2];
         const dist2 = dx*dx + dy*dy + dz*dz;
         
-        const softDist2 = Math.max(dist2, 1e12); 
+        // Prevent singularity near center of target planet (e.g. radius ~ 3000 km = 3e6 m)
+        const softDist2 = Math.max(dist2, 1e13); 
         const p_r3 = (G * mass) / (softDist2 * Math.sqrt(softDist2));
+
         
         ax += p_r3 * dx;
         ay += p_r3 * dy;
