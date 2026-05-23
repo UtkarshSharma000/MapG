@@ -32,12 +32,12 @@ export const PLANETS: Record<number, {
   name: string; a: number; e: number; inc_deg: number;
   raan_deg: number; argp_deg: number; M0_deg: number; T_days: number
 }> = {
-  1: { name:'Mercury', a:0.387, e:0.2056, inc_deg:7.0,   raan_deg:48.33,  argp_deg:29.124, M0_deg:174, T_days:88.0 },
-  2: { name:'Venus',   a:0.723, e:0.0067, inc_deg:3.39,  raan_deg:76.68,  argp_deg:54.88,  M0_deg:50,  T_days:224.7 },
-  3: { name:'Earth',   a:1.0,   e:0.0167, inc_deg:0.00005,raan_deg:-11.26, argp_deg:114.2,  M0_deg:358, T_days:365.25 },
-  4: { name:'Mars',    a:1.524, e:0.0934, inc_deg:1.85,  raan_deg:49.57,  argp_deg:286.5,  M0_deg:19,  T_days:686.98 },
-  5: { name:'Jupiter', a:5.204, e:0.0489, inc_deg:1.3,   raan_deg:100.4,  argp_deg:273.8,  M0_deg:20,  T_days:4332.59 },
-  6: { name:'Saturn',  a:9.582, e:0.0565, inc_deg:2.48,  raan_deg:113.6,  argp_deg:339.3,  M0_deg:317, T_days:10759 },
+  1: { name:'Mercury', a:0.3871, e:0.2056, inc_deg:7.00,  raan_deg:48.33,  argp_deg:29.12,  M0_deg:174.79, T_days:87.97  },
+  2: { name:'Venus',   a:0.7233, e:0.0068, inc_deg:3.39,  raan_deg:76.68,  argp_deg:54.88,  M0_deg:50.44,  T_days:224.70 },
+  3: { name:'Earth',   a:1.0000, e:0.0167, inc_deg:0.00,  raan_deg:0.0,    argp_deg:102.94, M0_deg:100.46, T_days:365.25 },
+  4: { name:'Mars',    a:1.5237, e:0.0934, inc_deg:1.85,  raan_deg:49.56,  argp_deg:286.50, M0_deg:355.43, T_days:686.97 },
+  5: { name:'Jupiter', a:5.2034, e:0.0489, inc_deg:1.30,  raan_deg:100.46, argp_deg:273.87, M0_deg:34.40,  T_days:4332.6 },
+  6: { name:'Saturn',  a:9.5371, e:0.0565, inc_deg:2.49,  raan_deg:113.66, argp_deg:339.39, M0_deg:50.08,  T_days:10759  },
 }
 const PLANET_IDS = [1, 2, 3, 4, 5, 6]
 
