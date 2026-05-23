@@ -273,8 +273,10 @@ export function findOptimalTransfer(
     maxDays = maxDays * 0.6;
   }
 
-  // Porkchop search: Departure offsets of ±180 days in 15-day steps
-  const depOffsets = [-180, -150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150, 180];
+  // Porkchop search: Departure offsets from current time into the future (next 365 days)
+  // Searching past offsets is useless for a "launch now" experience, but searching future ones
+  // finds the next available window.
+  const depOffsets = [0, 15, 30, 45, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360];
   
   for (const depOffset of depOffsets) {
     const depTime = currentTime + depOffset * 86400;
@@ -491,29 +493,26 @@ export function simulateInterplanetaryRK4(
     // speeding up integration dramatically. Scale down only near SOI.
     let currentDt = Math.min(28800, adjustedDuration / 150);
     
-    for (const p of activePerturbers) {
-      const mass = PLANET_MASSES[p.name];
-      if (!mass) continue;
-      
-      const [tx, ty, tz] = propagateOrbit(p.elements, t);
+    // Safety check for target SOI proximity
+    if (targetPlanet) {
+      const [tx, ty, tz] = propagateOrbit(targetPlanet.elements, t);
       const d2 = (pos[0]-tx)*(pos[0]-tx) + (pos[1]-ty)*(pos[1]-ty) + (pos[2]-tz)*(pos[2]-tz);
       const d = Math.sqrt(d2);
       
-      const pIdx = planetsData.findIndex(pd => pd.name === p.name);
+      const pIdx = planetsData.findIndex(pd => pd.name === targetPlanet.name);
       const pRadius = (planetRadiiKm[pIdx === -1 ? 2 : pIdx] || 6000) * 1000;
-      const pSoi = getPlanetSOI(p.name, p.elements.a, pRadius);
-      
+      const pSoi = getPlanetSOI(targetPlanet.name, targetPlanet.elements.a, pRadius);
+
       if (d < pSoi) {
-        // Slow down smoothly inside SOI down to fine dt (600s) for precision
-        const factor = d / pSoi;
-        const targetDt = Math.max(dt, dt * factor);
+        // Tighten step significantly inside SOI (60s) for precision
+        const targetDt = Math.min(60, dt); 
         if (targetDt < currentDt) {
           currentDt = targetDt;
         }
       } else if (d < pSoi * 3) {
         // Safe transition zone out of SOI
         const factor = (d - pSoi) / (pSoi * 2);
-        const transitionDt = dt + (28800 - dt) * factor;
+        const transitionDt = Math.min(600, dt + (28800 - dt) * factor);
         if (transitionDt < currentDt) {
           currentDt = transitionDt;
         }
@@ -561,85 +560,76 @@ export function simulateInterplanetaryRK4(
           const relVel: Vector3 = [vel[0] - targetVel[0], vel[1] - targetVel[1], vel[2] - targetVel[2]];
           const relV = Math.sqrt(relVel[0]*relVel[0] + relVel[1]*relVel[1] + relVel[2]*relVel[2]);
           const muTarget = G * (PLANET_MASSES[targetPlanet.name] || 0);
-          
-          const energy = 0.5 * relV * relV - muTarget / d;
-          
-          // Calculate angular momentum vector h = r_rel x v_rel to locate periapsis
+
+          // Dot product to check if we are approaching (rdot < 0) or receding (rdot > 0)
           const r_rel: Vector3 = [pos[0] - tx, pos[1] - ty, pos[2] - tz];
-          const h_x = r_rel[1] * relVel[2] - r_rel[2] * relVel[1];
-          const h_y = r_rel[2] * relVel[0] - r_rel[0] * relVel[2];
-          const h_z = r_rel[0] * relVel[1] - r_rel[1] * relVel[0];
-          const h = Math.sqrt(h_x*h_x + h_y*h_y + h_z*h_z);
+          const rdot = r_rel[0]*relVel[0] + r_rel[1]*relVel[1] + r_rel[2]*relVel[2];
 
-          // Standard orbital mechanics: find circular periapsis (rp) for hyperbola, ellipse, or parabola
-          let rp = d;
-          if (muTarget > 0) {
-            if (energy > 1e-5) {
-              const a_hyper = muTarget / (2.0 * energy);
-              const eccentricity = Math.sqrt(1.0 + (2.0 * energy * h * h) / (muTarget * muTarget));
-              rp = a_hyper * (eccentricity - 1.0);
-            } else if (energy < -1e-5) {
-              const a_ellipse = muTarget / (-2.0 * energy);
-              const eccentricity = Math.sqrt(Math.max(0.0, 1.0 + (2.0 * energy * h * h) / (muTarget * muTarget)));
-              rp = a_ellipse * (1.0 - eccentricity);
-            } else {
-              // Parabolic limit: rp = h^2 / (2 * mu)
-              rp = (h * h) / (2.0 * muTarget);
+          // We wait until periapsis (rdot crosses Zero) to burn for maximum efficiency
+          if (rdot >= 0) {
+            const energy = 0.5 * relV * relV - muTarget / d;
+            const h_x = r_rel[1] * relVel[2] - r_rel[2] * relVel[1];
+            const h_y = r_rel[2] * relVel[0] - r_rel[0] * relVel[2];
+            const h_z = r_rel[0] * relVel[1] - r_rel[1] * relVel[0];
+            const h = Math.sqrt(h_x*h_x + h_y*h_y + h_z*h_z);
+
+            let rp = d;
+            if (muTarget > 0) {
+              if (energy > 1e-5) {
+                const a_hyper = muTarget / (2.0 * energy);
+                const eccentricity = Math.sqrt(1.0 + (2.0 * energy * h * h) / (muTarget * muTarget));
+                rp = a_hyper * (eccentricity - 1.0);
+              } else if (energy < -1e-5) {
+                const a_ellipse = muTarget / (-2.0 * energy);
+                const eccentricity = Math.sqrt(Math.max(0.0, 1.0 + (2.0 * energy * h * h) / (muTarget * muTarget)));
+                rp = a_ellipse * (1.0 - eccentricity);
+              } else {
+                rp = (h * h) / (2.0 * muTarget);
+              }
             }
-          }
-          if (isNaN(rp) || rp <= 0) rp = d;
+            if (isNaN(rp) || rp <= 0) rp = d;
 
-          if (rp <= radius) {
-            // Collision/Impact! Handles negative capture altitude and crashing trajectories safely
-            captured = false;
-            isOvershot = false;
-            success = false;
-            missionStatus = "IMPACT / ATMOSPHERIC ENTRY";
-            captureAltitude = (rp - radius) / 1000;
-            orbitPeriod = 0;
-          } else {
-            // Arrival velocity at periapsis
-            const vArrival = Math.sqrt(2.0 * (energy + muTarget / rp));
-
-            // Capture velocity at periapsis for a circular parking orbit: v_capt = sqrt(mu / rp)
-            const vCapture = Math.sqrt(muTarget / rp);
-
-            // Delta V required to convert fly-by hyperbola to circular target orbit
-            const deltaVRequired = vArrival - vCapture;
-
-            // Target orbital period for a circular parking orbit (seconds)
-            const targetPeriodSeconds = 2.0 * Math.PI * Math.sqrt(Math.pow(rp, 3) / muTarget);
-            const computedPeriodDays = targetPeriodSeconds / 86400.0;
-
-            if (deltaVRequired <= 0.0) {
-              // Already bound
-              captured = true;
-              success = true;
-              arrivalTime = t;
-              missionStatus = `${targetPlanet.name.toUpperCase()}_ORBIT`;
-              captureAltitude = (rp - radius) / 1000;
-              orbitPeriod = computedPeriodDays;
-            } else if (remainingDeltaV >= deltaVRequired) {
-              // Spend fuel and perform burn
-              remainingDeltaV -= deltaVRequired;
-              captured = true;
-              success = true;
-              arrivalTime = t;
-              missionStatus = `${targetPlanet.name.toUpperCase()}_ORBIT`;
-              captureAltitude = (rp - radius) / 1000;
-              orbitPeriod = computedPeriodDays;
-
-              // Retard the relative velocity vector structure at periapsis
-              const vHat = [relVel[0]/relV, relVel[1]/relV, relVel[2]/relV];
-              vel[0] = targetVel[0] + vHat[0] * vCapture;
-              vel[1] = targetVel[1] + vHat[1] * vCapture;
-              vel[2] = targetVel[2] + vHat[2] * vCapture;
-            } else {
-              // Fuel depleted. Fly-past!
-              isOvershot = true;
+            if (rp <= radius) {
               captured = false;
+              isOvershot = false;
               success = false;
-              missionStatus = "OVERSHOT - INSUFFICIENT FUEL";
+              missionStatus = "IMPACT / ATMOSPHERIC ENTRY";
+              captureAltitude = (rp - radius) / 1000;
+              orbitPeriod = 0;
+            } else {
+              const vArrival = Math.sqrt(2.0 * (energy + muTarget / d));
+              const vCapture = Math.sqrt(muTarget / d);
+              const deltaVRequired = vArrival - vCapture;
+              const targetPeriodSeconds = 2.0 * Math.PI * Math.sqrt(Math.pow(d, 3) / muTarget);
+              const computedPeriodDays = targetPeriodSeconds / 86400.0;
+
+              if (deltaVRequired <= 0.0) {
+                captured = true;
+                success = true;
+                arrivalTime = t;
+                missionStatus = `${targetPlanet.name.toUpperCase()}_ORBIT`;
+                captureAltitude = (d - radius) / 1000;
+                orbitPeriod = computedPeriodDays;
+              } else if (remainingDeltaV >= deltaVRequired) {
+                remainingDeltaV -= deltaVRequired;
+                captured = true;
+                success = true;
+                arrivalTime = t;
+                missionStatus = `${targetPlanet.name.toUpperCase()}_ORBIT`;
+                captureAltitude = (d - radius) / 1000;
+                orbitPeriod = computedPeriodDays;
+
+                // Scale the relative velocity precisely to circular velocity at this distance
+                const scale = vCapture / relV;
+                vel[0] = targetVel[0] + relVel[0] * scale;
+                vel[1] = targetVel[1] + relVel[1] * scale;
+                vel[2] = targetVel[2] + relVel[2] * scale;
+              } else {
+                isOvershot = true;
+                captured = false;
+                success = false;
+                missionStatus = "OVERSHOT - INSUFFICIENT FUEL";
+              }
             }
           }
         }
