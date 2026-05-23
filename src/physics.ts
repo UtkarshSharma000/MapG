@@ -343,7 +343,11 @@ export function simulateInterplanetaryRK4(
   let lastOutTime = startTime;
   const timeLimit = startTime + duration;
 
-  while (t < timeLimit) {
+  let maxRk4Steps = 10000;
+  let stepsTaken = 0;
+
+  while (t < timeLimit && stepsTaken < maxRk4Steps) {
+    stepsTaken++;
     // Dynamic timestep: slow down inside SOI of ANY planet for accurate flybys
     let currentDt = dt;
     
