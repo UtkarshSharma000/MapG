@@ -1,38 +1,37 @@
-import React, { useRef } from "react";
-import Draggable from "react-draggable";
-import { Move } from "lucide-react";
+import React, { useRef, useState } from 'react';
+import Draggable from 'react-draggable';
+import { Move } from 'lucide-react';
+import { OptimizeResult } from '../TrajectoryOptimizer';
 
 interface LaunchHUDProps {
   v0: number;
-  setV0: (v: number) => void;
   pitch: number;
-  setPitch: (v: number) => void;
   yaw: number;
-  setYaw: (v: number) => void;
   nbody: boolean;
-  setNbody: (v: boolean) => void;
-  targetOrbit: string;
-  setTargetOrbit: (v: string) => void;
-  onLaunch: () => void;
+  setV0: (v: number) => void;
+  setPitch: (p: number) => void;
+  setYaw: (y: number) => void;
+  setNbody: (n: boolean) => void;
+  onSimulateLaunch: () => void;
+  onResetSimulation: () => void;
   isLaunched: boolean;
-  missionStatus: string | null;
-  onPlanReturn: () => void;
-  returnWindow: any;
-  onApplyReturn: () => void;
+  missionStatus?: string;
+  onPlanReturn?: () => void;
+  returnWindow?: OptimizeResult | null;
+  onApplyReturn?: () => void;
 }
 
 export function LaunchHUD({
   v0,
-  setV0,
   pitch,
-  setPitch,
   yaw,
-  setYaw,
   nbody,
+  setV0,
+  setPitch,
+  setYaw,
   setNbody,
-  targetOrbit,
-  setTargetOrbit,
-  onLaunch,
+  onSimulateLaunch,
+  onResetSimulation,
   isLaunched,
   missionStatus,
   onPlanReturn,
@@ -40,6 +39,15 @@ export function LaunchHUD({
   onApplyReturn
 }: LaunchHUDProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
+  const [targetOrbit, setTargetOrbit] = useState('LEO');
+
+  const onLaunch = () => {
+    onSimulateLaunch();
+  };
+
+  const handleReset = () => {
+    onResetSimulation();
+  };
 
   if (missionStatus === undefined) {
     console.error('LaunchHUD: missionStatus prop is required');
@@ -48,105 +56,109 @@ export function LaunchHUD({
 
   return (
     <Draggable nodeRef={nodeRef} handle=".vab-drag-handle">
-      <div ref={nodeRef} className="fixed right-4 bottom-24 w-72 bg-surface/80 backdrop-blur-md border border-outline rounded-xl p-4 text-on-surface z-40 pointer-events-auto shadow-2xl flex flex-col">
-        <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-outline/30 pb-2 mb-4">
-          <h3 className="font-heading font-medium text-lg uppercase tracking-wider">VAB Launch Profile</h3>
-          <Move className="w-4 h-4 text-outline" />
+      <div ref={nodeRef} className="fixed left-8 bottom-24 w-80 bg-black/80 backdrop-blur-2xl border border-white/10 rounded-2xl p-5 text-white z-40 pointer-events-auto shadow-2xl flex flex-col glossy-panel">
+        <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-white/10 pb-3 mb-4">
+          <h3 className="font-sans font-medium text-xs tracking-widest uppercase text-primary flex items-center gap-1.5">
+            LAUNCH CONFIGURATION PROFILE
+          </h3>
+          <Move className="w-3.5 h-3.5 text-white/40 cursor-grab" />
         </div>
         
         <div className="space-y-4">
           <div>
             <div className="flex justify-between mb-1">
-              <label className="text-xs font-mono text-outline">Initial Velocity (v0)</label>
-              <span className="text-xs font-mono text-primary">{v0.toFixed(1)} km/s</span>
+              <label className="text-[10px] font-mono text-white/50 uppercase">Injection Velocity (v0)</label>
+              <span className="text-[11px] font-mono text-cyan-400 font-bold">{v0.toFixed(2)} km/s</span>
             </div>
             <input 
               type="range" min="0" max="25" step="0.1" 
               value={v0} onChange={(e) => setV0(parseFloat(e.target.value))}
-              className="w-full accent-primary cursor-pointer"
+              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
               disabled={isLaunched}
             />
           </div>
 
           <div>
             <div className="flex justify-between mb-1">
-              <label className="text-xs font-mono text-outline">Pitch Angle</label>
-              <span className="text-xs font-mono text-primary">{pitch}°</span>
+              <label className="text-[10px] font-mono text-white/50 uppercase">Pitch Angle</label>
+              <span className="text-[11px] font-mono text-cyan-400 font-bold">{pitch}°</span>
             </div>
             <input 
               type="range" min="-90" max="90" step="1" 
               value={pitch} onChange={(e) => setPitch(parseFloat(e.target.value))}
-              className="w-full accent-primary cursor-pointer"
+              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
               disabled={isLaunched}
             />
           </div>
 
           <div>
              <div className="flex justify-between mb-1">
-              <label className="text-xs font-mono text-outline">Yaw Angle</label>
-              <span className="text-xs font-mono text-primary">{yaw}°</span>
+              <label className="text-[10px] font-mono text-white/50 uppercase">Yaw Angle</label>
+              <span className="text-[11px] font-mono text-cyan-400 font-bold">{yaw}°</span>
             </div>
             <input 
               type="range" min="-180" max="180" step="1" 
               value={yaw} onChange={(e) => setYaw(parseFloat(e.target.value))}
-              className="w-full accent-primary cursor-pointer"
+              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
               disabled={isLaunched}
             />
           </div>
           
           <div>
-             <label className="text-xs font-mono text-outline block mb-1">Target Orbit</label>
+             <label className="text-[10px] font-mono text-white/50 block mb-1.5 uppercase">Target Orbit</label>
              <select 
                value={targetOrbit} 
                onChange={(e) => setTargetOrbit(e.target.value)}
-               className="w-full bg-[#0a0a0a] border border-outline/50 rounded p-1 text-xs font-mono focus:border-primary outline-none cursor-pointer"
+               className="w-full bg-[#050505] border border-white/10 rounded-lg p-2 text-xs font-mono text-white focus:border-cyan-400 outline-none cursor-pointer hover:border-white/20 transition-colors"
                disabled={isLaunched}
              >
-               <option value="LEO">Low Earth Orbit</option>
-               <option value="Lunar">Lunar Transfer</option>
-               <option value="Mars">Mars Transfer</option>
+               <option value="LEO">Low Earth Orbit (LEO)</option>
+               <option value="Lunar">Lunar Transfer Axis (TLI)</option>
+               <option value="Mars">Heliocentric Interplanetary (TMI)</option>
              </select>
           </div>
 
-          <div className="flex items-center gap-2 pt-2 border-t border-outline/20">
+          <div className="flex items-center gap-2.5 pt-2 border-t border-white/10">
             <input 
               type="checkbox" 
               id="nbody-toggle" 
               checked={nbody} 
               onChange={(e) => setNbody(e.target.checked)}
-              className="accent-primary cursor-pointer"
+              className="accent-cyan-400 w-3.5 h-3.5 cursor-pointer"
               disabled={isLaunched}
             />
-            <label htmlFor="nbody-toggle" className="text-xs font-mono text-outline cursor-pointer">Enable N-Body Perturbations (Deep Space)</label>
+            <label htmlFor="nbody-toggle" className="text-[10px] font-sans text-white/40 cursor-pointer select-none uppercase tracking-wide">Enable N-Body Gravity Perturbations</label>
           </div>
 
           <button 
-            className={`w-full py-2 bg-primary/20 border border-primary/50 rounded font-label-caps tracking-[0.15em] text-xs transition-colors mt-2 ${isLaunched ? 'text-yellow-400 bg-yellow-500/20 border-yellow-500/50 cursor-pointer hover:bg-yellow-500/30' : 'text-primary hover:bg-primary/30 cursor-pointer'}`}
-            onClick={isLaunched ? () => window.location.reload() : onLaunch}
+            className={`w-full py-2.5 rounded-lg border font-semibold tracking-widest text-xs transition-all glossy-button cursor-pointer ${isLaunched ? 'text-red-400 hover:text-red-300 border-red-500/40 bg-red-500/10 hover:bg-red-500/20' : 'text-cyan-400 hover:text-cyan-300 border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/25'}`}
+            onClick={isLaunched ? handleReset : onLaunch}
           >
-             {isLaunched ? 'RESET SIMULATION' : 'SIMULATE LAUNCH'}
+             {isLaunched ? 'ABORT & RESET SYSTEM' : 'INITIATE ENGINE IGNITION'}
           </button>
 
           {missionStatus && missionStatus.includes('ORBIT') && (
-            <div className="pt-2 border-t border-outline/20 flex flex-col gap-2">
+            <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
               <button 
                 onClick={onPlanReturn}
-                className="w-full py-2 bg-orange-600/20 border border-orange-500/50 hover:bg-orange-600/30 text-orange-400 rounded font-label-caps tracking-[0.15em] text-[10px] transition-all"
+                className="w-full py-2 bg-orange-500/10 border border-orange-500/40 hover:bg-orange-500/25 text-orange-400 hover:text-orange-300 rounded-lg font-mono tracking-widest text-[9px] uppercase transition-all glossy-button cursor-pointer"
               >
                 Plan return window → Earth
               </button>
               
               {returnWindow && (
-                <div className="bg-black/40 p-2 rounded border border-white/10 flex flex-col gap-2">
-                  <div className="text-[9px] font-mono text-white/50 uppercase tracking-tighter">
-                    Optimal Window: <span className="text-white">{returnWindow.tof_days} Days TOF</span>
+                <div className="bg-black/60 p-3 rounded-lg border border-white/10 flex flex-col gap-2 transition-all duration-300">
+                  <div className="flex justify-between border-b border-white/5 pb-1 text-[9px] font-mono text-white/50 uppercase tracking-tighter">
+                    <span>Optimal Window:</span> 
+                    <span className="text-white font-bold">{returnWindow.tof_days} Days TOF</span>
                   </div>
-                  <div className="text-[9px] font-mono text-white/50 uppercase tracking-tighter">
-                    Burn Required: <span className="text-white">{returnWindow.dv1_kms.toFixed(2)} KM/S</span>
+                  <div className="flex justify-between pb-1.5 text-[9px] font-mono text-white/50 uppercase tracking-tighter">
+                    <span>Burn Required:</span> 
+                    <span className="text-white font-bold">{returnWindow.dv1_kms.toFixed(2)} KM/S</span>
                   </div>
                   <button 
                     onClick={onApplyReturn}
-                    className="w-full py-1.5 bg-cyan-600/20 border border-cyan-500/50 hover:bg-cyan-600/30 text-cyan-400 rounded font-mono text-[9px] uppercase tracking-widest"
+                    className="w-full py-1.5 bg-cyan-500/20 border border-cyan-500/50 hover:bg-cyan-500/35 text-cyan-400 rounded-lg font-mono text-[9px] uppercase tracking-widest glossy-button cursor-pointer"
                   >
                     Confirm & Execute TEI
                   </button>
