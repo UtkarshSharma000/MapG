@@ -576,14 +576,9 @@ export default function App() {
         {isSimulatorRunning && <TelemetryPanel />}
         {isSimulatorRunning && (
           <LaunchHUD
-            v0={v0}
-            setV0={setV0}
-            pitch={pitch}
-            setPitch={setPitch}
-            yaw={yaw}
-            setYaw={setYaw}
-            nbody={nbody}
-            setNbody={setNbody}
+            selectedTarget={selectedTarget}
+            setSelectedTarget={setSelectedTarget}
+            planets={PLANETS}
             onSimulateLaunch={handleLaunch}
             onResetSimulation={() => {
               setIsLaunched(false);
