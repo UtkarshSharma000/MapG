@@ -65,9 +65,9 @@ async function startServer() {
     const timeout = setTimeout(() => {
       worker.terminate();
       if (!res.headersSent) {
-        res.status(504).json({ error: "Calculation timed out after 10 seconds" });
+        res.status(504).json({ error: "Calculation timed out after 30 seconds" });
       }
-    }, 10000);
+    }, 30000);
 
     worker.on("message", (message) => {
       clearTimeout(timeout);

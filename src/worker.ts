@@ -5,8 +5,8 @@ import {
   propagateOrbit, 
   getOrbitalVelocity,
   MU_SUN
-} from "./physics.js";
-import { PLANETS } from "./constants.js";
+} from "./physics";
+import { PLANETS } from "./constants";
 
 // Note: Using .js extension for imports in ESM if compiled/run in some environments, 
 // but tsx handles .ts. I'll use relative paths without extension first or with .js if needed.
@@ -64,18 +64,18 @@ try {
       const target = PLANETS.find((p) => p.name === targetName);
       if (!target) throw new Error("Target planet not found");
 
-      const result = findOptimalTransfer(
+      const transferResult = findOptimalTransfer(
         earth.elements,
         target.elements,
         globalTime,
         MU_SUN,
         false
       );
-      vReq = result.vReq as [number, number, number];
-      simStartTime = result.depTime;
-      startPos = propagateOrbit(earth.elements, result.depTime);
-      simDuration = result.tof * 1.5;
-      dvLabel = result.dvReq;
+      vReq = transferResult.vReq as [number, number, number];
+      simStartTime = transferResult.depTime;
+      startPos = propagateOrbit(earth.elements, transferResult.depTime);
+      simDuration = transferResult.tof * 1.5;
+      dvLabel = transferResult.dvReq;
     }
 
     // Helper for fuel capacity (same logic as in frontend but here)
@@ -93,14 +93,14 @@ try {
     const maxDeltaV = getFuelCapacity(targetName, dvLabel);
     const simDt = 600;
 
-    const result = simulateInterplanetaryRK4(
+    const simResult = simulateInterplanetaryRK4(
       startPos,
       vReq,
       simStartTime,
       PLANETS,
       simDuration,
       simDt,
-      targetName,
+      targetName || "",
       false,
       maxDeltaV
     );
@@ -108,14 +108,14 @@ try {
     parentPort.postMessage({
       success: true,
       data: {
-        points: result.points,
-        arrivalTime: result.arrivalTime,
-        missionStatus: result.missionStatus,
-        captureAltitude: result.captureAltitude,
-        orbitPeriod: result.orbitPeriod,
-        isOvershot: result.isOvershot,
-        remainingDeltaV: result.remainingDeltaV,
-        usedDuration: result.usedDuration,
+        points: simResult.points,
+        arrivalTime: simResult.arrivalTime,
+        missionStatus: simResult.missionStatus,
+        captureAltitude: simResult.captureAltitude,
+        orbitPeriod: simResult.orbitPeriod,
+        isOvershot: simResult.isOvershot,
+        remainingDeltaV: simResult.remainingDeltaV,
+        usedDuration: simResult.usedDuration,
         simStartTime,
         vReq,
         dvLabel
