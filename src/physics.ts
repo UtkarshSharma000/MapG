@@ -233,10 +233,8 @@ export function findOptimalTransfer(
   mu: number,
   isFast: boolean = false
 ): { tof: number, vReq: Vector3, dvReq: number, depTime: number } {
-  let bestTOF = 0;
   let minDV = Infinity;
-  let bestV: Vector3 = [0, 0, 0];
-  let bestDepTime = currentTime;
+  let bestCandidates: { tof: number, vReq: Vector3, dvReq: number, depTime: number }[] = [];
 
   let minDays = 100;
   let maxDays = 800;
@@ -273,10 +271,20 @@ export function findOptimalTransfer(
     maxDays = maxDays * 0.6;
   }
 
-  // Porkchop search: Departure offsets from current time into the future (next 365 days)
-  // Searching past offsets is useless for a "launch now" experience, but searching future ones
-  // finds the next available window.
-  const depOffsets = [0, 15, 30, 45, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360];
+  // Calculate Synodic Period to determine departure search window size
+  // Mars ~780 days, Venus ~584 days, Outer planets ~1 year
+  const T1 = earthElements.period / 86400; // days
+  const T2 = targetElements.period / 86400; // days
+  const synodicPeriod = Math.abs(1 / (1 / T1 - 1 / T2));
+  
+  // Search at least one full synodic cycle to ensure we hit the window
+  const searchRange = Math.min(Math.max(365, synodicPeriod), 1000); 
+  const depStep = 15; // 15-day granularity for coarse pass
+  
+  const depOffsets: number[] = [];
+  for (let d = -Math.floor(searchRange / 2); d <= Math.floor(searchRange / 2); d += depStep) {
+    depOffsets.push(d);
+  }
   
   for (const depOffset of depOffsets) {
     const depTime = currentTime + depOffset * 86400;
@@ -284,8 +292,7 @@ export function findOptimalTransfer(
     const startVelBase = getOrbitalVelocity(earthElements, depTime);
 
     // Pass 1: Coarse search
-    // Reduced coarse step for better sampling of narrow outer-planet windows
-    const coarseStep = maxDays > 5000 ? 20 : (maxDays > 2000 ? 10 : 5);
+    const coarseStep = maxDays > 5000 ? 30 : (maxDays > 2000 ? 15 : 5);
     for (let d = minDays; d <= maxDays; d += coarseStep) {
       const tofSeconds = d * 24 * 3600;
       const targetPosFuture = propagateOrbit(targetElements, depTime + tofSeconds);
@@ -298,28 +305,30 @@ export function findOptimalTransfer(
           Math.pow(vLambert[2] - startVelBase[2], 2)
         );
 
-        if (dv < minDV) {
-          minDV = dv;
-          bestTOF = tofSeconds;
-          bestV = vLambert;
-          bestDepTime = depTime;
+        if (dv < minDV || bestCandidates.length < 3) {
+          if (dv < minDV) minDV = dv;
+          bestCandidates.push({ tof: tofSeconds, vReq: vLambert, dvReq: dv, depTime });
+          // Only keep top 3 local minima regions
+          bestCandidates.sort((a, b) => a.dvReq - b.dvReq);
+          if (bestCandidates.length > 5) bestCandidates.pop();
         }
       } catch (e) {}
     }
   }
 
-  // Pass 2: Refined search around best window
-  if (bestTOF > 0) {
-    const startPos = propagateOrbit(earthElements, bestDepTime);
-    const startVelBase = getOrbitalVelocity(earthElements, bestDepTime);
-    const centralDay = bestTOF / (24 * 3600);
-    const coarseStep = maxDays > 5000 ? 20 : 5;
-    const searchWing = Math.max(4, coarseStep);
-    const stepRefined = Math.max(0.1, searchWing / 20);
+  // Pass 2: Refined search around all candidates
+  let absoluteBest = bestCandidates[0] || { tof: 0, vReq: [0,0,0], dvReq: Infinity, depTime: currentTime };
+  
+  for (const cand of bestCandidates) {
+    const startPos = propagateOrbit(earthElements, cand.depTime);
+    const startVelBase = getOrbitalVelocity(earthElements, cand.depTime);
+    const centralDay = cand.tof / 86400;
+    const searchWing = maxDays > 5000 ? 40 : 10;
+    const stepRefined = Math.max(0.2, searchWing / 25);
     
     for (let d = centralDay - searchWing; d <= centralDay + searchWing; d += stepRefined) {
       const tofSeconds = d * 24 * 3600;
-      const targetPosFuture = propagateOrbit(targetElements, bestDepTime + tofSeconds);
+      const targetPosFuture = propagateOrbit(targetElements, cand.depTime + tofSeconds);
       try {
         const vLambert = solveLambert(startPos, targetPosFuture, tofSeconds, mu);
         const dv = Math.sqrt(
@@ -327,36 +336,36 @@ export function findOptimalTransfer(
           Math.pow(vLambert[1] - startVelBase[1], 2) +
           Math.pow(vLambert[2] - startVelBase[2], 2)
         );
-        if (dv < minDV) {
-          minDV = dv;
-          bestTOF = tofSeconds;
-          bestV = vLambert;
-        }
-      } catch (e) {}
-    }
-
-    // Pass 3: Ultra-fine refinement (0.1 day precision)
-    const refinedDay = bestTOF / (24 * 3600);
-    for (let d = refinedDay - 1.0; d <= refinedDay + 1.0; d += 0.1) {
-      const tofSeconds = d * 24 * 3600;
-      const targetPosFuture = propagateOrbit(targetElements, bestDepTime + tofSeconds);
-      try {
-        const vLambert = solveLambert(startPos, targetPosFuture, tofSeconds, mu);
-        const dv = Math.sqrt(
-          Math.pow(vLambert[0] - startVelBase[0], 2) +
-          Math.pow(vLambert[1] - startVelBase[1], 2) +
-          Math.pow(vLambert[2] - startVelBase[2], 2)
-        );
-        if (dv < minDV) {
-          minDV = dv;
-          bestTOF = tofSeconds;
-          bestV = vLambert;
+        if (dv < absoluteBest.dvReq) {
+          absoluteBest = { tof: tofSeconds, vReq: vLambert, dvReq: dv, depTime: cand.depTime };
         }
       } catch (e) {}
     }
   }
 
-  return { tof: bestTOF, vReq: bestV, dvReq: minDV, depTime: bestDepTime };
+  // Pass 3: Ultra-fine polish
+  if (absoluteBest.tof > 0) {
+    const startPos = propagateOrbit(earthElements, absoluteBest.depTime);
+    const startVelBase = getOrbitalVelocity(earthElements, absoluteBest.depTime);
+    const refinedDay = absoluteBest.tof / 86400;
+    for (let d = refinedDay - 1.5; d <= refinedDay + 1.5; d += 0.1) {
+      const tofSeconds = d * 24 * 3600;
+      const targetPosFuture = propagateOrbit(targetElements, absoluteBest.depTime + tofSeconds);
+      try {
+        const vLambert = solveLambert(startPos, targetPosFuture, tofSeconds, mu);
+        const dv = Math.sqrt(
+          Math.pow(vLambert[0] - startVelBase[0], 2) +
+          Math.pow(vLambert[1] - startVelBase[1], 2) +
+          Math.pow(vLambert[2] - startVelBase[2], 2)
+        );
+        if (dv < absoluteBest.dvReq) {
+          absoluteBest = { tof: tofSeconds, vReq: vLambert, dvReq: dv, depTime: absoluteBest.depTime };
+        }
+      } catch (e) {}
+    }
+  }
+
+  return absoluteBest;
 }
 
 export function simulateInterplanetaryRK4(
@@ -448,24 +457,39 @@ export function simulateInterplanetaryRK4(
     az += m_r3 * p[2];
     
     if (!twoBodyOnly) {
+      // For a non-inertial Sun-centered frame, we must subtract the acceleration 
+      // of the Sun caused by the planets (the indirect term)
+      let asx = 0, asy = 0, asz = 0;
+
       for (const data of activePerturbers) {
-        if (data.name === launchPlanet?.name) continue; // Earth's escape is already in V_inf Lambert solution
+        if (data.name === launchPlanet?.name) continue; 
         const mass = PLANET_MASSES[data.name];
         if (!mass) continue;
         const [px, py, pz] = propagateOrbit(data.elements, time);
+        
+        // Direct term: Planet's effect on spacecraft
         const dx = px - p[0];
         const dy = py - p[1];
         const dz = pz - p[2];
         const dist2 = dx*dx + dy*dy + dz*dz;
-        
-        // Prevent singularity near center of target planet
         const softDist2 = Math.max(dist2, 1e13); 
         const p_r3 = (G * mass) / (softDist2 * Math.sqrt(softDist2));
-
         ax += p_r3 * dx;
         ay += p_r3 * dy;
         az += p_r3 * dz;
+
+        // Indirect term: Planet's effect on the Sun (moving the frame)
+        const dsun2 = px*px + py*py + pz*pz;
+        if (dsun2 > 1e18) {
+          const s_r3 = (G * mass) / (dsun2 * Math.sqrt(dsun2));
+          asx += s_r3 * px;
+          asy += s_r3 * py;
+          asz += s_r3 * pz;
+        }
       }
+      ax -= asx;
+      ay -= asy;
+      az -= asz;
     }
     
     return {dp: [v[0], v[1], v[2]], dv: [ax, ay, az]};
@@ -487,32 +511,66 @@ export function simulateInterplanetaryRK4(
   const outDt = adjustedDuration / targetOutSteps;
   let lastOutTime = startTime;
   const timeLimit = startTime + adjustedDuration;
+  let minDistanceToTarget = Infinity;
+  let driftSteps = 0;
+  let hasBurnedMCC = false;
 
-  while (t < timeLimit) {
-    // Dynamic timestep: Deep heliocentric space tolerates much larger step (up to 8 hours),
-    // speeding up integration dramatically. Scale down only near SOI.
-    let currentDt = Math.min(28800, adjustedDuration / 150);
-    
-    // Safety check for target SOI proximity
+  while (t < timeLimit + (duration * 0.2)) {
+    // Break if we've passed the target and distance is increasing significantly
     if (targetPlanet) {
       const [tx, ty, tz] = propagateOrbit(targetPlanet.elements, t);
+      const dist = Math.sqrt((pos[0]-tx)**2 + (pos[1]-ty)**2 + (pos[2]-tz)**2);
+      if (dist < minDistanceToTarget) {
+        minDistanceToTarget = dist;
+        driftSteps = 0;
+      } else if (dist > soi * 3) {
+        driftSteps++;
+        if (driftSteps > 50) break; 
+      }
+    }
+
+    // Mid-Course Correction (MCC) at 80% flight to correct N-body drift for long trips
+    if (!hasBurnedMCC && !twoBodyOnly && targetPlanet && (t - startTime) / (duration) > 0.8) {
+      hasBurnedMCC = true;
+      try {
+        const arrivalT = startTime + duration;
+        const targetPosAtArrival = propagateOrbit(targetPlanet.elements, arrivalT);
+        const vNeeded = solveLambert(pos, targetPosAtArrival, arrivalT - t, MU_SUN);
+        // MCC's are usually small, but let's check fuel
+        const mccDv = Math.sqrt((vNeeded[0]-vel[0])**2 + (vNeeded[1]-vel[1])**2 + (vNeeded[2]-vel[2])**2);
+        if (remainingDeltaV >= mccDv) {
+          remainingDeltaV -= mccDv;
+          vel = [...vNeeded] as Vector3;
+        }
+      } catch(e) {}
+    }
+
+    // Dynamic timestep
+    let currentDt = Math.min(28800, adjustedDuration / 150);
+    
+    for (const p of activePerturbers) {
+      const mass = PLANET_MASSES[p.name];
+      if (!mass) continue;
+      
+      const [tx, ty, tz] = propagateOrbit(p.elements, t);
       const d2 = (pos[0]-tx)*(pos[0]-tx) + (pos[1]-ty)*(pos[1]-ty) + (pos[2]-tz)*(pos[2]-tz);
       const d = Math.sqrt(d2);
       
-      const pIdx = planetsData.findIndex(pd => pd.name === targetPlanet.name);
+      const pIdx = planetsData.findIndex(pd => pd.name === p.name);
       const pRadius = (planetRadiiKm[pIdx === -1 ? 2 : pIdx] || 6000) * 1000;
-      const pSoi = getPlanetSOI(targetPlanet.name, targetPlanet.elements.a, pRadius);
-
+      const pSoi = getPlanetSOI(p.name, p.elements.a, pRadius);
+      
       if (d < pSoi) {
-        // Tighten step significantly inside SOI (60s) for precision
-        const targetDt = Math.min(60, dt); 
+        const factor = d / pSoi;
+        let targetDt = Math.max(dt, dt * factor);
+        // Clamp dt near target to avoid large jumps
+        if (d < pRadius * 10) targetDt = Math.min(targetDt, 60);
         if (targetDt < currentDt) {
           currentDt = targetDt;
         }
       } else if (d < pSoi * 3) {
-        // Safe transition zone out of SOI
         const factor = (d - pSoi) / (pSoi * 2);
-        const transitionDt = Math.min(600, dt + (28800 - dt) * factor);
+        const transitionDt = dt + (28800 - dt) * factor;
         if (transitionDt < currentDt) {
           currentDt = transitionDt;
         }
@@ -557,17 +615,18 @@ export function simulateInterplanetaryRK4(
       if (d < soi) {
         if (!captured && !isOvershot) {
           const targetVel = getOrbitalVelocity(targetPlanet.elements, t);
+          const r_rel: Vector3 = [pos[0] - tx, pos[1] - ty, pos[2] - tz];
           const relVel: Vector3 = [vel[0] - targetVel[0], vel[1] - targetVel[1], vel[2] - targetVel[2]];
           const relV = Math.sqrt(relVel[0]*relVel[0] + relVel[1]*relVel[1] + relVel[2]*relVel[2]);
-          const muTarget = G * (PLANET_MASSES[targetPlanet.name] || 0);
-
-          // Dot product to check if we are approaching (rdot < 0) or receding (rdot > 0)
-          const r_rel: Vector3 = [pos[0] - tx, pos[1] - ty, pos[2] - tz];
-          const rdot = r_rel[0]*relVel[0] + r_rel[1]*relVel[1] + r_rel[2]*relVel[2];
-
-          // We wait until periapsis (rdot crosses Zero) to burn for maximum efficiency
-          if (rdot >= 0) {
+          
+          // Capture logic: Only perform burn at Periapsis.
+          // We know we are at periapsis when radial velocity (r dot v) crosses from negative to positive.
+          const radialVelocity = (r_rel[0] * relVel[0] + r_rel[1] * relVel[1] + r_rel[2] * relVel[2]) / d;
+          
+          if (radialVelocity >= 0) { // Burn now!
+            const muTarget = G * (PLANET_MASSES[targetPlanet.name] || 0);
             const energy = 0.5 * relV * relV - muTarget / d;
+            
             const h_x = r_rel[1] * relVel[2] - r_rel[2] * relVel[1];
             const h_y = r_rel[2] * relVel[0] - r_rel[0] * relVel[2];
             const h_z = r_rel[0] * relVel[1] - r_rel[1] * relVel[0];
@@ -597,10 +656,10 @@ export function simulateInterplanetaryRK4(
               captureAltitude = (rp - radius) / 1000;
               orbitPeriod = 0;
             } else {
-              const vArrival = Math.sqrt(2.0 * (energy + muTarget / d));
-              const vCapture = Math.sqrt(muTarget / d);
+              const vArrival = Math.sqrt(2.0 * (energy + muTarget / rp));
+              const vCapture = Math.sqrt(muTarget / rp);
               const deltaVRequired = vArrival - vCapture;
-              const targetPeriodSeconds = 2.0 * Math.PI * Math.sqrt(Math.pow(d, 3) / muTarget);
+              const targetPeriodSeconds = 2.0 * Math.PI * Math.sqrt(Math.pow(rp, 3) / muTarget);
               const computedPeriodDays = targetPeriodSeconds / 86400.0;
 
               if (deltaVRequired <= 0.0) {
@@ -608,7 +667,7 @@ export function simulateInterplanetaryRK4(
                 success = true;
                 arrivalTime = t;
                 missionStatus = `${targetPlanet.name.toUpperCase()}_ORBIT`;
-                captureAltitude = (d - radius) / 1000;
+                captureAltitude = (rp - radius) / 1000;
                 orbitPeriod = computedPeriodDays;
               } else if (remainingDeltaV >= deltaVRequired) {
                 remainingDeltaV -= deltaVRequired;
@@ -616,14 +675,13 @@ export function simulateInterplanetaryRK4(
                 success = true;
                 arrivalTime = t;
                 missionStatus = `${targetPlanet.name.toUpperCase()}_ORBIT`;
-                captureAltitude = (d - radius) / 1000;
+                captureAltitude = (rp - radius) / 1000;
                 orbitPeriod = computedPeriodDays;
 
-                // Scale the relative velocity precisely to circular velocity at this distance
-                const scale = vCapture / relV;
-                vel[0] = targetVel[0] + relVel[0] * scale;
-                vel[1] = targetVel[1] + relVel[1] * scale;
-                vel[2] = targetVel[2] + relVel[2] * scale;
+                const vHat = [relVel[0]/relV, relVel[1]/relV, relVel[2]/relV];
+                vel[0] = targetVel[0] + vHat[0] * vCapture;
+                vel[1] = targetVel[1] + vHat[1] * vCapture;
+                vel[2] = targetVel[2] + vHat[2] * vCapture;
               } else {
                 isOvershot = true;
                 captured = false;

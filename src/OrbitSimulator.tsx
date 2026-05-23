@@ -506,8 +506,10 @@ function Moon({
 }) {
   const ref = useRef<THREE.Group>(null);
   const radius = Math.max(0.1, Math.log10(data.radius) * 0.15);
-  // Scale up moon orbits so they appear outside the magnified planet meshes
-  const orbitScale = POS_SCALE * 15;
+  
+  // Dynamically scale orbit so it fits visually outside the magnified parent planet mesh
+  // parentRadius is already in 3D scene units (exaggerated log scale)
+  const orbitScale = (parentRadius * 1.5) / data.elements.a;
 
   const orbitPoints = useMemo(() => {
     const pts: THREE.Vector3[] = [];
@@ -939,11 +941,13 @@ function GhostPath({
           },
         });
         if (res.data.path) {
+          // Fix: Scale LEO points using Earth's visual log radius instead of linear size scale
+          const visualRadius = Math.max(0.4, Math.log10(6371) * 0.4);
           const orbitPoints = res.data.path.map((p: number[]) =>
             new THREE.Vector3(
-              (p[0] / 6371.0) * PLANET_SIZE_SCALE,
-              (p[2] / 6371.0) * PLANET_SIZE_SCALE,
-              -(p[1] / 6371.0) * PLANET_SIZE_SCALE
+              (p[0] / 6371.0) * visualRadius * 1.05,
+              (p[2] / 6371.0) * visualRadius * 1.05,
+              -(p[1] / 6371.0) * visualRadius * 1.05
             )
           );
           setPoints(orbitPoints);
@@ -978,33 +982,8 @@ function GhostPath({
       setReachedDestination((prev) => (prev !== false ? false : prev));
 
       if (launchParams.targetPlanet || launchParams.missionLegs) {
-        lastCalcTime.current += delta;
-        // FIX: Throttle increased from 1s to 5s. Defers to requestIdleCallback
-        // when available so Lambert+RK4 work doesn't block the animation frame.
-        if (lastCalcTime.current > 5.0) {
-          lastCalcTime.current = 0;
-          if (typeof requestIdleCallback !== "undefined") {
-            if (idleCallbackRef.current !== null) {
-              cancelIdleCallback(idleCallbackRef.current);
-            }
-            idleCallbackRef.current = requestIdleCallback(
-              () => {
-                try {
-                  calculateInterplanetaryPath();
-                } catch (err) {
-                  console.error("RK4 prediction error:", err);
-                }
-              },
-              { timeout: 2000 }
-            );
-          } else {
-            try {
-              calculateInterplanetaryPath();
-            } catch (err) {
-              console.error("RK4 prediction error:", err);
-            }
-          }
-        }
+        // Path is now calculated once via useEffect on target change
+        // rather than every 5 seconds in useFrame to prevent UI stutter
       }
       return;
     }
@@ -1123,7 +1102,10 @@ function GhostPath({
       const time = globalTimeRef.current;
       const [tpX, tpY, tpZ] = propagateOrbit(targetPlanet.elements, time);
 
-      const orbitalRadius = 1.2;
+      // Dynamically calculate parking orbit radius based on the target planet's visual radius
+      const visualRadius = Math.max(0.4, Math.log10(targetPlanet.radius) * 0.4);
+      const orbitalRadius = visualRadius * 1.5;
+      
       const ang = (time / 86400) * 0.5;
       const ox = Math.cos(ang) * orbitalRadius;
       const oz = Math.sin(ang) * orbitalRadius;
