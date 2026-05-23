@@ -241,6 +241,54 @@ export default function App() {
     }
   };
 
+  const planTarget = (destId: number) => {
+    // Set launch/dest correctly in App state
+    setLaunchPlanet("Earth");
+    setMissionLegs(null);
+    setReturnWindow(null);
+    
+    const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn' } as Record<number, string>;
+    const targetName = planetMap[destId];
+    if (targetName) {
+      setTargetPlanet(targetName);
+      const targetPlanetInfo = PLANETS.find(p => p.name === targetName);
+      if (targetPlanetInfo) setSelectedTarget(targetPlanetInfo);
+    }
+
+    let minTof = 100;
+    let maxTof = 1000;
+    if (destId === 1 || destId === 2) { minTof = 50; maxTof = 300; } // Inner planets
+    else if (destId === 5) { minTof = 400; maxTof = 2000; } // Jupiter
+    else if (destId === 6) { minTof = 600; maxTof = 3500; } // Saturn
+
+    const t0 = globalTimeRef.current / 86400; // live sim clock
+
+    // We can do a quick fast scan for auto targeting (30 steps to keep UI snappy)
+    const result = scanPorkchop(
+      3, // Earth
+      destId,
+      t0,
+      1200, // search next 1200 days
+      minTof,
+      maxTof,
+      30 // steps
+    );
+
+    if (result) {
+      const leg: any = {
+        originId: 3,
+        destId: destId,
+        type: 'capture',
+        dv1_kms: result.dv1_kms,
+        dv2_kms: result.dv2_kms,
+        tof_days: result.tof_days,
+        v1_ecl: result.v1_ecl,
+      };
+      result.legs = [leg];
+      handleApply(result);
+    }
+  };
+
   const renderTargetStats = () => {
     if (!selectedTarget) {
       return (
@@ -602,6 +650,7 @@ export default function App() {
               handleApply(returnWindow!);
               setIsLaunched(true);
             }}
+            onPlanTarget={planTarget}
             onConcludeMission={() => {
               // End the current mission and archive it, allowing a new launch
               const missionArchive = {
