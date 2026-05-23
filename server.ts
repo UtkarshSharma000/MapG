@@ -3,10 +3,13 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { spawn, execSync } from "child_process";
 import fs from "fs";
+import { Worker } from "worker_threads";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  app.use(express.json());
 
   // Compile C++ Engine and Install Python Deps
   console.log("Ensuring environment is ready...");
@@ -40,6 +43,53 @@ async function startServer() {
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch trajectory preview" });
     }
+  });
+
+  // Calculate Interplanetary Trajectory via Node.js Worker Threads
+  app.post("/api/calculate", (req, res) => {
+    const { launchParams, globalTime } = req.body;
+
+    // Use tsx to execute the TypeScript worker in an ESM environment
+    const workerPath = path.join(process.cwd(), "src/worker.ts");
+    
+    const worker = new Worker(workerPath,
+      {
+        workerData: {
+          type: "CALCULATE_PATH",
+          payload: { launchParams, globalTime },
+        },
+        execArgv: ["--import", "tsx"]
+      }
+    );
+
+    const timeout = setTimeout(() => {
+      worker.terminate();
+      if (!res.headersSent) {
+        res.status(504).json({ error: "Calculation timed out after 10 seconds" });
+      }
+    }, 10000);
+
+    worker.on("message", (message) => {
+      clearTimeout(timeout);
+      if (message.success) {
+        res.json(message.data);
+      } else {
+        res.status(500).json({ error: message.error });
+      }
+    });
+
+    worker.on("error", (err) => {
+      clearTimeout(timeout);
+      if (!res.headersSent) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    worker.on("exit", (code) => {
+      if (code !== 0 && !res.headersSent) {
+        res.status(500).json({ error: `Worker exited with code ${code}` });
+      }
+    });
   });
 
   // Start the Python FastAPI Bridge

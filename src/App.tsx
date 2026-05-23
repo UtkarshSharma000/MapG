@@ -8,7 +8,8 @@ import {
   ArrowRight,
   LogOut,
 } from "lucide-react";
-import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
+import OrbitSimulator from "./OrbitSimulator";
+import { PLANETS } from "./constants";
 import TrajectoryOptimizer, { OptimizeResult, scanPorkchop } from "./TrajectoryOptimizer";
 import { TelemetryPanel } from "./components/TelemetryPanel";
 import { LaunchHUD } from "./components/LaunchHUD";

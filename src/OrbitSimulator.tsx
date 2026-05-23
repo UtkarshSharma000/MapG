@@ -12,13 +12,11 @@ import {
   AU,
   propagateOrbit,
   KeplerianElements,
-  simulateInterplanetaryRK4,
-  findOptimalTransfer,
-  MU_SUN,
   getJ2000Time,
   J2000_UNIX,
   getOrbitalVelocity,
 } from "./physics";
+import { PLANETS } from "./constants";
 import axios from "axios";
 
 export const MOONS: Record<string, any[]> = {
@@ -133,138 +131,6 @@ const SUN_SIZE = 5;
 
 // Saturn obliquity in radians (26.73°) — used to tilt ring plane
 const SATURN_OBLIQUITY = (26.73 * Math.PI) / 180;
-
-// Data adapted from J2000 epoch
-export const PLANETS = [
-  {
-    name: "Mercury",
-    radius: 2439,
-    texture: "/textures/2k_mercury.jpg",
-    color: "#a8a8a8",
-    siderealDay: 58.646 * 24 * 3600,
-    elements: {
-      a: 0.387 * AU,
-      e: 0.2056,
-      i: (7.0 * Math.PI) / 180,
-      Omega: (48.33 * Math.PI) / 180,
-      w: (29.124 * Math.PI) / 180,
-      M0: (174 * Math.PI) / 180,
-      period: 88.0 * 24 * 3600,
-    },
-  },
-  {
-    name: "Venus",
-    radius: 6051,
-    texture: "/textures/2k_venus_atmosphere.jpg",
-    color: "#e0c080",
-    siderealDay: -243.02 * 24 * 3600, // Retrograde
-    elements: {
-      a: 0.723 * AU,
-      e: 0.0067,
-      i: (3.39 * Math.PI) / 180,
-      Omega: (76.68 * Math.PI) / 180,
-      w: (54.88 * Math.PI) / 180,
-      M0: (50 * Math.PI) / 180,
-      period: 224.7 * 24 * 3600,
-    },
-  },
-  {
-    name: "Earth",
-    radius: 6371,
-    texture: "/textures/2k_earth_daymap.jpg",
-    color: "#2b82c9",
-    siderealDay: 0.997269 * 24 * 3600,
-    elements: {
-      a: 1.0 * AU,
-      e: 0.0167,
-      i: (0.00005 * Math.PI) / 180,
-      Omega: (-11.26 * Math.PI) / 180,
-      w: (114.2 * Math.PI) / 180,
-      M0: (358 * Math.PI) / 180,
-      period: 365.25 * 24 * 3600,
-    },
-  },
-  {
-    name: "Mars",
-    radius: 3389,
-    texture: "/textures/2k_mars.jpg",
-    color: "#c1440e",
-    siderealDay: 1.025957 * 24 * 3600,
-    elements: {
-      a: 1.524 * AU,
-      e: 0.0934,
-      i: (1.85 * Math.PI) / 180,
-      Omega: (49.57 * Math.PI) / 180,
-      w: (286.5 * Math.PI) / 180,
-      M0: (19 * Math.PI) / 180,
-      period: 686.98 * 24 * 3600,
-    },
-  },
-  {
-    name: "Jupiter",
-    radius: 69911,
-    texture: "/textures/2k_jupiter.jpg",
-    color: "#e3dccb",
-    siderealDay: 0.41354 * 24 * 3600,
-    elements: {
-      a: 5.204 * AU,
-      e: 0.0489,
-      i: (1.3 * Math.PI) / 180,
-      Omega: (100.4 * Math.PI) / 180,
-      w: (273.8 * Math.PI) / 180,
-      M0: (20 * Math.PI) / 180,
-      period: 4332.59 * 24 * 3600,
-    },
-  },
-  {
-    name: "Saturn",
-    radius: 58232,
-    texture: "/textures/2k_saturn.jpg",
-    color: "#eaddb8",
-    siderealDay: 0.444 * 24 * 3600,
-    elements: {
-      a: 9.582 * AU,
-      e: 0.0565,
-      i: (2.48 * Math.PI) / 180,
-      Omega: (113.6 * Math.PI) / 180,
-      w: (339.3 * Math.PI) / 180,
-      M0: (317 * Math.PI) / 180,
-      period: 10759 * 24 * 3600,
-    },
-  },
-  {
-    name: "Uranus",
-    radius: 25362,
-    texture: "/textures/2k_uranus.jpg",
-    color: "#d1e7e7",
-    siderealDay: -0.71833 * 24 * 3600, // Retrograde
-    elements: {
-      a: 19.201 * AU,
-      e: 0.0457,
-      i: (0.77 * Math.PI) / 180,
-      Omega: (74.0 * Math.PI) / 180,
-      w: (96.6 * Math.PI) / 180,
-      M0: (142 * Math.PI) / 180,
-      period: 30688 * 24 * 3600,
-    },
-  },
-  {
-    name: "Neptune",
-    radius: 24622,
-    texture: "/textures/2k_neptune.jpg",
-    color: "#5b5ddf",
-    siderealDay: 0.67125 * 24 * 3600,
-    elements: {
-      a: 30.047 * AU,
-      e: 0.0113,
-      i: (1.77 * Math.PI) / 180,
-      Omega: (131.7 * Math.PI) / 180,
-      w: (273.1 * Math.PI) / 180,
-      M0: (256 * Math.PI) / 180,
-      period: 60182 * 24 * 3600,
-    },
-  },
-];
 
 const AsteroidBelt = React.memo(function AsteroidBelt({
   timeMult,
@@ -733,6 +599,8 @@ function GhostPath({
   const maxDeltaVRef = useRef<number>(3500);
   const fuelRef = useRef<number>(100);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const [status, setStatus] = useState<string>("Standby");
   const [daysPassed, setDaysPassed] = useState<number>(0);
   const [stayTimeDays, setStayTimeDays] = useState<number>(0);
@@ -750,99 +618,40 @@ function GhostPath({
   const lastMissionLegsRef = useRef<any>(null);
   const idleCallbackRef = useRef<number | null>(null);
 
-  const calculateInterplanetaryPath = useCallback(() => {
+  const calculateTrajectoryRemote = async (data: any, signal?: AbortSignal) => {
+    try {
+      const response = await axios.post("/api/calculate", data, { signal });
+      return response.data;
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        console.log("Calculation aborted");
+      } else {
+        console.error("Remote trajectory calculation failed:", error);
+      }
+      return null;
+    }
+  };
+
+  const calculateInterplanetaryPath = useCallback(async () => {
     if (!launchParams) return;
     if (!launchParams.targetPlanet && !launchParams.missionLegs) return;
 
-    const time = globalTimeRef.current;
-    let targetName = launchParams.targetPlanet;
-    let simDuration = 0;
-
-    const earth = PLANETS.find(
-      (p) => p.name === (launchParams.launchPlanet || "Earth")
-    );
-    if (!earth) return;
-
-    let simStartTime = time;
-    let startPos = propagateOrbit(earth.elements, time);
-    let vReq: [number, number, number] = [0, 0, 0];
-    let dvLabel = 0;
-
-    if (launchParams.missionLegs && launchParams.missionLegs.length > 0) {
-      const legs = launchParams.missionLegs;
-      const lastDestId = legs[legs.length - 1].destId;
-      const planetMap: Record<number, string> = {
-        1: "Mercury",
-        2: "Venus",
-        3: "Earth",
-        4: "Mars",
-        5: "Jupiter",
-        6: "Saturn",
-        7: "Uranus",
-        8: "Neptune",
-      };
-      targetName = planetMap[lastDestId];
-
-      let totalDays = 0;
-      for (const leg of legs) totalDays += leg.tof_days || 0;
-      simDuration = Math.max(totalDays * 86400 * 1.5, 86400 * 100);
-
-      const p = (launchParams.pitch * Math.PI) / 180;
-      const y = (launchParams.yaw * Math.PI) / 180;
-      const v0 = launchParams.v0;
-
-      const vx_local = v0 * Math.sin(p);
-      const vy_local = v0 * Math.cos(p) * Math.cos(y);
-      const vz_local = v0 * Math.cos(p) * Math.sin(y);
-
-      const OBLIQUITY = (23.43929111 * Math.PI) / 180;
-      const cosE = Math.cos(OBLIQUITY);
-      const sinE = Math.sin(OBLIQUITY);
-
-      const v_inf_x = vx_local;
-      const v_inf_y = vy_local * cosE + vz_local * sinE;
-      const v_inf_z = -vy_local * sinE + vz_local * cosE;
-
-      const earthVel = getOrbitalVelocity(earth.elements, time);
-      vReq = [
-        earthVel[0] + v_inf_x,
-        earthVel[1] + v_inf_y,
-        earthVel[2] + v_inf_z,
-      ];
-      dvLabel = legs.reduce(
-        (acc: number, l: any) => acc + (l.dv1_kms || 0),
-        0
-      );
-    } else if (launchParams.targetPlanet) {
-      const target = PLANETS.find((p) => p.name === launchParams.targetPlanet);
-      if (!target) return;
-      const { tof, vReq: v, dvReq, depTime } = findOptimalTransfer(
-        earth.elements,
-        target.elements,
-        time,
-        MU_SUN,
-        false
-      );
-      vReq = v as [number, number, number];
-      simStartTime = depTime;
-      startPos = propagateOrbit(earth.elements, depTime);
-      simDuration = tof * 1.5;
-      dvLabel = dvReq;
+    // Abort any pending calculation
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
+    abortControllerRef.current = new AbortController();
 
-    if (!targetName) return;
-    const targetPlanet = PLANETS.find((p) => p.name === targetName);
-    if (!targetPlanet) return;
+    const time = globalTimeRef.current;
+    
+    // Delegate the heavy math (Lambert + RK4) to the backend worker threads
+    const result = await calculateTrajectoryRemote(
+      { launchParams, globalTime: time }, 
+      abortControllerRef.current?.signal
+    );
+    
+    if (!result) return;
 
-    requiredDVRef.current = dvLabel;
-    const maxDeltaV = getFuelCapacity(targetName, dvLabel);
-    maxDeltaVRef.current = maxDeltaV;
-
-    const simDt = 600;
-
-    // NOTE: maxDeltaV is computed here but the physics function currently ignores
-    // it (hardcodes 3500 m/s internally). Once simulateInterplanetaryRK4 accepts
-    // a maxDeltaV parameter, pass maxDeltaV as the 9th argument here.
     const {
       points: rawPoints,
       arrivalTime,
@@ -853,20 +662,13 @@ function GhostPath({
       isOvershot,
       remainingDeltaV,
       usedDuration,
-    } = simulateInterplanetaryRK4(
-      startPos as [number, number, number],
-      vReq,
       simStartTime,
-      PLANETS,
-      simDuration,
-      simDt,
-      targetName,
-      false,
-      maxDeltaV
-    );
+      dvLabel,
+      vReq
+    } = result;
 
     transferTimeRef.current = arrivalTime - simStartTime;
-    simDurationRef.current = usedDuration || simDuration;
+    simDurationRef.current = usedDuration;
     captureInfoRef.current = {
       status: missionStatus,
       altitude: captureAltitude,
@@ -875,16 +677,28 @@ function GhostPath({
       remainingDeltaV,
     };
 
+    requiredDVRef.current = dvLabel;
+    const targetName = launchParams.targetPlanet || (launchParams.missionLegs?.[launchParams.missionLegs.length - 1]?.destId ? 
+      ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"][launchParams.missionLegs[launchParams.missionLegs.length - 1].destId - 1] 
+      : undefined);
+    
+    maxDeltaVRef.current = getFuelCapacity(targetName, dvLabel);
+
     const threePoints = rawPoints.map(
-      (p) => new THREE.Vector3(p[0] * POS_SCALE, p[2] * POS_SCALE, -p[1] * POS_SCALE)
+      (p: [number, number, number]) => new THREE.Vector3(p[0] * POS_SCALE, p[2] * POS_SCALE, -p[1] * POS_SCALE)
     );
     setPoints(threePoints);
     setStatus(success ? "Intercept Locked" : "Transfer Optimized");
 
-    const [ix, iy, iz] = propagateOrbit(targetPlanet.elements, arrivalTime);
-    setInterceptPoint(
-      new THREE.Vector3(ix * POS_SCALE, iz * POS_SCALE, -iy * POS_SCALE)
-    );
+    if (targetName) {
+      const targetPlanet = PLANETS.find(p => p.name === targetName);
+      if (targetPlanet) {
+        const [ix, iy, iz] = propagateOrbit(targetPlanet.elements, arrivalTime);
+        setInterceptPoint(
+          new THREE.Vector3(ix * POS_SCALE, iz * POS_SCALE, -iy * POS_SCALE)
+        );
+      }
+    }
   }, [launchParams]);
 
   useEffect(() => {
