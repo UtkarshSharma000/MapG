@@ -287,6 +287,22 @@ export function simulateInterplanetaryRK4(
     return Math.sqrt(d2) < 1e9; // Within 1 million km at launch translates to launch planet
   });
 
+  // Fast cache to avoid recalculating Kepler's equation hundreds of thousands of times
+  const tCache = [-1, -1, -1, -1];
+  const pCache: Vector3[][] = [[], [], [], []];
+  let cacheIdx = 0;
+  
+  const getPlanetPos = (index: number, time: number) => {
+     for (let c = 0; c < 4; c++) {
+         if (tCache[c] === time) return pCache[c][index];
+     }
+     const posList = planetsData.map(p => propagateOrbit(p.elements, time));
+     tCache[cacheIdx] = time;
+     pCache[cacheIdx] = posList;
+     cacheIdx = (cacheIdx + 1) % 4;
+     return posList[index];
+  };
+
   const getDeriv = (p: Vector3, v: Vector3, time: number) => {
     let ax = 0, ay = 0, az = 0;
     const r2 = p[0]*p[0] + p[1]*p[1] + p[2]*p[2];
@@ -297,11 +313,13 @@ export function simulateInterplanetaryRK4(
     az += m_r3 * p[2];
     
     if (!twoBodyOnly) {
-      for (const data of planetsData) {
+      for (let i = 0; i < planetsData.length; i++) {
+        const data = planetsData[i];
         if (ignoreLaunchPlanet && data.name === launchPlanet?.name) continue;
         const mass = PLANET_MASSES[data.name];
         if (!mass) continue;
-        const [px, py, pz] = propagateOrbit(data.elements, time);
+        
+        const [px, py, pz] = getPlanetPos(i, time);
         const dx = px - p[0];
         const dy = py - p[1];
         const dz = pz - p[2];
@@ -312,7 +330,6 @@ export function simulateInterplanetaryRK4(
         const softDist2 = Math.max(dist2, 4e13); 
         const p_r3 = (G * mass) / (softDist2 * Math.sqrt(softDist2));
 
-        
         ax += p_r3 * dx;
         ay += p_r3 * dy;
         az += p_r3 * dz;
@@ -352,15 +369,16 @@ export function simulateInterplanetaryRK4(
     let currentDt = dt;
     
     // Check all planets for proximity
-    for (const p of planetsData) {
+    for (let j = 0; j < planetsData.length; j++) {
+        const p = planetsData[j];
         if (!PLANET_MASSES[p.name]) continue;
-        const [tx, ty, tz] = propagateOrbit(p.elements, t);
+        const [tx, ty, tz] = getPlanetPos(j, t);
         const d2 = (pos[0]-tx)*(pos[0]-tx) + (pos[1]-ty)*(pos[1]-ty) + (pos[2]-tz)*(pos[2]-tz);
         const d = Math.sqrt(d2);
         
         // Dynamic SOI for checking:
         // Use a generic 150 * radius for all planets to trigger slowdown
-        const pRadius = (planetRadiiKm[planetsData.indexOf(p)] || 6000) * 1000;
+        const pRadius = (planetRadiiKm[j] || 6000) * 1000;
         const pSoi = pRadius * 150;
         
         if (d < pSoi) {
