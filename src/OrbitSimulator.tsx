@@ -807,9 +807,9 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
 
     // Reset points ONLY if not launched OR if legs/target changed (e.g. planning return trip)
     if (!launchParams.isLaunched || legsChanged || targetChanged) {
-      setPoints([]);
       
       if (legsChanged || targetChanged) {
+        setPoints([]);
         launchTimeRef.current = null;
         progressRef.current = 0;
         setReachedDestination(false);
@@ -818,9 +818,12 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
         if (onStatusUpdate) onStatusUpdate("Standby");
       }
       
-      // Calculate ghost path proactively for manual modes and planned missions
-      calculateInterplanetaryPath();
-      return;
+      // Debounce the calculation so dragging sliders is buttery smooth
+      const timeoutId = setTimeout(() => {
+        // Calculate ghost path proactively for manual modes and planned missions
+        calculateInterplanetaryPath();
+      }, 100);
+      return () => clearTimeout(timeoutId);
     } else {
       return;
     }
@@ -869,7 +872,9 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
       // Constantly recalculate if not launched (so the ghost path stays attached to Earth as time moves)
       // Only do it if paused or time is moving, to save performance when idle we do it once a second
       lastCalcTime.current += delta;
-      if (lastCalcTime.current > (timeMult > 1 ? 0.2 : 1.0)) { 
+      
+      const currentTimeMult = launchParams.timeMult || 1;
+      if (lastCalcTime.current > (currentTimeMult > 1 ? 0.2 : 1.0)) { 
          lastCalcTime.current = 0;
          try {
            calculateInterplanetaryPath();
