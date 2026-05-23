@@ -761,7 +761,8 @@ function GhostPath({
     );
     if (!earth) return;
 
-    const startPos = propagateOrbit(earth.elements, time);
+    let simStartTime = time;
+    let startPos = propagateOrbit(earth.elements, time);
     let vReq: [number, number, number] = [0, 0, 0];
     let dvLabel = 0;
 
@@ -813,7 +814,7 @@ function GhostPath({
     } else if (launchParams.targetPlanet) {
       const target = PLANETS.find((p) => p.name === launchParams.targetPlanet);
       if (!target) return;
-      const { tof, vReq: v, dvReq } = findOptimalTransfer(
+      const { tof, vReq: v, dvReq, depTime } = findOptimalTransfer(
         earth.elements,
         target.elements,
         time,
@@ -821,6 +822,8 @@ function GhostPath({
         false
       );
       vReq = v as [number, number, number];
+      simStartTime = depTime;
+      startPos = propagateOrbit(earth.elements, depTime);
       simDuration = tof * 1.5;
       dvLabel = dvReq;
     }
@@ -851,15 +854,16 @@ function GhostPath({
     } = simulateInterplanetaryRK4(
       startPos as [number, number, number],
       vReq,
-      time,
+      simStartTime,
       PLANETS,
       simDuration,
       simDt,
       targetName,
-      false
+      false,
+      maxDeltaV
     );
 
-    transferTimeRef.current = arrivalTime - time;
+    transferTimeRef.current = arrivalTime - simStartTime;
     simDurationRef.current = usedDuration || simDuration;
     captureInfoRef.current = {
       status: missionStatus,
