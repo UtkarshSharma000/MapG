@@ -907,7 +907,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
       launchTimeRef.current = globalTimeRef.current;
     }
 
-    const timeMult = launchParams.timeMult || 1;
+    const localTimeMult = launchParams.timeMult || 1;
     const maxIdx = points.length - 1;
 
     if (launchParams.targetPlanet || launchParams.missionLegs) {
@@ -944,7 +944,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
     } else {
       // Shuttle movement. If we have lots of points (LEO backend), speed needs to be faster
       const baseSpeed = 20.0; 
-      progressRef.current += delta * timeMult * baseSpeed;
+      progressRef.current += delta * localTimeMult * baseSpeed;
     }
     
     let targetName = launchParams.targetPlanet;
