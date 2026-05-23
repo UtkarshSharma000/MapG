@@ -12,6 +12,8 @@ interface LaunchHUDProps {
   setPitch: (p: number) => void;
   setYaw: (y: number) => void;
   setNbody: (n: boolean) => void;
+  targetOrbit: string;
+  setTargetOrbit: (t: string) => void;
   onSimulateLaunch: () => void;
   onResetSimulation: () => void;
   isLaunched: boolean;
@@ -27,6 +29,8 @@ export function LaunchHUD({
   pitch,
   yaw,
   nbody,
+  targetOrbit,
+  setTargetOrbit,
   setV0,
   setPitch,
   setYaw,
@@ -41,7 +45,7 @@ export function LaunchHUD({
   onConcludeMission
 }: LaunchHUDProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
-  const [targetOrbit, setTargetOrbit] = useState('LEO');
+  // const [targetOrbit, setTargetOrbit] = useState('LEO');
 
   const [isCalculatingLaunchPhase, setIsCalculatingLaunchPhase] = useState(false);
 
@@ -80,7 +84,7 @@ export function LaunchHUD({
               <span className="text-[11px] font-mono text-cyan-400 font-bold">{v0.toFixed(2)} km/s</span>
             </div>
             <input 
-              type="range" min="0" max="25" step="0.1" 
+              type="range" min="0" max={targetOrbit === 'Mars' ? "25" : "12"} step="0.1" 
               value={v0} onChange={(e) => setV0(parseFloat(e.target.value))}
               className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
               disabled={isLaunched}
@@ -117,7 +121,12 @@ export function LaunchHUD({
              <label className="text-[10px] font-mono text-white/50 block mb-1.5 uppercase">Target Orbit</label>
              <select 
                value={targetOrbit} 
-               onChange={(e) => setTargetOrbit(e.target.value)}
+               onChange={(e) => {
+                 const val = e.target.value;
+                 setTargetOrbit(val);
+                 if (val === 'LEO') setV0(7.67);
+                 if (val === 'Lunar') setV0(10.9);
+               }}
                className="w-full bg-[#050505] border border-white/10 rounded-lg p-2 text-xs font-mono text-white focus:border-cyan-400 outline-none cursor-pointer hover:border-white/20 transition-colors"
                disabled={isLaunched}
              >

@@ -336,6 +336,47 @@ function KuiperBelt({ timeMult }: { timeMult: number }) {
   );
 }
 
+function OortCloud({ timeMult }: { timeMult: number }) {
+  const cloudRef = useRef<THREE.Points>(null);
+  const PARTICLE_COUNT = 4000;
+
+  const positions = useMemo(() => {
+    const pos = new Float32Array(PARTICLE_COUNT * 3);
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+        // Oort cloud is a spherical shell, much further out (e.g. 2000 to 50000 AU)
+        // Let's use 2000 to 15000 for visibility
+        const r = 2000 + Math.random() * 13000;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        
+        pos[i * 3] = r * AU * POS_SCALE * Math.sin(phi) * Math.cos(theta);
+        pos[i * 3 + 1] = r * AU * POS_SCALE * Math.cos(phi);
+        pos[i * 3 + 2] = r * AU * POS_SCALE * Math.sin(phi) * Math.sin(theta);
+    }
+    return pos;
+  }, []);
+
+  useFrame((state, delta) => {
+    if (cloudRef.current) {
+      cloudRef.current.rotation.y += 0.00000001 * timeMult * delta; 
+    }
+  });
+
+  return (
+    <points ref={cloudRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          array={positions}
+          count={PARTICLE_COUNT}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial color="#556677" size={5.0} sizeAttenuation />
+    </points>
+  );
+}
+
 function FallbackMaterial({
   fallbackColor,
   basic,
@@ -521,7 +562,7 @@ function Planet({
       // Approximating with Mean anomaly to space it out (actually a fixed delta M is fine)
       const t = (i / 500) * elements.period;
       const [x, y, z] = propagateOrbit(elements, t);
-      pts.push(new THREE.Vector3(x * POS_SCALE, y * POS_SCALE, z * POS_SCALE));
+      pts.push(new THREE.Vector3(x * POS_SCALE, z * POS_SCALE, -y * POS_SCALE));
     }
     return pts;
   }, [data.elements]);
@@ -530,7 +571,7 @@ function Planet({
     const time = globalTimeRef.current;
     const [x, y, z] = propagateOrbit(data.elements, time);
     if (ref.current) {
-      ref.current.position.set(x * POS_SCALE, y * POS_SCALE, z * POS_SCALE);
+      ref.current.position.set(x * POS_SCALE, z * POS_SCALE, -y * POS_SCALE);
       // Accurate sidereal rotation
       const daySeconds = (data as any).siderealDay || 86164; // seconds
       ref.current.rotation.y = (time / daySeconds) * Math.PI * 2;
@@ -633,18 +674,57 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
 
   const calculateInterplanetaryPath = useCallback(() => {
     if (!launchParams) return;
-    if (!launchParams.targetPlanet && !launchParams.missionLegs) return;
     
     const time = globalTimeRef.current;
-    let targetName = launchParams.targetPlanet;
+    let targetName: string | undefined = launchParams.targetPlanet || undefined;
     let simDuration = 0;
     
     const earth = PLANETS.find(p => p.name === (launchParams.launchPlanet || "Earth"));
     if (!earth) return;
 
-    const startPos = propagateOrbit(earth.elements, time);
+    let startPos = propagateOrbit(earth.elements, time);
+    
+    // Offset by Earth's radius (approx 6371 km) in the direction of the prograde velocity
+    // This places the launch just above the planet surface so gravity works in RK4
+    const earthVel = getOrbitalVelocity(earth.elements, time);
+    const ev_mag = Math.sqrt(earthVel[0]**2 + earthVel[1]**2 + earthVel[2]**2);
+    const earthRadius = 6371000; 
+    
+    // We'll launch from the night-side (anti-radial) or trailing side
+    // Actually just offsetting by normal Z is best
+    startPos = [
+      startPos[0],
+      startPos[1],
+      startPos[2] + earthRadius // slightly above ecliptic
+    ];
+    
     let vReq: [number, number, number] = [0, 0, 0];
     let dvLabel = 0;
+
+    // Convert Pitch, Yaw, V0 from launchParams back directly into J2000 heliocentric
+    // These values dynamically update as the user moves the sliders
+    const p = launchParams.pitch * Math.PI / 180;
+    const y = launchParams.yaw * Math.PI / 180;
+    const v0 = launchParams.v0;
+    
+    const vx_local = v0 * Math.sin(p);
+    const vy_local = v0 * Math.cos(p) * Math.cos(y);
+    const vz_local = v0 * Math.cos(p) * Math.sin(y);
+    
+    const OBLIQUITY = 23.43929111 * (Math.PI / 180);
+    const cosE = Math.cos(OBLIQUITY), sinE = Math.sin(OBLIQUITY);
+    
+    // Ecliptic plane correction (Pitch = 0 means stays on ecliptic)
+    const v_inf_x = -vy_local * sinE + vz_local * cosE; // Map to Z (out of plane) appropriately
+    const v_inf_y = vx_local; 
+    const v_inf_z = vy_local * cosE + vz_local * sinE;
+
+    // Get base orbital velocity of Earth at time t0
+    // earthVel is already calculated above
+    
+    // In LEO, v0 is just the orbital velocity around Earth. 
+    // We add it to Earth's heliocentric velocity
+    vReq = [earthVel[0] + v_inf_x, earthVel[1] + v_inf_y, earthVel[2] + v_inf_z];
 
     if (launchParams.missionLegs && launchParams.missionLegs.length > 0) {
       const legs = launchParams.missionLegs;
@@ -655,45 +735,18 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
       let totalDays = 0;
       for (const leg of legs) totalDays += (leg.tof_days || 0);
       simDuration = Math.max(totalDays * 86400 * 1.5, 86400 * 100);
-
-      // Convert Pitch, Yaw, V0 from launchParams back directly into J2000 heliocentric
-      const p = launchParams.pitch * Math.PI / 180;
-      const y = launchParams.yaw * Math.PI / 180;
-      const v0 = launchParams.v0;
-      
-      const vx_local = v0 * Math.sin(p);
-      const vy_local = v0 * Math.cos(p) * Math.cos(y);
-      const vz_local = v0 * Math.cos(p) * Math.sin(y);
-      
-      const OBLIQUITY = 23.43929111 * (Math.PI / 180);
-      const cosE = Math.cos(OBLIQUITY), sinE = Math.sin(OBLIQUITY);
-      
-      const v_inf_x = vx_local;
-      const v_inf_y = vy_local * cosE + vz_local * sinE;
-      const v_inf_z = -vy_local * sinE + vz_local * cosE;
-      
-      // Get base orbital velocity of Earth at time t0
-      const earthVel = getOrbitalVelocity(earth.elements, time);
-      vReq = [earthVel[0] + v_inf_x, earthVel[1] + v_inf_y, earthVel[2] + v_inf_z];
       dvLabel = legs.reduce((acc: number, l: any) => acc + (l.dv1_kms || 0), 0);
-    } else if (launchParams.targetPlanet) {
-      const target = PLANETS.find(p => p.name === launchParams.targetPlanet);
-      if (!target) return;
-      const { tof, vReq: v, dvReq } = findOptimalTransfer(
-        earth.elements,
-        target.elements,
-        time,
-        MU_SUN,
-        false
-      );
-      vReq = v as [number, number, number];
-      simDuration = tof * 1.5;
-      dvLabel = dvReq;
+    } else {
+      // Manual Mode via Sliders
+      if (launchParams.targetOrbit === 'LEO') {
+        simDuration = 86400 * 30; // 30 days
+      } else if (launchParams.targetOrbit === 'Lunar') {
+        simDuration = 86400 * 100; // 100 days
+      } else {
+        // TMI Interplanetary
+        simDuration = 86400 * 365 * (v0 > 20 ? 40 : v0 > 15 ? 30 : 5); // 5 to 40 years based on v0 to show full outward arcs
+      }
     }
-
-    if (!targetName) return;
-    const targetPlanet = PLANETS.find(p => p.name === targetName);
-    if (!targetPlanet) return;
     
     requiredDVRef.current = dvLabel;
     const simDt = 600; // Better step for trajectory prediction
@@ -706,19 +759,27 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
       simDuration,
       simDt,
       targetName,
-      false // twoBodyOnly disabled so spacecraft is affected by planet gravity
+      false, // twoBodyOnly disabled so spacecraft is affected by planet gravity
+      (launchParams.missionLegs && launchParams.missionLegs.length > 0) ? true : false // ignoreLaunchPlanet
     );
     
     transferTimeRef.current = arrivalTime - time;
     simDurationRef.current = simDuration;
     captureInfoRef.current = { status: missionStatus, altitude: captureAltitude, period: orbitPeriod };
     
-    const threePoints = rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[1] * POS_SCALE, p[2] * POS_SCALE));
+    const threePoints = rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[2] * POS_SCALE, -p[1] * POS_SCALE));
     setPoints(threePoints);
     setStatus(success ? "Intercept Locked" : "Transfer Optimized");
 
-    const [ix, iy, iz] = propagateOrbit(targetPlanet.elements, arrivalTime);
-    setInterceptPoint(new THREE.Vector3(ix * POS_SCALE, iy * POS_SCALE, iz * POS_SCALE));
+    if (targetName) {
+      const targetPlanetInfo = PLANETS.find(p => p.name === targetName);
+      if (targetPlanetInfo) {
+        const [ix, iy, iz] = propagateOrbit(targetPlanetInfo.elements, arrivalTime);
+        setInterceptPoint(new THREE.Vector3(ix * POS_SCALE, iz * POS_SCALE, -iy * POS_SCALE));
+      }
+    } else {
+      setInterceptPoint(null);
+    }
   }, [launchParams]);
 
   useEffect(() => {
@@ -743,11 +804,9 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
         if (onStatusUpdate) onStatusUpdate("Standby");
       }
       
-      // Interplanetary mode (target select OR mission legs active)
-      if (launchParams.targetPlanet || launchParams.missionLegs) {
-        calculateInterplanetaryPath();
-        return;
-      }
+      // Calculate ghost path proactively for manual modes and planned missions
+      calculateInterplanetaryPath();
+      return;
     } else {
       return;
     }
@@ -812,7 +871,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
         if (earth) {
           const time = globalTimeRef.current;
           const [eX, eY, eZ] = propagateOrbit(earth.elements, time);
-          const p1 = new THREE.Vector3(eX * POS_SCALE, eY * POS_SCALE, eZ * POS_SCALE);
+          const p1 = new THREE.Vector3(eX * POS_SCALE, eZ * POS_SCALE, -eY * POS_SCALE);
           // Mutate just the first point to stay attached! Visual trick.
           setPoints(pts => {
             const newPts = [...pts];
@@ -894,15 +953,15 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
       
       shuttleRef.current.position.set(
         tpX * POS_SCALE + ox,
-        tpY * POS_SCALE,
-        tpZ * POS_SCALE + oz
+        tpZ * POS_SCALE,
+        -tpY * POS_SCALE + oz
       );
       
       // Orient the shuttle tangent to its captured orbital trajectory
       const nextAng = ang + 0.01;
       const nox = Math.cos(nextAng) * orbitalRadius;
       const noz = Math.sin(nextAng) * orbitalRadius;
-      const nextPos = new THREE.Vector3(tpX * POS_SCALE + nox, tpY * POS_SCALE, tpZ * POS_SCALE + noz);
+      const nextPos = new THREE.Vector3(tpX * POS_SCALE + nox, tpZ * POS_SCALE, -tpY * POS_SCALE + noz);
       shuttleRef.current.lookAt(nextPos);
     } else {
       let currentIdx = Math.floor(progressRef.current);
@@ -993,13 +1052,74 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
   );
 }
 
+function ArchivedShuttle({ mission, globalTimeRef }: { mission: any, globalTimeRef: React.MutableRefObject<number> }) {
+  const ref = useRef<THREE.Group>(null);
+  const planet = PLANETS.find(p => p.name === mission.targetPlanet) || PLANETS.find(p => p.name === "Earth");
+
+  useFrame(() => {
+    if (!planet || !ref.current) return;
+    const time = globalTimeRef.current;
+    
+    // Get planet position
+    const [pX, pY, pZ] = propagateOrbit(planet.elements, time);
+    
+    // Make the shuttle orbit the planet
+    const orbitalRadius = 1.2; // Slightly offset from planet center (assuming planet size < 1)
+    const ang = (time / 86400) * 0.5 + mission.offset; // Slow rotation with collision-prevention phase offset
+    
+    const ox = Math.cos(ang) * orbitalRadius;
+    const oz = Math.sin(ang) * orbitalRadius;
+    
+    // Convert to Three.js coordinates
+    ref.current.position.set(
+      pX * POS_SCALE + ox,
+      pZ * POS_SCALE, // mapped to Y
+      -pY * POS_SCALE + oz
+    );
+    
+    // Look ahead
+    const nextAng = ang + 0.01;
+    const nox = Math.cos(nextAng) * orbitalRadius;
+    const noz = Math.sin(nextAng) * orbitalRadius;
+    const nextPos = new THREE.Vector3(pX * POS_SCALE + nox, pZ * POS_SCALE, -pY * POS_SCALE + noz);
+    
+    ref.current.lookAt(nextPos);
+  });
+
+  return (
+    <group ref={ref}>
+      <mesh position={[0, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <cylinderGeometry args={[0.08, 0.08, 0.5, 8]} />
+        <meshStandardMaterial color="#88aacc" roughness={0.2} metalness={0.8} />
+      </mesh>
+      {/* Solar panels */}
+      <mesh position={[0, -0.25, 0]} rotation={[0, 0, 0]}>
+        <boxGeometry args={[0.8, 0.02, 0.2]} />
+        <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.25, 0]} rotation={[0, 0, 0]}>
+        <boxGeometry args={[0.8, 0.02, 0.2]} />
+        <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
+      </mesh>
+      <Html distanceFactor={20} position={[0, 0.5, 0]}>
+        <div className="bg-black/60 px-2 py-0.5 rounded border border-green-500/30 flex flex-col gap-0 shadow-lg min-w-[70px]">
+          <div className="text-[6px] text-zinc-400 font-mono tracking-tighter uppercase whitespace-nowrap">MISSION {mission.id + 1}</div>
+          <div className="text-[8px] text-green-400 font-mono font-bold tracking-tight uppercase whitespace-nowrap">ARCHIVED</div>
+        </div>
+      </Html>
+    </group>
+  );
+}
+
 function SystemEngine({
   timeMult,
   selectedTarget,
   launchParams,
   globalTimeRef,
   onPlanetDoubleClick,
-  onStatusUpdate
+  onStatusUpdate,
+  completedMissions,
+  archivedMissions = []
 }: {
   timeMult: number;
   selectedTarget: (typeof PLANETS)[0] | null;
@@ -1007,6 +1127,8 @@ function SystemEngine({
   globalTimeRef: React.MutableRefObject<number>;
   onPlanetDoubleClick?: (name: string) => void;
   onStatusUpdate?: (status: string | null) => void;
+  completedMissions?: number;
+  archivedMissions?: any[];
 }) {
   const controlsRef = useRef<any>(null);
   const currentTargetName = useRef(selectedTarget?.name || "Sun");
@@ -1039,8 +1161,8 @@ function SystemEngine({
           globalTimeRef.current,
         );
         targetX = x * POS_SCALE;
-        targetY = y * POS_SCALE;
-        targetZ = z * POS_SCALE;
+        targetY = z * POS_SCALE;
+        targetZ = -y * POS_SCALE;
       }
 
       const newTarget = new THREE.Vector3(targetX, targetY, targetZ);
@@ -1118,9 +1240,14 @@ function SystemEngine({
 
       <AsteroidBelt timeMult={timeMult} />
       <KuiperBelt timeMult={timeMult} />
+      <OortCloud timeMult={timeMult} />
 
       {PLANETS.map((p) => (
         <Planet key={p.name} data={p} globalTimeRef={globalTimeRef} onDoubleClick={onPlanetDoubleClick} launchParams={launchParams} />
+      ))}
+
+      {archivedMissions.map(m => (
+        <ArchivedShuttle key={m.id} mission={m} globalTimeRef={globalTimeRef} />
       ))}
 
       {launchParams && (launchParams.targetPlanet || launchParams.missionLegs) && (
@@ -1135,7 +1262,7 @@ function SystemEngine({
         autoRotate={false}
         enableDamping={true}
         dampingFactor={0.05}
-        maxDistance={100000}
+        maxDistance={2000000}
         onStart={(e: any) => {
           // Check if this was a right-click or drag that should unlock
           // For simplicity, any start of camera movement unlocks
@@ -1155,6 +1282,8 @@ export default function OrbitSimulator({
   globalTimeRef,
   onPlanetDoubleClick,
   onStatusUpdate,
+  completedMissions = 0,
+  archivedMissions = []
 }: {
   isRunning?: boolean;
   timeMult?: number;
@@ -1163,6 +1292,8 @@ export default function OrbitSimulator({
   globalTimeRef?: React.MutableRefObject<number>;
   onPlanetDoubleClick?: (name: string) => void;
   onStatusUpdate?: (status: string | null) => void;
+  completedMissions?: number;
+  archivedMissions?: any[];
 }) {
   const fallbackRef = useRef(0);
   const activeTimeRef = globalTimeRef || fallbackRef;
@@ -1171,7 +1302,7 @@ export default function OrbitSimulator({
     <div
       className={`absolute inset-0 transition-opacity duration-1000 ${isRunning ? "opacity-100 z-10 pointer-events-auto bg-[#03060f]" : "opacity-0 z-[-10] pointer-events-none"}`}
     >
-      <Canvas camera={{ position: [0, 150, 400], fov: 45, far: 200000, near: 0.1 }}>
+      <Canvas camera={{ position: [0, 150, 400], fov: 45, far: 5000000, near: 0.1 }}>
         <ambientLight intensity={0.2} />
         <pointLight
           position={[0, 0, 0]}
@@ -1187,6 +1318,8 @@ export default function OrbitSimulator({
           globalTimeRef={activeTimeRef}
           onPlanetDoubleClick={onPlanetDoubleClick}
           onStatusUpdate={onStatusUpdate}
+          completedMissions={completedMissions}
+          archivedMissions={archivedMissions}
         />
 
         <Stars

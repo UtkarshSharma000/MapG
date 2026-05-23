@@ -269,8 +269,9 @@ export function simulateInterplanetaryRK4(
   planetsData: { name: string, elements: KeplerianElements }[],
   duration: number,
   dt: number,
-  targetPlanetName: string,
-  twoBodyOnly: boolean = false
+  targetPlanetName?: string,
+  twoBodyOnly: boolean = false,
+  ignoreLaunchPlanet: boolean = false
 ): { points: Vector3[], arrivalTime: number, success: boolean, missionStatus?: string, captureAltitude?: number, orbitPeriod?: number } {
   let pos = [...startPos] as Vector3;
   let vel = [...startVel] as Vector3;
@@ -297,7 +298,7 @@ export function simulateInterplanetaryRK4(
     
     if (!twoBodyOnly) {
       for (const data of planetsData) {
-        if (data.name === launchPlanet?.name) continue; // Earth's escape is already in V_inf Lambert solution
+        if (ignoreLaunchPlanet && data.name === launchPlanet?.name) continue;
         const mass = PLANET_MASSES[data.name];
         if (!mass) continue;
         const [px, py, pz] = propagateOrbit(data.elements, time);
@@ -306,8 +307,9 @@ export function simulateInterplanetaryRK4(
         const dz = pz - p[2];
         const dist2 = dx*dx + dy*dy + dz*dz;
         
-        // Prevent singularity near center of target planet (e.g. radius ~ 3000 km = 3e6 m)
-        const softDist2 = Math.max(dist2, 1e13); 
+        // Prevent singularity near center of planet (e.g. radius ~ 3000 km = 3e6 m)
+        // Set soft distance to roughly 4e13 (approx 6300 km) to simulate surface-level gravity correctly
+        const softDist2 = Math.max(dist2, 4e13); 
         const p_r3 = (G * mass) / (softDist2 * Math.sqrt(softDist2));
 
         

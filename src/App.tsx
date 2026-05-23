@@ -41,6 +41,7 @@ export default function App() {
   
   // Track mission completions to trigger archiving in OrbitSimulator
   const [completedMissions, setCompletedMissions] = useState<number>(0);
+  const [archivedMissions, setArchivedMissions] = useState<any[]>([]);
 
 
 
@@ -403,11 +404,12 @@ export default function App() {
         isRunning={isSimulatorRunning}
         timeMult={timeMult}
         selectedTarget={selectedTarget}
-        launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs }}
+        launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, targetOrbit, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs }}
         globalTimeRef={globalTimeRef}
         onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
         onStatusUpdate={setMissionStatus}
         completedMissions={completedMissions}
+        archivedMissions={archivedMissions}
       />
 
       {/* Landing Page Content */}
@@ -576,6 +578,8 @@ export default function App() {
           <LaunchHUD
             v0={v0}
             setV0={setV0}
+            targetOrbit={targetOrbit}
+            setTargetOrbit={setTargetOrbit}
             pitch={pitch}
             setPitch={setPitch}
             yaw={yaw}
@@ -600,6 +604,14 @@ export default function App() {
             }}
             onConcludeMission={() => {
               // End the current mission and archive it, allowing a new launch
+              const missionArchive = {
+                id: completedMissions,
+                targetPlanet: targetPlanet,
+                returnPlanet: missionStatus === "EARTH_ORBIT" ? "Earth" : undefined,
+                orbitType: missionStatus,
+                offset: completedMissions * (Math.PI / 4) // Phase offset to prevent collisions
+              };
+              setArchivedMissions(prev => [...prev, missionArchive]);
               setCompletedMissions(prev => prev + 1);
               setIsLaunched(false);
               setMissionLegs(null);
