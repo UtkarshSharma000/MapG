@@ -158,10 +158,17 @@ export default function App() {
       // result.v1_ecl is in km/s. Convert to m/s for projection
       const v_ecl_m = [result.v1_ecl[0] * 1000, result.v1_ecl[1] * 1000, result.v1_ecl[2] * 1000];
       
-      // Project v_ecl_m onto RTN
-      const v_tangent = v_ecl_m[0]*T[0] + v_ecl_m[1]*T[1] + v_ecl_m[2]*T[2];
-      const v_radial = v_ecl_m[0]*R[0] + v_ecl_m[1]*R[1] + v_ecl_m[2]*R[2];
-      const v_normal = v_ecl_m[0]*N[0] + v_ecl_m[1]*N[1] + v_ecl_m[2]*N[2];
+      // Calculate hyperbolic excess velocity relative to the origin planet (in m/s)
+      const v_excess_m = [
+        v_ecl_m[0] - p_vel[0],
+        v_ecl_m[1] - p_vel[1],
+        v_ecl_m[2] - p_vel[2]
+      ];
+      
+      // Project v_excess_m onto RTN
+      const v_tangent = v_excess_m[0]*T[0] + v_excess_m[1]*T[1] + v_excess_m[2]*T[2];
+      const v_radial = v_excess_m[0]*R[0] + v_excess_m[1]*R[1] + v_excess_m[2]*R[2];
+      const v_normal = v_excess_m[0]*N[0] + v_excess_m[1]*N[1] + v_excess_m[2]*N[2];
       
       const v0_val = Math.sqrt(v_tangent*v_tangent + v_radial*v_radial + v_normal*v_normal); // m/s
       const p_val = Math.asin(v_normal / v0_val); // radians
