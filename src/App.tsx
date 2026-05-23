@@ -52,7 +52,7 @@ export default function App() {
   const teiAppliedRef = React.useRef(false);
 
   const getSimulatedOriginId = (): number => {
-    const nameMap = { "MERCURY": 1, "VENUS": 2, "EARTH": 3, "MARS": 4, "JUPITER": 5, "SATURN": 6 } as any;
+    const nameMap = { "MERCURY": 1, "VENUS": 2, "EARTH": 3, "MARS": 4, "JUPITER": 5, "SATURN": 6, "URANUS": 7, "NEPTUNE": 8 } as any;
     if (missionStatus && missionStatus.endsWith("_ORBIT")) {
       const pName = missionStatus.replace("_ORBIT", "").toUpperCase();
       if (nameMap[pName]) return nameMap[pName];
@@ -143,7 +143,7 @@ export default function App() {
     setIsLaunched(false); // Reset launch state so return trajectory propagates in the HUD first
 
     if (result.legs && result.legs.length > 0) {
-      const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn' } as Record<number, string>;
+      const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune' } as Record<number, string>;
       const originName = planetMap[result.legs[0].originId];
       if (originName) {
         setLaunchPlanet(originName);
@@ -170,14 +170,14 @@ export default function App() {
     if (missionLegs && missionLegs.length > 0) {
       currentDestId = missionLegs[missionLegs.length - 1].destId;
     } else if (targetPlanet) {
-      const planetMap = { 'Mercury': 1, 'Venus': 2, 'Earth': 3, 'Mars': 4, 'Jupiter': 5, 'Saturn': 6 } as any;
+      const planetMap = { 'Mercury': 1, 'Venus': 2, 'Earth': 3, 'Mars': 4, 'Jupiter': 5, 'Saturn': 6, 'Uranus': 7, 'Neptune': 8 } as any;
       currentDestId = planetMap[targetPlanet] || 4;
     }
     returnDestIdRef.current = currentDestId;
     setReturnWindow(null); // Clear previous return window so UI knows it is computing
 
     // Set launch/dest correctly in App state to match returning direction
-    const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn' } as Record<number, string>;
+    const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune' } as Record<number, string>;
     const originName = planetMap[currentDestId];
     if (originName) {
       setLaunchPlanet(originName);
@@ -672,7 +672,7 @@ export default function App() {
               {selectedTarget && selectedTarget.name !== "Sun" && (
                 <TrajectoryOptimizer
                   originId={getSimulatedOriginId()}
-                  destId={Number(Object.entries({1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn'}).find(([_, name]) => name === selectedTarget.name)?.[0] || 4)}
+                  destId={Number(Object.entries({1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune'}).find(([_, name]) => name === selectedTarget.name)?.[0] || 4)}
                   globalTimeRef={globalTimeRef}
                   onApply={handleApply}
                 />
