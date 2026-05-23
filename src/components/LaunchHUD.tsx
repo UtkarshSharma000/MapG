@@ -19,6 +19,7 @@ interface LaunchHUDProps {
   onPlanReturn?: () => void;
   returnWindow?: OptimizeResult | null;
   onApplyReturn?: () => void;
+  onConcludeMission?: () => void;
 }
 
 export function LaunchHUD({
@@ -36,13 +37,21 @@ export function LaunchHUD({
   missionStatus,
   onPlanReturn,
   returnWindow,
-  onApplyReturn
+  onApplyReturn,
+  onConcludeMission
 }: LaunchHUDProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
   const [targetOrbit, setTargetOrbit] = useState('LEO');
 
+  const [isCalculatingLaunchPhase, setIsCalculatingLaunchPhase] = useState(false);
+
   const onLaunch = () => {
-    onSimulateLaunch();
+    setIsCalculatingLaunchPhase(true);
+    // Simulate CPP engine collision avoidance calculations as requested
+    setTimeout(() => {
+      setIsCalculatingLaunchPhase(false);
+      onSimulateLaunch();
+    }, 3500);
   };
 
   const handleReset = () => {
@@ -131,13 +140,25 @@ export function LaunchHUD({
           </div>
 
           <button 
-            className={`w-full py-2.5 rounded-lg border font-semibold tracking-widest text-xs transition-all glossy-button cursor-pointer ${isLaunched ? 'text-red-400 hover:text-red-300 border-red-500/40 bg-red-500/10 hover:bg-red-500/20' : 'text-cyan-400 hover:text-cyan-300 border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/25'}`}
+            className={`w-full py-2.5 rounded-lg border font-semibold tracking-widest text-xs transition-all glossy-button cursor-pointer ${isLaunched ? 'text-red-400 hover:text-red-300 border-red-500/40 bg-red-500/10 hover:bg-red-500/20' : (isCalculatingLaunchPhase ? 'text-orange-400 border-orange-500/40 bg-orange-500/10' : 'text-cyan-400 hover:text-cyan-300 border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/25')}`}
             onClick={isLaunched ? handleReset : onLaunch}
+            disabled={isCalculatingLaunchPhase}
           >
-             {isLaunched ? 'ABORT & RESET SYSTEM' : 'INITIATE ENGINE IGNITION'}
+             {isLaunched ? 'ABORT TRACKING' : isCalculatingLaunchPhase ? 'CPP ENGINE: RESOLVING CONFLICTS...' : 'INITIATE ENGINE IGNITION'}
           </button>
 
-          {missionStatus && missionStatus.includes('ORBIT') && (
+          {isLaunched && missionStatus === 'EARTH_ORBIT' && onConcludeMission && (
+            <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
+              <button 
+                onClick={onConcludeMission}
+                className="w-full py-2 bg-green-500/15 border border-green-500/40 hover:bg-green-500/25 text-green-400 hover:text-green-300 rounded-lg font-mono tracking-widest text-[9px] uppercase transition-all glossy-button cursor-pointer font-bold"
+              >
+                ✓ SUCCESS: CONCLUDE MISSION & ARCHIVE LOGS
+              </button>
+            </div>
+          )}
+
+          {missionStatus && missionStatus.includes('ORBIT') && missionStatus !== 'EARTH_ORBIT' && (
             <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
               <button 
                 onClick={onPlanReturn}
