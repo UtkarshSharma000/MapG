@@ -283,8 +283,17 @@ export function simulateInterplanetaryRK4(
   const launchPlanet = planetsData.find(p => {
     const ppos = propagateOrbit(p.elements, startTime);
     const d2 = Math.pow(ppos[0]-startPos[0],2) + Math.pow(ppos[1]-startPos[1],2) + Math.pow(ppos[2]-startPos[2],2);
-    return Math.sqrt(d2) < 1e9; // Within 1 million km at launch translates to launch planet
+    return Math.sqrt(d2) < 2e9; // Within 2 million km at launch translates to launch planet
   });
+
+  // Optimize: Perturbations only matter from launch planet & target planet during a direct trajectory
+  const activePerturbers: typeof planetsData = [];
+  if (launchPlanet) {
+    activePerturbers.push(launchPlanet);
+  }
+  if (targetPlanet && targetPlanet.name !== launchPlanet?.name) {
+    activePerturbers.push(targetPlanet);
+  }
 
   const getDeriv = (p: Vector3, v: Vector3, time: number) => {
     let ax = 0, ay = 0, az = 0;
@@ -296,7 +305,7 @@ export function simulateInterplanetaryRK4(
     az += m_r3 * p[2];
     
     if (!twoBodyOnly) {
-      for (const data of planetsData) {
+      for (const data of activePerturbers) {
         if (data.name === launchPlanet?.name) continue; // Earth's escape is already in V_inf Lambert solution
         const mass = PLANET_MASSES[data.name];
         if (!mass) continue;
@@ -306,11 +315,10 @@ export function simulateInterplanetaryRK4(
         const dz = pz - p[2];
         const dist2 = dx*dx + dy*dy + dz*dz;
         
-        // Prevent singularity near center of target planet (e.g. radius ~ 3000 km = 3e6 m)
+        // Prevent singularity near center of target planet
         const softDist2 = Math.max(dist2, 1e13); 
         const p_r3 = (G * mass) / (softDist2 * Math.sqrt(softDist2));
 
-        
         ax += p_r3 * dx;
         ay += p_r3 * dy;
         az += p_r3 * dz;
@@ -325,41 +333,54 @@ export function simulateInterplanetaryRK4(
   let captureAltitude: number | undefined;
   let orbitPeriod: number | undefined;
 
-  let prevDist = Infinity;
   let success = false;
   let arrivalTime = startTime + duration;
   
   const planetRadiiKm = [2439, 6051, 6371, 3389, 69911, 58232, 25362, 24622];
   const radius = (planetRadiiKm[targetIndex] || 6000) * 1000;
-  // Mars SOI is roughly 577,000 km, we'll use a dynamic SOI formula or just a large bubble
   const soi = radius * 150; 
   
-  let i = 0;
-  let outSteps = 0;
-  const targetOutSteps = 400; // Aim for ~400 points output
+  const targetOutSteps = 200; // Optimal points for trajectory path
   const outDt = duration / targetOutSteps;
   let lastOutTime = startTime;
   const timeLimit = startTime + duration;
 
   while (t < timeLimit) {
-    // Dynamic timestep: slow down inside SOI of ANY planet for accurate flybys
-    let currentDt = dt;
+    // Dynamic timestep: Deep heliocentric space tolerates much larger step (up to 8 hours),
+    // speeding up integration dramatically. Scale down only near SOI.
+    let currentDt = Math.min(28800, duration / 150);
     
-    // Check all planets for proximity
-    for (const p of planetsData) {
-        if (!PLANET_MASSES[p.name]) continue;
-        const [tx, ty, tz] = propagateOrbit(p.elements, t);
-        const d2 = (pos[0]-tx)*(pos[0]-tx) + (pos[1]-ty)*(pos[1]-ty) + (pos[2]-tz)*(pos[2]-tz);
-        const d = Math.sqrt(d2);
-        
-        // Dynamic SOI for checking:
-        // Use a generic 150 * radius for all planets to trigger slowdown
-        const pRadius = (planetRadiiKm[planetsData.indexOf(p)] || 6000) * 1000;
-        const pSoi = pRadius * 150;
-        
-        if (d < pSoi) {
-             currentDt = Math.min(currentDt, Math.max(dt / 50, dt * (d / pSoi)));
+    for (const p of activePerturbers) {
+      const mass = PLANET_MASSES[p.name];
+      if (!mass) continue;
+      
+      const [tx, ty, tz] = propagateOrbit(p.elements, t);
+      const d2 = (pos[0]-tx)*(pos[0]-tx) + (pos[1]-ty)*(pos[1]-ty) + (pos[2]-tz)*(pos[2]-tz);
+      const d = Math.sqrt(d2);
+      
+      const pRadius = (planetRadiiKm[planetsData.indexOf(p)] || 6000) * 1000;
+      const pSoi = pRadius * 150;
+      
+      if (d < pSoi) {
+        // Slow down smoothly inside SOI down to fine dt (600s) for precision
+        const factor = d / pSoi;
+        const targetDt = Math.max(dt, dt * factor);
+        if (targetDt < currentDt) {
+          currentDt = targetDt;
         }
+      } else if (d < pSoi * 5) {
+        // Safe transition zone out of SOI
+        const factor = (d - pSoi) / (pSoi * 4);
+        const transitionDt = dt + (28800 - dt) * factor;
+        if (transitionDt < currentDt) {
+          currentDt = transitionDt;
+        }
+      }
+    }
+
+    // Safety constraint to prevent overrunning the target time
+    if (t + currentDt > timeLimit) {
+      currentDt = timeLimit - t;
     }
 
     const k1 = getDeriv(pos, vel, t);
@@ -382,9 +403,9 @@ export function simulateInterplanetaryRK4(
     
     t += currentDt;
     
-    if (t - lastOutTime >= outDt) {
+    if (t - lastOutTime >= outDt || points.length === 0) {
       points.push([...pos]);
-      lastOutTime += outDt;
+      lastOutTime = t;
     }
     
     if (targetPlanet) {
@@ -417,13 +438,17 @@ export function simulateInterplanetaryRK4(
             orbitPeriod = (2 * Math.PI * Math.sqrt(Math.pow(d, 3) / muTarget)) / 86400;
         }
       }
-      prevDist = d;
     }
   }
   
   if (!success && targetPlanet) {
-    // If simulation ends without intercept, let arrivalTime be max time
     arrivalTime = t;
+  }
+
+  if (points.length > 0) {
+    points[points.length - 1] = [...pos];
+  } else {
+    points.push([...pos]);
   }
   
   return { points, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod };
