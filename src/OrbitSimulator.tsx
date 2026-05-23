@@ -1135,7 +1135,7 @@ function SystemEngine({
         autoRotate={false}
         enableDamping={true}
         dampingFactor={0.05}
-        maxDistance={2000}
+        maxDistance={100000}
         onStart={(e: any) => {
           // Check if this was a right-click or drag that should unlock
           // For simplicity, any start of camera movement unlocks
@@ -1171,7 +1171,7 @@ export default function OrbitSimulator({
     <div
       className={`absolute inset-0 transition-opacity duration-1000 ${isRunning ? "opacity-100 z-10 pointer-events-auto bg-[#03060f]" : "opacity-0 z-[-10] pointer-events-none"}`}
     >
-      <Canvas camera={{ position: [0, 150, 400], fov: 45 }}>
+      <Canvas camera={{ position: [0, 150, 400], fov: 45, far: 200000, near: 0.1 }}>
         <ambientLight intensity={0.2} />
         <pointLight
           position={[0, 0, 0]}
