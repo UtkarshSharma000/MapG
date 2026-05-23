@@ -38,6 +38,11 @@ export default function App() {
   const [targetPlanet, setTargetPlanet] = useState<string | null>(null);
   const [missionLegs, setMissionLegs] = useState<any[] | null>(null);
   const [returnWindow, setReturnWindow] = useState<OptimizeResult | null>(null);
+  
+  // Track mission completions to trigger archiving in OrbitSimulator
+  const [completedMissions, setCompletedMissions] = useState<number>(0);
+
+
 
   // Time Ref for jumping simulation
   const globalTimeRef = React.useRef<number>(Date.now() / 1000);
@@ -402,69 +407,163 @@ export default function App() {
         globalTimeRef={globalTimeRef}
         onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
         onStatusUpdate={setMissionStatus}
+        completedMissions={completedMissions}
       />
 
       {/* Landing Page Content */}
       <div
-        className={`absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto"}`}
+        className={`absolute inset-0 z-20 flex flex-col bg-[#050505] transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
       >
-        {/* Video element at the bottom */}
-        <div className="absolute bottom-0 left-0 w-full h-[60vh] z-0 overflow-hidden pointer-events-none">
-          {/* Gradient to smooth the top edge of the video */}
-          <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-[#03060f] to-transparent z-10" />
-          <video
-            src="/aura.mp4"
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover mix-blend-screen opacity-60"
-          />
-        </div>
-
-        {/* Top Navigation */}
-        <header className="relative z-50 flex justify-between items-center px-10 h-20 border-b border-white/5 bg-black/20 backdrop-blur-sm">
-          <div className="flex items-center gap-8">
-            <h1 className="font-headline-md font-bold text-white tracking-widest text-xl">
-              ODYSSEY
-            </h1>
+        {/* TopNavBar */}
+        <header className="fixed top-0 w-full z-50 flex justify-between items-center px-12 h-20 bg-black/80 backdrop-blur-2xl border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <h1 className="font-sans font-bold text-xl tracking-widest text-[#ffb59d]">ODYSSEY 2026</h1>
           </div>
-          <div className="flex items-center gap-6">
-            <span className="text-xs font-mono text-white/50 tracking-widest">
-              AWAITING IGNITION
-            </span>
-          </div>
+          <button 
+            onClick={() => setIsSimulatorRunning(true)}
+            className="px-6 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 font-mono text-[10px] tracking-widest glossy-button cursor-pointer rounded-lg uppercase transition-all flex items-center gap-2"
+          >
+            <Play size={14} />
+            LAUNCH TERMINAL
+          </button>
         </header>
 
-        {/* Main Content - Sleek Interface */}
-        <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6">
-          <div className="max-w-2xl text-center flex flex-col items-center">
-            <div className="inline-block px-3 py-1 mb-6 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-mono tracking-widest backdrop-blur-xl">
-              v2.0 // HELIOCENTRIC ENGINE
+        <main className="pt-20">
+          {/* Hero Section */}
+          <section className="relative min-h-[90vh] flex items-center px-12 overflow-hidden">
+            <div className="absolute inset-0 z-0">
+              <img alt="Atmospheric planetary background" className="w-full h-full object-cover opacity-20 mix-blend-screen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBACplwpq98Rkmgv4zvxb0eAEhIsizmNlJTC2jsQBeMtvZnFYMnCJHR6TAhNJ9sfdEr6k_qaF1jw4HuGWKSNZ1nLjHMBWSml5Pfcat6Fvkkaqj3c3JB-Lku9XZXTymKJOzxULcF7cBYsQhH_FC0LOHV6VFeXFn-5Omy3eEJ1a4hAJ5Txfm3dfZA-dKXoSqeNxCa2_yE5V8DhGfuqoeckWsY-xTNWEWCVaobE57lK5IlDNUKTEQ53H_Qy75i26W4xFsKIJcbnR1z87NM" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent"></div>
             </div>
+            <div className="relative z-10 max-w-4xl">
+              <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 glossy-panel border-cyan-500/30 rounded-lg">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                <span className="font-mono text-[10px] text-cyan-400 tracking-widest">SYSTEMS NOMINAL // ORBITAL SECTOR 7</span>
+              </div>
+              <h2 className="font-sans font-light text-6xl md:text-8xl mb-8 leading-none tracking-tighter text-white">
+                MISSION:<br /><span className="text-[#ffb59d] font-bold">ODYSSEY</span>
+              </h2>
+              <p className="font-sans text-xl md:text-2xl text-white/50 mb-12 max-w-2xl font-light">
+                Pioneering the Next Frontier of Satellite Logistics and Orbital Infrastructure.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <button 
+                  onClick={() => setIsSimulatorRunning(true)}
+                  className="px-10 py-5 bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-400 font-mono text-sm tracking-widest glossy-button cursor-pointer rounded-xl uppercase transition-all shadow-[0_0_30px_rgba(34,211,238,0.15)] flex items-center gap-3"
+                >
+                  INITIALIZE FLIGHT DECK <ArrowRight size={18} />
+                </button>
+              </div>
+            </div>
+          </section>
 
-            <h2 className="text-5xl md:text-7xl font-light tracking-tighter text-white mb-6">
-              Solar System <br />
-              <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">
-                Kinetics.
-              </span>
-            </h2>
+          {/* Stats HUD */}
+          <section className="px-12 py-12 relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="glossy-panel p-8 rounded-3xl flex flex-col gap-2 group hover:bg-white/[0.03] transition-colors border border-white/5">
+                <span className="font-mono text-[10px] tracking-widest text-[#ffb59d] relative z-10 mb-2">CURRENT ALTITUDE</span>
+                <div className="flex items-baseline gap-2 relative z-10">
+                  <span className="font-mono text-5xl font-bold group-hover:text-cyan-400 transition-colors text-white">102.4</span>
+                  <span className="font-mono text-xl text-white/50">KM</span>
+                </div>
+                <div className="h-px w-full bg-gradient-to-r from-transparent via-[#ffb59d]/50 to-transparent mt-4 opacity-50"></div>
+              </div>
+              <div className="glossy-panel p-8 rounded-3xl flex flex-col gap-2 group hover:bg-white/[0.03] transition-colors border border-white/5">
+                <span className="font-mono text-[10px] tracking-widest text-[#ffb59d] relative z-10 mb-2">RELATIVE VELOCITY</span>
+                <div className="flex items-baseline gap-2 relative z-10">
+                  <span className="font-mono text-5xl font-bold group-hover:text-cyan-400 transition-colors text-white">7.8</span>
+                  <span className="font-mono text-xl text-white/50">KM/S</span>
+                </div>
+                <div className="h-px w-full bg-gradient-to-r from-transparent via-[#ffb59d]/50 to-transparent mt-4 opacity-50"></div>
+              </div>
+              <div className="glossy-panel p-8 rounded-3xl flex flex-col gap-2 group hover:bg-white/[0.03] transition-colors border border-white/5">
+                <span className="font-mono text-[10px] tracking-widest text-[#ffb59d] relative z-10 mb-2">SIGNAL STRENGTH</span>
+                <div className="flex items-baseline gap-2 relative z-10">
+                  <span className="font-mono text-5xl font-bold group-hover:text-cyan-400 transition-colors text-white">98</span>
+                  <span className="font-mono text-xl text-white/50">%</span>
+                </div>
+                <div className="h-px w-full bg-gradient-to-r from-transparent via-[#ffb59d]/50 to-transparent mt-4 opacity-50"></div>
+              </div>
+            </div>
+          </section>
 
-            <p className="text-lg text-white/50 font-light max-w-xl mb-12">
-              Precise N-body and Keplerian element research simulator. Connect
-              deep space modules to analyze trajectories in real-time.
-            </p>
+          {/* Roadmap Section */}
+          <section className="px-12 py-20 relative z-10">
+            <div className="flex justify-between items-end mb-12 border-b border-white/10 pb-8">
+              <div>
+                <span className="font-mono text-[10px] text-cyan-400 tracking-widest uppercase">MISSION PARAMETERS</span>
+                <h3 className="font-sans font-medium text-3xl mt-2 text-white tracking-widest">OPERATIONAL ROADMAP</h3>
+              </div>
+              <div className="hidden md:block font-mono text-sm tracking-widest text-[#ffb59d]">Q3-Q4 DEPLOYMENT</div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Card 1 */}
+              <div className="glossy-panel rounded-3xl group overflow-hidden border border-white/10">
+                <div className="h-56 overflow-hidden relative border-b border-white/10">
+                  <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700 group-hover:scale-105" alt="Phobos base construction" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBACplwpq98Rkmgv4zvxb0eAEhIsizmNlJTC2jsQBeMtvZnFYMnCJHR6TAhNJ9sfdEr6k_qaF1jw4HuGWKSNZ1nLjHMBWSml5Pfcat6Fvkkaqj3c3JB-Lku9XZXTymKJOzxULcF7cBYsQhH_FC0LOHV6VFeXFn-5Omy3eEJ1a4hAJ5Txfm3dfZA-dKXoSqeNxCa2_yE5V8DhGfuqoeckWsY-xTNWEWCVaobE57lK5IlDNUKTEQ53H_Qy75i26W4xFsKIJcbnR1z87NM" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
+                  <div className="absolute top-4 left-4 px-3 py-1.5 glossy-panel border border-cyan-500/20 rounded-lg">
+                    <span className="font-mono text-[9px] tracking-widest text-cyan-400">PHASE 01</span>
+                  </div>
+                </div>
+                <div className="p-8 relative z-10">
+                  <h4 className="font-sans font-medium text-xl mb-3 text-white tracking-wide">Phobos Base Construction</h4>
+                  <p className="text-white/50 text-sm mb-8 font-light leading-relaxed">Establishing the first permanent logistics hub on the Martian moon Phobos to support long-term orbital research.</p>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] text-[#ffb59d] tracking-widest flex items-center gap-2">
+                       JAN 2026
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Card 2 */}
+              <div className="glossy-panel rounded-3xl group overflow-hidden border border-white/10">
+                <div className="h-56 overflow-hidden relative border-b border-white/10">
+                  <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700 group-hover:scale-105" alt="Deep space communication relay" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD85HKMyPKmqVyjZ1ilQ9QXGQMuS_ihKntU1-cksmQgiMG7tlG2su3VaQRse6aSrS9PWS31_QDT8avN5E0wJKFXZBnguJQDCR4YAcYcsEouhLHetCjKMIrpnDUdr63QTSrDuZsJ2FHKipCigBpLuHIXXvyqXzJKe8ZxwEkmGg9b6s5Y1GyPW8cvEo7PPvnhYIZpyKJB3h28puIrnHiWeYMkQdPTuHVRlXSsqwf2cdidzDAoagCjT5zucA-7JkJmaFpbW5kbRmgGLzwn" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
+                  <div className="absolute top-4 left-4 px-3 py-1.5 glossy-panel border border-cyan-500/20 rounded-lg">
+                    <span className="font-mono text-[9px] tracking-widest text-cyan-400">PHASE 02</span>
+                  </div>
+                </div>
+                <div className="p-8 relative z-10">
+                  <h4 className="font-sans font-medium text-xl mb-3 text-white tracking-wide">Deep Space Comm-Relay</h4>
+                  <p className="text-white/50 text-sm mb-8 font-light leading-relaxed">Deploying a constellation of high-throughput relays to ensure 24/7 link connectivity across the inner solar system.</p>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] text-[#ffb59d] tracking-widest flex items-center gap-2">
+                       MAY 2026
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Card 3 */}
+              <div className="glossy-panel rounded-3xl group overflow-hidden border border-white/10">
+                <div className="h-56 overflow-hidden relative border-b border-white/10">
+                  <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700 group-hover:scale-105" alt="Titan Atmosphere Entry" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzD6b_ke7zhqRDJVdHBQX-iXLpaxJIz4vQ4uyrJNv7AogmDUAr5AoWfhVZO26D6YVLlscwk4aOPdPDuhQN4pIdXaTazSOrk5Qfa12o8J32s120W2jYx9-1cudP-CfJai50OuBGCDninDwD-TvW8FPaAbZCIcEHOXBKm-BFFYRIOhK5RgeT2Y_kq5ZJ93AZGld76HzxNVspmEHN56OYwwxqKCY7-D3xhGN7uusHIm0H-z7aFERW-MfahQRPBboJ3mCEtxX4BID1X5ZX" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
+                  <div className="absolute top-4 left-4 px-3 py-1.5 glossy-panel border border-cyan-500/20 rounded-lg">
+                    <span className="font-mono text-[9px] tracking-widest text-cyan-400">PHASE 03</span>
+                  </div>
+                </div>
+                <div className="p-8 relative z-10">
+                  <h4 className="font-sans font-medium text-xl mb-3 text-white tracking-wide">Titan Atmosphere Entry</h4>
+                  <p className="text-white/50 text-sm mb-8 font-light leading-relaxed">Automated descent and atmospheric analysis of Saturn's largest moon to survey for future methane harvesting sites.</p>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] text-[#ffb59d] tracking-widest flex items-center gap-2">
+                       SEP 2026
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
 
-            <button
-              onClick={() => setIsSimulatorRunning(true)}
-              className="group relative px-8 py-4 bg-white text-black font-semibold rounded-full overflow-hidden flex items-center justify-center gap-3 hover:scale-105 transition-all duration-300"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-200 to-indigo-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <span className="relative z-10 font-label-caps tracking-widest text-sm flex items-center gap-3">
-                INITIALIZE SIMULATOR <ArrowRight size={18} />
-              </span>
-            </button>
-          </div>
+          {/* Footer */}
+          <footer className="w-full py-8 px-12 flex justify-center items-center mt-20 border-t border-white/10 bg-black/60">
+            <p className="font-mono text-[10px] text-white/30 tracking-[0.2em] uppercase">© 2026 MISSION ODYSSEY. ALL SYSTEMS OPERATIONAL.</p>
+          </footer>
         </main>
       </div>
 
@@ -487,6 +586,7 @@ export default function App() {
             onResetSimulation={() => {
               setIsLaunched(false);
               setMissionLegs(null);
+              setTargetPlanet(null);
               setReturnWindow(null);
               teiAppliedRef.current = false;
             }}
@@ -497,6 +597,16 @@ export default function App() {
             onApplyReturn={() => {
               handleApply(returnWindow!);
               setIsLaunched(true);
+            }}
+            onConcludeMission={() => {
+              // End the current mission and archive it, allowing a new launch
+              setCompletedMissions(prev => prev + 1);
+              setIsLaunched(false);
+              setMissionLegs(null);
+              setTargetPlanet(null);
+              setReturnWindow(null);
+              setMissionStatus("STANDBY");
+              teiAppliedRef.current = false;
             }}
           />
         )}
