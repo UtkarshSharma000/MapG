@@ -491,16 +491,16 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const apply = () => { if (result) onApply(result) }
 
   return (
-    <div className="glass-panel p-4 rounded-lg w-80 mb-4 pointer-events-auto shadow-2xl relative overflow-hidden backdrop-blur-3xl z-[1000] border border-white/10">
-      <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
-        <h3 className="font-label-caps tracking-[0.2em] text-[10px] text-primary">MISSION PLANNER</h3>
+    <div className="p-5 rounded-2xl w-80 mb-4 pointer-events-auto shadow-2xl relative overflow-hidden text-white z-[1000] border border-white/10 glossy-panel">
+      <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2.5">
+        <h3 className="font-sans font-medium text-[10px] tracking-widest text-primary">TRAJECTORY PLANNER</h3>
         <button 
           onClick={() => setAutoMode(!autoMode)}
-          className={`px-3 py-1 rounded font-mono text-[9px] uppercase tracking-widest transition-all ${
-            autoMode ? 'bg-primary text-black font-bold shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]' : 'bg-white/10 text-white/70 hover:bg-white/20'
+          className={`px-2.5 py-1 rounded-lg font-mono text-[8.5px] uppercase tracking-widest transition-all glossy-button cursor-pointer ${
+            autoMode ? 'bg-[#ffb59d]/25 text-primary border-primary/50' : 'bg-white/5 text-white/50 hover:bg-white/10 border-white/5'
           }`}
         >
-          {autoMode ? 'AUTO: GRAVITY ASSIST' : 'MANUAL'}
+          {autoMode ? 'AUTO: SLS' : 'MANUAL'}
         </button>
       </div>
 
@@ -543,30 +543,30 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
           ))}
           <button 
             onClick={addFlyby}
-            className="w-full py-1.5 mt-1 rounded border border-dashed border-white/20 text-white/40 hover:text-white/80 hover:bg-white/5 text-[9px] font-mono tracking-widest transition-colors"
+            className="w-full py-1.5 mt-1 rounded-lg border border-dashed border-white/20 text-white/40 hover:text-white/80 hover:bg-white/5 text-[9px] font-mono tracking-widest transition-colors cursor-pointer"
           >
             + ADD FLYBY
           </button>
         </div>
       ) : (
-        <div className="text-[10px] font-mono text-white/50 mb-4 bg-black/40 p-3 rounded">
+        <div className="text-[10px] font-mono text-white/50 mb-4 bg-black/40 p-3 rounded-lg border border-white/5">
           <div className="text-cyan-400 mb-2">Automated Optimization active.</div>
           The navigation computer will search all viable single-flyby trajectories to minimize initial departure ΔV to {PLANETS[destId]?.name}.
         </div>
       )}
 
       <button onClick={run} disabled={loading}
-        className="w-full mb-4 px-3 py-2.5 rounded border border-primary/50 bg-primary/20 hover:bg-primary/30 text-primary transition-all disabled:opacity-40 font-label-caps tracking-[0.2em] text-[10px] glow-primary inline-flex justify-center items-center">
+        className="w-full mb-4 px-3 py-2.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/25 text-cyan-400 transition-all disabled:opacity-40 font-mono tracking-widest text-[9px] flex justify-center items-center font-bold glossy-button cursor-pointer">
         {loading ? (
-          <><div className="w-2 h-2 rounded-full bg-primary animate-ping mr-2"></div>COMPUTING...</>
+          <><div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping mr-2"></div>COMPUTING INTERPLANETARY AXIS...</>
         ) : 'FIND OPTIMAL LAUNCH WINDOW'}
       </button>
 
       {result && (
-        <div className="bg-surface-variant/20 rounded-lg p-3 border border-white/5">
+        <div className="bg-black/40 rounded-xl p-3 border border-white/10">
           {autoMode && autoResult && (
              <div className="mb-4 bg-black/50 p-2 rounded">
-                <div className="text-[10px] font-mono text-primary mb-2">AUTO RESULT:</div>
+                <div className="text-[10px] font-mono text-cyan-400 mb-2 font-bold">AUTO RESULT:</div>
                 <div className="text-xs font-mono mb-1">
                   {PLANETS[originId].name} <span className="text-white/40">→</span> {PLANETS[autoResult.flybyId]?.name} <span className="text-cyan-400/50">(flyby)</span> <span className="text-white/40">→</span> {PLANETS[destId].name}
                 </div>
@@ -589,15 +589,15 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
               ['ARR. Δv',  `${result.dv2_kms.toFixed(2)} km/s`],
               ['EST TOF',  `${result.tof_days} days`],
             ].map(([k,v]) => (
-               <div key={k} className="bg-black/30 rounded p-2">
-                 <div className="font-label-caps tracking-[0.15em] text-[8px] text-outline mb-1">{k}</div>
-                 <div className="font-data-lg text-[14px] text-on-surface">{v}</div>
+               <div key={k} className="bg-black/30 rounded p-2 border border-white/5">
+                 <div className="font-mono text-white/40 tracking-wider text-[8px] mb-1">{k}</div>
+                 <div className="font-mono text-[12px] text-white font-bold">{v}</div>
                </div>
             ))}
           </div>
 
           <button onClick={apply}
-            className="w-full px-3 py-2.5 rounded bg-tertiary-container/30 border border-tertiary/50 hover:bg-tertiary-container/50 text-tertiary transition-all font-label-caps tracking-[0.15em] text-[10px] flex items-center justify-center gap-2">
+            className="w-full px-3 py-2.5 rounded-lg bg-cyan-500/15 border border-cyan-500/35 hover:bg-cyan-500/30 text-cyan-400 transition-all font-mono tracking-widest text-[9px] flex items-center justify-center gap-2 font-bold glossy-button cursor-pointer">
             APPLY TO NAVIGATION COMPUTER ↗
           </button>
         </div>

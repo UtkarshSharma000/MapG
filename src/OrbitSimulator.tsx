@@ -1068,19 +1068,19 @@ function SystemEngine({
     <>
       {/* UI Controls overlay inside the 3D scene */}
       <Html fullscreen className="pointer-events-none">
-        <div className="absolute top-20 left-72 pointer-events-auto flex flex-col gap-2">
+        <div className="absolute top-24 left-8 pointer-events-auto flex flex-col gap-2">
           {/* Date and Time Header */}
-          <div className="px-4 py-2 bg-black/60 border border-white/10 backdrop-blur-xl rounded-lg shadow-2xl flex items-center gap-4">
+          <div className="px-4 py-2 bg-black/80 border border-white/10 backdrop-blur-2xl rounded-xl shadow-2xl flex items-center gap-4 glossy-panel">
             <div className="flex flex-col">
-              <span className="text-[9px] text-primary/70 font-mono tracking-[0.2em] uppercase">Epoch Reference</span>
-              <span className="text-sm text-white font-mono font-bold tracking-tight">
+              <span className="text-[8px] text-cyan-400 font-mono tracking-[0.2em] uppercase">Epoch Reference</span>
+              <span className="text-xs text-white font-mono font-bold tracking-tight">
                 {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ').slice(0, 4).join(' ')}
               </span>
             </div>
-            <div className="w-px h-8 bg-white/10"></div>
+            <div className="w-px h-6 bg-white/15"></div>
             <div className="flex flex-col">
-              <span className="text-[9px] text-primary/70 font-mono tracking-[0.2em] uppercase">Mission Time</span>
-              <span className="text-sm text-white font-mono font-bold">
+              <span className="text-[8px] text-cyan-400 font-mono tracking-[0.2em] uppercase">Mission Time</span>
+              <span className="text-xs text-white font-mono font-bold">
                 {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ')[4]}
               </span>
             </div>
@@ -1089,15 +1089,15 @@ function SystemEngine({
           {!isLocked && (
             <button 
               onClick={() => setIsLocked(true)}
-              className="px-3 py-1.5 bg-primary/20 hover:bg-primary/40 border border-primary/50 text-primary text-[10px] font-mono tracking-widest rounded backdrop-blur-md flex items-center gap-2 group transition-all self-start"
+              className="px-3 py-1 bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/55 text-cyan-400 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 group transition-all self-start glossy-button cursor-pointer"
             >
-              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse group-hover:scale-125"></div>
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse group-hover:scale-125"></div>
               RE-LOCK CAMERA TO {selectedTarget ? selectedTarget.name.toUpperCase() : "SOL"}
             </button>
           )}
           {isLocked && (
-            <div className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/50 text-[10px] font-mono tracking-widest rounded backdrop-blur-md flex items-center gap-2 self-start">
-              <div className="w-1.5 h-1.5 rounded-full bg-white/20"></div>
+            <div className="px-3 py-1 bg-black/60 border border-white/10 text-white/50 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 self-start">
+              <div className="w-1.5 h-1.5 rounded-full bg-white/30"></div>
               CAMERA TRACKING {selectedTarget ? selectedTarget.name.toUpperCase() : "SOL"}
               <span className="ml-2 text-[8px] opacity-30">(DRAG TO UNLOCK)</span>
             </div>

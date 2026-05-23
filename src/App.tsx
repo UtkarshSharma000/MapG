@@ -170,6 +170,19 @@ export default function App() {
     returnDestIdRef.current = currentDestId;
     setReturnWindow(null); // Clear previous return window so UI knows it is computing
 
+    // Set launch/dest correctly in App state to match returning direction
+    const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn' } as Record<number, string>;
+    const originName = planetMap[currentDestId];
+    if (originName) {
+      setLaunchPlanet(originName);
+    }
+    setTargetPlanet("Earth");
+    
+    const earthPlanet = PLANETS.find(p => p.name === "Earth");
+    if (earthPlanet) {
+      setSelectedTarget(earthPlanet);
+    }
+
     const t0 = globalTimeRef.current / 86400; // live sim clock
 
     if (returnWorkerRef.current) {
@@ -470,9 +483,13 @@ export default function App() {
             setYaw={setYaw}
             nbody={nbody}
             setNbody={setNbody}
-            targetOrbit={targetOrbit}
-            setTargetOrbit={setTargetOrbit}
-            onLaunch={handleLaunch}
+            onSimulateLaunch={handleLaunch}
+            onResetSimulation={() => {
+              setIsLaunched(false);
+              setMissionLegs(null);
+              setReturnWindow(null);
+              teiAppliedRef.current = false;
+            }}
             isLaunched={isLaunched}
             missionStatus={missionStatus}
             onPlanReturn={planReturn}
@@ -502,101 +519,38 @@ export default function App() {
         </div>
 
         {/* TopAppBar */}
-        <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-gutter h-16 bg-surface/60 backdrop-blur-xl border-b border-outline-variant/30 pointer-events-auto">
-          <div className="flex items-center gap-6">
-            <h1 className="font-headline-md text-[24px] tracking-tighter text-primary">
-              ODYSSEY 2026
-            </h1>
-            <nav className="hidden md:flex gap-8 ml-8">
-              <button className="font-label-caps text-[10px] tracking-[0.15em] text-on-surface-variant hover:text-primary hover:scale-105 transition-all duration-300">
-                TELEMETRY
-              </button>
-              <button className="font-label-caps text-[10px] tracking-[0.15em] text-primary border-b border-primary pb-1 scale-95 transition-transform">
-                TRAJECTORY
-              </button>
-              <button className="font-label-caps text-[10px] tracking-[0.15em] text-on-surface-variant hover:text-primary hover:scale-105 transition-all duration-300">
-                PAYLOAD
-              </button>
-              <button className="font-label-caps text-[10px] tracking-[0.15em] text-on-surface-variant hover:text-primary hover:scale-105 transition-all duration-300">
-                COMMMS
-              </button>
-            </nav>
-          </div>
+        <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-16 bg-black/85 backdrop-blur-2xl border-b border-white/10 pointer-events-auto">
           <div className="flex items-center gap-4">
-            <span className="font-label-caps text-[10px] tracking-[0.15em] text-secondary px-3 py-1 bg-secondary-container/20 border border-secondary/30 rounded flex items-center gap-2 glow-secondary">
-              <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-              SYSTEM NOMINAL
-            </span>
-            <button className="text-on-surface-variant hover:text-primary transition-colors">
-              <Satellite size={20} />
-            </button>
-            <button className="text-on-surface-variant hover:text-primary transition-colors">
-              <Settings2 size={20} />
-            </button>
+            <h1 className="font-sans font-medium text-sm tracking-widest text-[#ffb59d]">
+              ODYSSEY <span className="text-white/30 font-light mx-1">//</span> KINETICS ENGINE
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]"></span>
+              <span className="font-mono text-[10px] tracking-widest text-cyan-400 font-semibold uppercase">
+                FLIGHT STATUS: {missionStatus ? missionStatus.replace('_', ' ').toUpperCase() : 'STANDBY'}
+              </span>
+            </div>
+            
             <button
               onClick={() => setIsSimulatorRunning(false)}
-              className="text-on-surface-variant hover:text-primary transition-colors ml-4"
+              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/35 text-red-400 hover:text-red-300 rounded-lg font-mono text-[9px] uppercase tracking-widest flex items-center gap-2 glossy-button duration-200 cursor-pointer"
             >
-              <LogOut size={20} className="rotate-180" />
+              <LogOut size={12} className="rotate-180" /> 
+              Exit Flight Deck
             </button>
           </div>
         </header>
 
         {/* Main Content Area */}
         <div className="flex-1 flex pt-16 relative z-10 w-full h-full pointer-events-none">
-          {/* SideNavBar (Telemetry HUD) */}
-          <aside className="fixed left-0 top-16 h-[calc(100vh-64px)] z-40 flex flex-col py-panel_padding bg-surface-container-low/40 backdrop-blur-md border-r border-outline-variant/20 w-64 transition-all duration-500 overflow-hidden pointer-events-auto">
-            <div className="px-6 mb-8">
-              <div className="font-label-caps text-[10px] tracking-[0.15em] text-outline mb-1">
-                Mission Control Admin
-              </div>
-              <div className="font-headline-md text-[24px] tracking-tighter text-on-surface truncate">
-                SATELLITE-01
-              </div>
-              <div className="font-label-caps text-[10px] tracking-[0.15em] text-tertiary mt-1">
-                LEO ORBITAL
-              </div>
-            </div>
-
-            <nav className="flex flex-col gap-2 flex-1 px-4">
-              <button className="flex items-center gap-4 px-4 py-3 rounded text-outline hover:bg-surface-variant/30 hover:text-on-surface transition-all duration-200 w-full text-left">
-                <Activity size={18} />
-                <span className="font-label-caps text-[10px] tracking-[0.15em]">
-                  HEALTH
-                </span>
-              </button>
-              <button className="flex items-center gap-4 px-4 py-3 rounded text-outline hover:bg-surface-variant/30 hover:text-on-surface transition-all duration-200 w-full text-left">
-                <Activity size={18} />
-                <span className="font-label-caps text-[10px] tracking-[0.15em]">
-                  POWER
-                </span>
-              </button>
-              <button className="flex items-center gap-4 px-4 py-3 rounded text-outline hover:bg-surface-variant/30 hover:text-on-surface transition-all duration-200 w-full text-left">
-                <Activity size={18} />
-                <span className="font-label-caps text-[10px] tracking-[0.15em]">
-                  THERMAL
-                </span>
-              </button>
-              <button className="flex items-center gap-4 px-4 py-3 rounded text-outline hover:bg-surface-variant/30 hover:text-on-surface transition-all duration-200 w-full text-left">
-                <Activity size={18} />
-                <span className="font-label-caps text-[10px] tracking-[0.15em]">
-                  SIGNAL
-                </span>
-              </button>
-              <button className="flex items-center gap-4 px-4 py-3 rounded bg-secondary-container/20 text-secondary border-r-2 border-secondary scale-102 transition-transform duration-200 w-full text-left">
-                <Globe size={18} />
-                <span className="font-label-caps text-[10px] tracking-[0.15em]">
-                  ORBIT
-                </span>
-              </button>
-            </nav>
-          </aside>
-
-          {/* Central Canvas Area (Interactive / Data Overlays) */}
-          <main className="flex-1 ml-64 p-8 relative flex flex-col justify-between pointer-events-none">
+          {/* Central Canvas Area (Interactive / Data Overlays) - Expanded Full Screen */}
+          <main className="flex-1 p-8 relative flex flex-col justify-between pointer-events-none">
             {/* Top Right: Target Selection & Quick Stats */}
-            <div className="absolute top-20 right-8 flex flex-col gap-4 items-end pointer-events-auto">
-              <div className="glass-panel p-4 rounded-lg w-72">
+            <div className="absolute top-24 right-8 flex flex-col gap-4 items-end pointer-events-auto">
+              <div className="p-5 rounded-2xl w-80 text-white border border-white/10 glossy-panel">
                 {renderTargetStats()}
               </div>
 
@@ -631,13 +585,13 @@ export default function App() {
               </div>
             </div>
 
-            {/* Bottom Left: Time Controls */}
-            <div className="absolute bottom-24 left-8 glass-panel p-6 rounded-lg w-96 flex flex-col gap-4 pointer-events-auto">
+            {/* Bottom Right: Time Controls */}
+            <div className="absolute bottom-24 right-8 p-5 rounded-2xl w-80 flex flex-col gap-4 pointer-events-auto border border-white/10 glossy-panel text-white">
               <div className="flex justify-between items-center">
-                <span className="font-label-caps text-[10px] tracking-[0.15em] text-outline">
+                <span className="font-mono text-[10px] tracking-widest text-cyan-400 font-semibold uppercase">
                   TIME DILATION
                 </span>
-                <span className="font-data-lg text-[20px] text-secondary">
+                <span className="font-mono text-xs text-white font-bold bg-white/10 px-2 py-0.5 rounded">
                   {timeMult === 1
                     ? "REALTIME"
                     : `x${timeMult.toLocaleString()}`}
@@ -671,36 +625,25 @@ export default function App() {
                   else if (val === 4) setTimeMult(86400 * 365.25 * 10);
                   else setTimeMult(86400 * 365.25 * 100);
                 }}
-                className="w-full accent-secondary"
+                className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
               />
 
-              <div className="flex justify-between text-outline-variant font-label-caps text-[8px] tracking-[0.15em] mt-1">
-                <span>REALTIME</span>
-                <span>DAYS</span>
-                <span>MONTHS</span>
-                <span>YEARS</span>
-                <span>DECADES</span>
-                <span>CENTURIES</span>
+              <div className="flex justify-between text-white/40 font-mono text-[7.5px] tracking-wider">
+                <span>1S</span>
+                <span>DAY</span>
+                <span>MON</span>
+                <span>YR</span>
+                <span>DEC</span>
+                <span>CEN</span>
               </div>
             </div>
           </main>
         </div>
 
         {/* Footer */}
-        <footer className="absolute bottom-0 w-full flex justify-between items-center px-screen_margin py-4 z-10 bg-transparent pointer-events-auto">
-          <div className="font-label-caps text-[10px] tracking-[0.15em] text-outline opacity-80 hover:opacity-100 transition-colors">
-            © 2026 MISSION ODYSSEY | AEROSPACE DIVISION
-          </div>
-          <div className="flex gap-6">
-            <button className="font-label-caps text-[10px] tracking-[0.15em] text-outline hover:text-on-surface transition-colors">
-              LEGAL
-            </button>
-            <button className="font-label-caps text-[10px] tracking-[0.15em] text-outline hover:text-on-surface transition-colors">
-              PROTOCOL
-            </button>
-            <button className="font-label-caps text-[10px] tracking-[0.15em] text-outline hover:text-on-surface transition-colors">
-              ENCRYPTION
-            </button>
+        <footer className="absolute bottom-0 w-full flex justify-center items-center py-4 z-10 bg-transparent pointer-events-auto">
+          <div className="font-mono text-[9px] tracking-[0.2em] text-white/30 uppercase">
+            © 2026 ODYSSEY ASTRODYNAMICS LABORATORY
           </div>
         </footer>
       </div>
