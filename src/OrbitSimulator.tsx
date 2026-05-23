@@ -642,6 +642,7 @@ function GhostPath({
     }
     abortControllerRef.current = new AbortController();
 
+    setStatus("COMPUTING TRAJECTORY...");
     const time = globalTimeRef.current;
     
     // Delegate the heavy math (Lambert + RK4) to the backend worker threads
@@ -650,7 +651,12 @@ function GhostPath({
       abortControllerRef.current?.signal
     );
     
-    if (!result) return;
+    if (!result) {
+      if (!abortControllerRef.current?.signal.aborted) {
+        setStatus("CALCULATION FAILED");
+      }
+      return;
+    }
 
     const {
       points: rawPoints,
