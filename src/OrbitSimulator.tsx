@@ -1222,7 +1222,6 @@ function SystemEngine({
 
       <AsteroidBelt timeMult={timeMult} />
       <KuiperBelt timeMult={timeMult} />
-      <OortCloud timeMult={timeMult} />
 
       {PLANETS.map((p) => (
         <Planet key={p.name} data={p} globalTimeRef={globalTimeRef} onDoubleClick={onPlanetDoubleClick} launchParams={launchParams} />
