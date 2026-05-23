@@ -659,7 +659,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
   const captureTimeRef = useRef<number | null>(null);
   const transferTimeRef = useRef<number>(1000);
   const simDurationRef = useRef<number>(1000);
-  const captureInfoRef = useRef<{status?: string, altitude?: number, period?: number}>({});
+  const captureInfoRef = useRef<{status?: string, altitude?: number, period?: number, isOvershot?: boolean, remainingDeltaV?: number}>({});
   const requiredDVRef = useRef<number>(0);
   const fuelRef = useRef<number>(100); // %
   const [status, setStatus] = useState<string>("Standby");
@@ -739,7 +739,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
     requiredDVRef.current = dvLabel;
     const simDt = 600; // Better step for trajectory prediction
     
-    const { points: rawPoints, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod } = simulateInterplanetaryRK4(
+    const { points: rawPoints, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod, isOvershot, remainingDeltaV } = simulateInterplanetaryRK4(
       startPos as [number, number, number],
       vReq,
       time,
@@ -752,7 +752,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
     
     transferTimeRef.current = arrivalTime - time;
     simDurationRef.current = simDuration;
-    captureInfoRef.current = { status: missionStatus, altitude: captureAltitude, period: orbitPeriod };
+    captureInfoRef.current = { status: missionStatus, altitude: captureAltitude, period: orbitPeriod, isOvershot, remainingDeltaV };
     
     const threePoints = rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[2] * POS_SCALE, -p[1] * POS_SCALE));
     setPoints(threePoints);
@@ -873,18 +873,33 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
       let targetStatus = "Inertial Cruise";
       if (pct_tof < 0.05) {
         targetStatus = "Main Engine Burn";
-        fuelRef.current = Math.max(10, 100 - (requiredDVRef.current / 150) * (pct_tof / 0.05)); 
+        const startBurnPct = 100;
+        const endBurnPct = Math.max(5, ((3500.0 - requiredDVRef.current) / 3500.0) * 100.0);
+        fuelRef.current = startBurnPct - (startBurnPct - endBurnPct) * (pct_tof / 0.05);
       } else if (pct_tof >= 0.98 && captureInfoRef.current.status) {
-        targetStatus = captureInfoRef.current.status;
-        if (!captureTimeRef.current) {
-          captureTimeRef.current = globalTimeRef.current;
+        if (captureInfoRef.current.isOvershot) {
+          targetStatus = "OVERSHOT - INSUFFICIENT FUEL";
+          fuelRef.current = 0;
+        } else {
+          targetStatus = captureInfoRef.current.status;
+          const finalFuelPct = Math.max(1, ((captureInfoRef.current.remainingDeltaV ?? 0) / 3500.0) * 100.0);
+          fuelRef.current = finalFuelPct;
+          if (!captureTimeRef.current) {
+            captureTimeRef.current = globalTimeRef.current;
+          }
+          const nextStayTime = Math.floor((globalTimeRef.current - captureTimeRef.current) / 86400);
+          setStayTimeDays((prev) => (prev !== nextStayTime ? nextStayTime : prev));
         }
-        const nextStayTime = Math.floor((globalTimeRef.current - captureTimeRef.current) / 86400);
-        setStayTimeDays((prev) => (prev !== nextStayTime ? nextStayTime : prev));
       } else {
-        targetStatus = "Inertial Cruise";
-        fuelRef.current = Math.max(5, 100 - (requiredDVRef.current / 200) - (pct_tof * 5));
-        captureTimeRef.current = null;
+        if (pct_tof >= 0.98 && captureInfoRef.current.isOvershot) {
+          targetStatus = "OVERSHOT - INSUFFICIENT FUEL";
+          fuelRef.current = 0;
+        } else {
+          targetStatus = "Inertial Cruise";
+          const cruiseFuelPct = Math.max(5, ((3500.0 - requiredDVRef.current) / 3500.0) * 100.0);
+          fuelRef.current = cruiseFuelPct;
+          captureTimeRef.current = null;
+        }
       }
 
       setStatus((prev) => (prev !== targetStatus ? targetStatus : prev));

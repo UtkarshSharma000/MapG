@@ -35,10 +35,88 @@ struct Planet {
 
 // --- SPACECRAFT STRUCTURE ---
 struct Spacecraft {
-    Eigen::Vector3d pos; // m (heliocentric)
-    Eigen::Vector3d vel; // m/s (heliocentric)
-    double mass;         // kg
+    Eigen::Vector3d pos = Eigen::Vector3d::Zero(); // m (heliocentric)
+    Eigen::Vector3d vel = Eigen::Vector3d::Zero(); // m/s (heliocentric)
+    double mass = 1000.0;         // kg
+    double current_delta_v_pool = 3500.0; // m/s budget
+    bool is_captured = false;
+    bool is_overshot = false;
 };
+
+// --- ORBITAL INSERTION RETRO-BURN ---
+void ExecuteCaptureBurn(Spacecraft& probe, const Planet& target_planet) {
+    if (probe.is_captured || probe.is_overshot) return;
+
+    // Define relative vectors
+    Eigen::Vector3d r_rel = probe.pos - target_planet.pos;
+    Eigen::Vector3d v_rel = probe.vel - target_planet.vel;
+    double r_mag = r_rel.norm();
+    double v_mag = v_rel.norm();
+
+    // Check if within the target planet's Sphere of Influence (SOI)
+    // Dynamic SOI approximated as 150 * radius of target planet
+    double soi = target_planet.radius * 150.0;
+    if (r_mag > soi) return;
+
+    // Compute orbital elements of hyperbolic flyby
+    double mu = target_planet.mu;
+    Eigen::Vector3d h_vec = r_rel.cross(v_rel);
+    double h = h_vec.norm();
+    
+    // Specific energy
+    double energy = (v_mag * v_mag) / 2.0 - mu / r_mag;
+    if (energy <= 0.0) {
+        // Already captured or elliptical/parabolic orbit
+        probe.is_captured = true;
+        return;
+    }
+
+    // Semi-major axis of hyperbola (a_hyper > 0)
+    double a_hyper = mu / (2.0 * energy);
+    // Eccentricity (e > 1)
+    double e = std::sqrt(1.0 + (2.0 * energy * h * h) / (mu * mu));
+    
+    // Periapsis distance of incoming hyperbolic trajectory
+    double rp = a_hyper * (e - 1.0);
+    if (rp <= 0.0) rp = target_planet.radius;
+
+    // Execute retro-burn exactly near periapsis (within a 5% distance margin)
+    if (r_mag > rp * 1.05) {
+        return; // Wait until probe is at periapsis
+    }
+
+    // Calculate arrival velocity at periapsis
+    double v_arrival = std::sqrt(2.0 * (energy + mu / rp));
+
+    // Target orbital period (matching UI requirement of 195.6 days)
+    double target_period = 195.6 * 86400.0; // 195.6 days in seconds
+    double a_target = std::pow(mu * std::pow(target_period / (2.0 * M_PI), 2), 1.0 / 3.0);
+
+    // Calculate required capture velocity at periapsis from Vis-Viva
+    double v_capture = std::sqrt(mu * (2.0 / rp - 1.0 / a_target));
+
+    // Delta V required for retro-burn
+    double delta_v_required = v_arrival - v_capture;
+
+    if (delta_v_required <= 0.0) {
+        probe.is_captured = true;
+        return;
+    }
+
+    // Check if delta-v budget has enough fuel
+    if (probe.current_delta_v_pool >= delta_v_required) {
+        probe.current_delta_v_pool -= delta_v_required;
+        probe.is_captured = true;
+        probe.is_overshot = false;
+
+        // Scale relative velocity to match target capture velocity at periapsis
+        probe.vel = target_planet.vel + v_rel.normalized() * v_capture;
+    } else {
+        // Insufficient fuel: Probe overshoots
+        probe.is_overshot = true;
+        probe.is_captured = false;
+    }
+}
 
 // --- ADAPTIVE N-BODY INTEGRATOR ENGINE ---
 void IntegratePhysics(Spacecraft& probe, const std::vector<Planet>& planets, double max_dt) {
@@ -98,6 +176,11 @@ void IntegratePhysics(Spacecraft& probe, const std::vector<Planet>& planets, dou
         
         probe.pos += (dt_adaptive / 6.0) * (v1 + 2.0 * v2 + 2.0 * v3 + v4);
         probe.vel += (dt_adaptive / 6.0) * (a1 + 2.0 * a2 + 2.0 * a3 + a4);
+
+        // Execute automated capture burn at periapsis inside target's SOI
+        if (nearest_planet) {
+            ExecuteCaptureBurn(probe, *nearest_planet);
+        }
         
         t_accumulated += dt_adaptive;
     }

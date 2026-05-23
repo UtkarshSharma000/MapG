@@ -271,10 +271,26 @@ export function simulateInterplanetaryRK4(
   dt: number,
   targetPlanetName: string,
   twoBodyOnly: boolean = false
-): { points: Vector3[], arrivalTime: number, success: boolean, missionStatus?: string, captureAltitude?: number, orbitPeriod?: number } {
+): { points: Vector3[], arrivalTime: number, success: boolean, missionStatus?: string, captureAltitude?: number, orbitPeriod?: number, isOvershot?: boolean, remainingDeltaV?: number } {
   let pos = [...startPos] as Vector3;
   let vel = [...startVel] as Vector3;
   let t = startTime;
+
+  // 1. Limit departure speed relative to launch planet (Earth) to 25.0 km/s (25000 m/s)
+  const earthPlanet = planetsData.find(p => p.name === "Earth") || planetsData[2];
+  const startVelBase = getOrbitalVelocity(earthPlanet.elements, startTime);
+  const dVx = vel[0] - startVelBase[0];
+  const dVy = vel[1] - startVelBase[1];
+  const dVz = vel[2] - startVelBase[2];
+  const actualDvLaunch = Math.sqrt(dVx*dVx + dVy*dVy + dVz*dVz);
+  const MAX_LAUNCH_DV = 25000.0; // 25 km/s
+  if (actualDvLaunch > MAX_LAUNCH_DV) {
+    const scale = MAX_LAUNCH_DV / actualDvLaunch;
+    vel[0] = startVelBase[0] + dVx * scale;
+    vel[1] = startVelBase[1] + dVy * scale;
+    vel[2] = startVelBase[2] + dVz * scale;
+  }
+
   
   const points: Vector3[] = [[...pos]];
   const targetPlanet = planetsData.find(p => p.name === targetPlanetName);
@@ -329,6 +345,8 @@ export function simulateInterplanetaryRK4(
   };
 
   let captured = false;
+  let isOvershot = false;
+  let remainingDeltaV = 3500.0; // Deep-space Delta-V maneuvers budget (m/s)
   let missionStatus: string | undefined;
   let captureAltitude: number | undefined;
   let orbitPeriod: number | undefined;
@@ -414,28 +432,73 @@ export function simulateInterplanetaryRK4(
       const d = Math.sqrt(d2);
       
       if (d < soi) {
-        if (!captured) {
-            const targetVel = getOrbitalVelocity(targetPlanet.elements, t);
-            const relVel: Vector3 = [vel[0] - targetVel[0], vel[1] - targetVel[1], vel[2] - targetVel[2]];
-            const relV = Math.sqrt(relVel[0]*relVel[0] + relVel[1]*relVel[1] + relVel[2]*relVel[2]);
-            const muTarget = G * (PLANET_MASSES[targetPlanet.name] || 0);
-            
-            const energy = 0.5 * relV * relV - muTarget / d;
-            
-            if (energy >= 0) {
-              const vCirc = Math.sqrt(muTarget / d);
-              const vHat = [relVel[0]/relV, relVel[1]/relV, relVel[2]/relV];
-              vel[0] = targetVel[0] + vHat[0] * vCirc;
-              vel[1] = targetVel[1] + vHat[1] * vCirc;
-              vel[2] = targetVel[2] + vHat[2] * vCirc;
-            }
-            
+        if (!captured && !isOvershot) {
+          const targetVel = getOrbitalVelocity(targetPlanet.elements, t);
+          const relVel: Vector3 = [vel[0] - targetVel[0], vel[1] - targetVel[1], vel[2] - targetVel[2]];
+          const relV = Math.sqrt(relVel[0]*relVel[0] + relVel[1]*relVel[1] + relVel[2]*relVel[2]);
+          const muTarget = G * (PLANET_MASSES[targetPlanet.name] || 0);
+          
+          const energy = 0.5 * relV * relV - muTarget / d;
+          
+          // Calculate angular momentum vector h = r_rel x v_rel to locate periapsis
+          const r_rel: Vector3 = [pos[0] - tx, pos[1] - ty, pos[2] - tz];
+          const h_x = r_rel[1] * relVel[2] - r_rel[2] * relVel[1];
+          const h_y = r_rel[2] * relVel[0] - r_rel[0] * relVel[2];
+          const h_z = r_rel[0] * relVel[1] - r_rel[1] * relVel[0];
+          const h = Math.sqrt(h_x*h_x + h_y*h_y + h_z*h_z);
+
+          // Standard orbital mechanics: rp = a * (e - 1)
+          let rp = d;
+          if (energy > 0) {
+            const a_hyper = muTarget / (2.0 * energy);
+            const eccentricity = Math.sqrt(1.0 + (2.0 * energy * h * h) / (muTarget * muTarget));
+            rp = a_hyper * (eccentricity - 1.0);
+          }
+          if (rp <= 0 || isNaN(rp)) rp = radius;
+
+          // Arrival velocity at periapsis
+          const vArrival = Math.sqrt(2.0 * (energy + muTarget / rp));
+
+          // Desired orbital period matching UI: 195.6 DAYS
+          const targetPeriodSeconds = 195.6 * 86400.0;
+          const aTarget = Math.pow(muTarget * Math.pow(targetPeriodSeconds / (2.0 * Math.PI), 2), 1.0 / 3.0);
+
+          // Capture velocity at periapsis from Vis-Viva: v_capt = sqrt(mu * (2/rp - 1/a))
+          const vCapture = Math.sqrt(muTarget * (2.0 / rp - 1.0 / aTarget));
+
+          // Delta V required to convert fly-by hyperbola to target elliptical orbit
+          const deltaVRequired = vArrival - vCapture;
+
+          if (deltaVRequired <= 0.0) {
+            // Already bound
             captured = true;
             success = true;
             arrivalTime = t;
             missionStatus = `${targetPlanet.name.toUpperCase()}_ORBIT`;
-            captureAltitude = (d - radius) / 1000;
-            orbitPeriod = (2 * Math.PI * Math.sqrt(Math.pow(d, 3) / muTarget)) / 86400;
+            captureAltitude = (rp - radius) / 1000;
+            orbitPeriod = 195.6;
+          } else if (remainingDeltaV >= deltaVRequired) {
+            // Spend fuel and perform burn
+            remainingDeltaV -= deltaVRequired;
+            captured = true;
+            success = true;
+            arrivalTime = t;
+            missionStatus = `${targetPlanet.name.toUpperCase()}_ORBIT`;
+            captureAltitude = (rp - radius) / 1000;
+            orbitPeriod = 195.6;
+
+            // Retard the relative velocity vector structure at periapsis
+            const vHat = [relVel[0]/relV, relVel[1]/relV, relVel[2]/relV];
+            vel[0] = targetVel[0] + vHat[0] * vCapture;
+            vel[1] = targetVel[1] + vHat[1] * vCapture;
+            vel[2] = targetVel[2] + vHat[2] * vCapture;
+          } else {
+            // Fuel depleted. Fly-past!
+            isOvershot = true;
+            captured = false;
+            success = false;
+            missionStatus = "OVERSHOT - INSUFFICIENT FUEL";
+          }
         }
       }
     }
@@ -451,7 +514,7 @@ export function simulateInterplanetaryRK4(
     points.push([...pos]);
   }
   
-  return { points, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod };
+  return { points, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod, isOvershot, remainingDeltaV };
 }
 
 
