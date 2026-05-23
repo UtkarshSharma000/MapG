@@ -1,36 +1,23 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Draggable from 'react-draggable';
-import { Move } from 'lucide-react';
+import { Move, Compass } from 'lucide-react';
 import { OptimizeResult } from '../TrajectoryOptimizer';
 
 interface LaunchHUDProps {
-  v0: number;
-  pitch: number;
-  yaw: number;
-  nbody: boolean;
-  setV0: (v: number) => void;
-  setPitch: (p: number) => void;
-  setYaw: (y: number) => void;
-  setNbody: (n: boolean) => void;
   onSimulateLaunch: () => void;
   onResetSimulation: () => void;
   isLaunched: boolean;
   missionStatus?: string;
   onPlanReturn?: () => void;
-  returnWindow?: OptimizeResult | null;
+  returnWindow?: { tof_days: number; dv1_kms: number; legs?: any[] } | null;
   onApplyReturn?: () => void;
   onConcludeMission?: () => void;
+  selectedTarget: any;
+  setSelectedTarget: (target: any) => void;
+  planets: any[];
 }
 
 export function LaunchHUD({
-  v0,
-  pitch,
-  yaw,
-  nbody,
-  setV0,
-  setPitch,
-  setYaw,
-  setNbody,
   onSimulateLaunch,
   onResetSimulation,
   isLaunched,
@@ -38,12 +25,19 @@ export function LaunchHUD({
   onPlanReturn,
   returnWindow,
   onApplyReturn,
-  onConcludeMission
+  onConcludeMission,
+  selectedTarget,
+  setSelectedTarget,
+  planets
 }: LaunchHUDProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
-  const [targetOrbit, setTargetOrbit] = useState('LEO');
-
+  const [tempSelectedPlanet, setTempSelectedPlanet] = useState<string>('Sun');
   const [isCalculatingLaunchPhase, setIsCalculatingLaunchPhase] = useState(false);
+
+  // Keep dropdown selection synchronised with the externally selected planet target
+  useEffect(() => {
+    setTempSelectedPlanet(selectedTarget?.name || 'Sun');
+  }, [selectedTarget]);
 
   const onLaunch = () => {
     setIsCalculatingLaunchPhase(true);
@@ -58,87 +52,83 @@ export function LaunchHUD({
     onResetSimulation();
   };
 
+  const handleLockTarget = () => {
+    if (tempSelectedPlanet === 'Sun') {
+      setSelectedTarget(null);
+    } else {
+      const found = planets.find(p => p.name === tempSelectedPlanet);
+      if (found) {
+        setSelectedTarget(found);
+      }
+    }
+  };
+
   if (missionStatus === undefined) {
     console.error('LaunchHUD: missionStatus prop is required');
-    return <div className="fixed bottom-4 left-4 bg-red-900/80 p-2 text-white text-[10px] font-mono border border-red-500 rounded z-[100]">LaunchHUD: missing props</div>;
+    return (
+      <div className="fixed bottom-4 left-4 bg-red-900/80 p-2 text-white text-[10px] font-mono border border-red-500 rounded z-[100]">
+        LaunchHUD: missing props
+      </div>
+    );
   }
 
   return (
     <Draggable nodeRef={nodeRef} handle=".vab-drag-handle">
       <div ref={nodeRef} className="fixed left-8 bottom-24 w-80 bg-black/80 backdrop-blur-2xl border border-white/10 rounded-2xl p-5 text-white z-40 pointer-events-auto shadow-2xl flex flex-col glossy-panel">
-        <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-white/10 pb-3 mb-4">
+        
+        {/* Panel Header */}
+        <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-white/10 pb-3 mb-4 select-none">
           <h3 className="font-sans font-medium text-xs tracking-widest uppercase text-primary flex items-center gap-1.5">
-            LAUNCH CONFIGURATION PROFILE
+            LAUNCH CONTROL DECK
           </h3>
           <Move className="w-3.5 h-3.5 text-white/40 cursor-grab" />
         </div>
         
         <div className="space-y-4">
-          <div>
-            <div className="flex justify-between mb-1">
-              <label className="text-[10px] font-mono text-white/50 uppercase">Injection Velocity (v0)</label>
-              <span className="text-[11px] font-mono text-cyan-400 font-bold">{v0.toFixed(2)} km/s</span>
-            </div>
-            <input 
-              type="range" min="0" max="25" step="0.1" 
-              value={v0} onChange={(e) => setV0(parseFloat(e.target.value))}
-              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-              disabled={isLaunched}
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between mb-1">
-              <label className="text-[10px] font-mono text-white/50 uppercase">Pitch Angle</label>
-              <span className="text-[11px] font-mono text-cyan-400 font-bold">{pitch}°</span>
-            </div>
-            <input 
-              type="range" min="-90" max="90" step="1" 
-              value={pitch} onChange={(e) => setPitch(parseFloat(e.target.value))}
-              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-              disabled={isLaunched}
-            />
-          </div>
-
-          <div>
-             <div className="flex justify-between mb-1">
-              <label className="text-[10px] font-mono text-white/50 uppercase">Yaw Angle</label>
-              <span className="text-[11px] font-mono text-cyan-400 font-bold">{yaw}°</span>
-            </div>
-            <input 
-              type="range" min="-180" max="180" step="1" 
-              value={yaw} onChange={(e) => setYaw(parseFloat(e.target.value))}
-              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-              disabled={isLaunched}
-            />
-          </div>
           
-          <div>
-             <label className="text-[10px] font-mono text-white/50 block mb-1.5 uppercase">Target Orbit</label>
-             <select 
-               value={targetOrbit} 
-               onChange={(e) => setTargetOrbit(e.target.value)}
-               className="w-full bg-[#050505] border border-white/10 rounded-lg p-2 text-xs font-mono text-white focus:border-cyan-400 outline-none cursor-pointer hover:border-white/20 transition-colors"
-               disabled={isLaunched}
-             >
-               <option value="LEO">Low Earth Orbit (LEO)</option>
-               <option value="Lunar">Lunar Transfer Axis (TLI)</option>
-               <option value="Mars">Heliocentric Interplanetary (TMI)</option>
-             </select>
-          </div>
-
-          <div className="flex items-center gap-2.5 pt-2 border-t border-white/10">
-            <input 
-              type="checkbox" 
-              id="nbody-toggle" 
-              checked={nbody} 
-              onChange={(e) => setNbody(e.target.checked)}
-              className="accent-cyan-400 w-3.5 h-3.5 cursor-pointer"
+          {/* Planet Navigation Lock Controller */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-mono text-white/50 uppercase tracking-wider">
+              Navigation Target
+            </label>
+            <div className="flex gap-2">
+              <select 
+                value={tempSelectedPlanet} 
+                onChange={(e) => setTempSelectedPlanet(e.target.value)}
+                className="flex-1 bg-[#050505] border border-white/10 rounded-lg p-2 text-xs font-mono text-white focus:border-cyan-400 outline-none cursor-pointer hover:border-white/20 transition-colors"
+                disabled={isLaunched}
+              >
+                <option value="Sun">Central Sol (Sun)</option>
+                {planets.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    {p.name.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+              
+              <button
+                onClick={handleLockTarget}
+                title="Telemetry Lock on selected planet camera"
+                className="px-3.5 bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/40 hover:border-cyan-400 text-cyan-400 rounded-lg text-xs transition-colors flex items-center justify-center cursor-pointer"
+                disabled={isLaunched}
+              >
+                <Compass className="w-4 h-4 animate-spin-slow" />
+              </button>
+            </div>
+            
+            <button
+              onClick={handleLockTarget}
+              className="w-full py-1.5 mt-1 bg-cyan-500/5 hover:bg-cyan-500/15 border border-cyan-500/20 hover:border-cyan-500/40 text-[9px] font-mono tracking-widest text-cyan-400 rounded-lg transition-all cursor-pointer uppercase flex items-center justify-center gap-1.5"
               disabled={isLaunched}
-            />
-            <label htmlFor="nbody-toggle" className="text-[10px] font-sans text-white/40 cursor-pointer select-none uppercase tracking-wide">Enable N-Body Gravity Perturbations</label>
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+              Lock Onto Planet Directly
+            </button>
           </div>
 
+          <div className="h-px bg-white/10 w-full my-1"></div>
+
+          {/* Primary Ignition Trigger Button */}
           <button 
             className={`w-full py-2.5 rounded-lg border font-semibold tracking-widest text-xs transition-all glossy-button cursor-pointer ${isLaunched ? 'text-red-400 hover:text-red-300 border-red-500/40 bg-red-500/10 hover:bg-red-500/20' : (isCalculatingLaunchPhase ? 'text-orange-400 border-orange-500/40 bg-orange-500/10' : 'text-cyan-400 hover:text-cyan-300 border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/25')}`}
             onClick={isLaunched ? handleReset : onLaunch}
@@ -147,6 +137,7 @@ export function LaunchHUD({
              {isLaunched ? 'ABORT TRACKING' : isCalculatingLaunchPhase ? 'CPP ENGINE: RESOLVING CONFLICTS...' : 'INITIATE ENGINE IGNITION'}
           </button>
 
+          {/* Mission Archive Controls */}
           {isLaunched && missionStatus === 'EARTH_ORBIT' && onConcludeMission && (
             <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
               <button 
@@ -158,6 +149,7 @@ export function LaunchHUD({
             </div>
           )}
 
+          {/* Planetary Return Planner UI and Actions */}
           {missionStatus && missionStatus.includes('ORBIT') && missionStatus !== 'EARTH_ORBIT' && (
             <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
               <button 
