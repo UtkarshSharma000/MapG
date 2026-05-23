@@ -33,6 +33,76 @@ struct Planet {
     Eigen::Vector3d vel;
 };
 
+// --- SPACECRAFT STRUCTURE ---
+struct Spacecraft {
+    Eigen::Vector3d pos; // m (heliocentric)
+    Eigen::Vector3d vel; // m/s (heliocentric)
+    double mass;         // kg
+};
+
+// --- ADAPTIVE N-BODY INTEGRATOR ENGINE ---
+void IntegratePhysics(Spacecraft& probe, const std::vector<Planet>& planets, double max_dt) {
+    const double alpha = 0.01; // Safety tuning factor
+    double t_accumulated = 0.0;
+    
+    while (t_accumulated < max_dt) {
+        // Identify nearest planet and distance
+        double min_dist = INFINITY;
+        const Planet* nearest_planet = nullptr;
+        for (const auto& planet : planets) {
+            double d = (probe.pos - planet.pos).norm();
+            if (d < min_dist) {
+                min_dist = d;
+                nearest_planet = &planet;
+            }
+        }
+        
+        // Determine adaptive sub-step dt
+        double dt_adaptive = max_dt - t_accumulated;
+        if (nearest_planet) {
+            Eigen::Vector3d rel_vel = probe.vel - nearest_planet->vel;
+            double v_rel_mag = rel_vel.norm();
+            if (v_rel_mag > 1e-3) {
+                double dt_local = alpha * min_dist / v_rel_mag;
+                if (dt_local < dt_adaptive) {
+                    dt_adaptive = std::max(dt_local, 1.0); // Lower bound to safeguard performance (1s)
+                }
+            }
+        }
+        
+        // Ensure accurate finish step
+        if (t_accumulated + dt_adaptive > max_dt) {
+            dt_adaptive = max_dt - t_accumulated;
+        }
+        
+        // RK4 derivatives lambda
+        auto derivatives = [&](const Eigen::Vector3d& p, const Eigen::Vector3d& v) {
+            double r_sun = p.norm();
+            Eigen::Vector3d acc = -MU_SUN * p / (r_sun * r_sun * r_sun);
+            
+            // Perturb relative to nearest planet (patched conics model)
+            if (nearest_planet) {
+                Eigen::Vector3d r_rel = p - nearest_planet->pos;
+                double d_rel = r_rel.norm();
+                double soft_d = std::max(d_rel, nearest_planet->radius * 0.5); // Softened radius margin
+                acc += -nearest_planet->mu * r_rel / (soft_d * soft_d * soft_d);
+            }
+            return std::make_pair(v, acc);
+        };
+        
+        // Perform 4th-order Runge-Kutta step
+        auto [v1, a1] = derivatives(probe.pos, probe.vel);
+        auto [v2, a2] = derivatives(probe.pos + 0.5 * dt_adaptive * v1, probe.vel + 0.5 * dt_adaptive * a1);
+        auto [v3, a3] = derivatives(probe.pos + 0.5 * dt_adaptive * v2, probe.vel + 0.5 * dt_adaptive * a2);
+        auto [v4, a4] = derivatives(probe.pos + dt_adaptive * v3, probe.vel + dt_adaptive * a3);
+        
+        probe.pos += (dt_adaptive / 6.0) * (v1 + 2.0 * v2 + 2.0 * v3 + v4);
+        probe.vel += (dt_adaptive / 6.0) * (a1 + 2.0 * a2 + 2.0 * a3 + a4);
+        
+        t_accumulated += dt_adaptive;
+    }
+}
+
 // --- MULTI-BODY SYSTEM INITIALIZATION ---
 std::vector<Planet> InitializeSolarSystem() {
     std::vector<Planet> planets;
