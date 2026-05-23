@@ -734,6 +734,15 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
     if (!launchParams.isLaunched || legsChanged || targetChanged) {
       setPoints([]);
       
+      if (legsChanged || targetChanged) {
+        launchTimeRef.current = null;
+        progressRef.current = 0;
+        setReachedDestination(false);
+        setStatus("Standby");
+        lastStatusRef.current = "Standby";
+        if (onStatusUpdate) onStatusUpdate("Standby");
+      }
+      
       // Interplanetary mode (target select OR mission legs active)
       if (launchParams.targetPlanet || launchParams.missionLegs) {
         calculateInterplanetaryPath();

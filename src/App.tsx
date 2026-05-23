@@ -46,9 +46,13 @@ export default function App() {
   const teiAppliedRef = React.useRef(false);
 
   const getSimulatedOriginId = (): number => {
+    const nameMap = { "MERCURY": 1, "VENUS": 2, "EARTH": 3, "MARS": 4, "JUPITER": 5, "SATURN": 6 } as any;
     if (missionStatus && missionStatus.endsWith("_ORBIT")) {
       const pName = missionStatus.replace("_ORBIT", "").toUpperCase();
-      const nameMap = { "MERCURY": 1, "VENUS": 2, "EARTH": 3, "MARS": 4, "JUPITER": 5, "SATURN": 6 } as any;
+      if (nameMap[pName]) return nameMap[pName];
+    }
+    if (launchPlanet) {
+      const pName = launchPlanet.toUpperCase();
       if (nameMap[pName]) return nameMap[pName];
     }
     return 3; // default Earth
@@ -137,6 +141,14 @@ export default function App() {
       const originName = planetMap[result.legs[0].originId];
       if (originName) {
         setLaunchPlanet(originName);
+      }
+      const destId = result.legs[result.legs.length - 1].destId;
+      const destName = planetMap[destId];
+      if (destName) {
+        const foundPlanet = PLANETS.find(p => p.name === destName);
+        if (foundPlanet) {
+          setSelectedTarget(foundPlanet);
+        }
       }
     }
   };
