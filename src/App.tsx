@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
 import TrajectoryOptimizer, { OptimizeResult, scanPorkchop } from "./TrajectoryOptimizer";
+import { propagateOrbit, getOrbitalVelocity } from "./physics";
 import { TelemetryPanel } from "./components/TelemetryPanel";
 import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
@@ -130,20 +131,60 @@ export default function App() {
       teiAppliedRef.current = true;
     }
 
-    const vLocal = eclipticToLocal(result.v1_ecl)
-    const { v0: newV0, pitch: newPitch, yaw: newYaw } = cartesianToPitchYaw(vLocal)
+    const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn' } as Record<number, string>;
+    const originName = result.legs && result.legs.length > 0 ? planetMap[result.legs[0].originId] || "Earth" : "Earth";
+    const launchPlanetInfo = PLANETS.find(p => p.name === originName);
 
-    setV0(parseFloat(newV0.toFixed(4)))
-    setPitch(parseFloat((newPitch * 180 / Math.PI).toFixed(3)))
-    setYaw(parseFloat((newYaw   * 180 / Math.PI).toFixed(3)))
-    globalTimeRef.current = result.launchDay_j2000
-    setTimeMult(86400) // 1 day per second
+    if (launchPlanetInfo) {
+      const time = result.launchDay_j2000; // in seconds
+      const p_pos = propagateOrbit(launchPlanetInfo.elements, time);
+      const p_vel = getOrbitalVelocity(launchPlanetInfo.elements, time);
+      
+      const ev_mag = Math.sqrt(p_vel[0]*p_vel[0] + p_vel[1]*p_vel[1] + p_vel[2]*p_vel[2]);
+      const T = [p_vel[0]/ev_mag, p_vel[1]/ev_mag, p_vel[2]/ev_mag];
+      
+      let hx = p_pos[1]*p_vel[2] - p_pos[2]*p_vel[1];
+      let hy = p_pos[2]*p_vel[0] - p_pos[0]*p_vel[2];
+      let hz = p_pos[0]*p_vel[1] - p_pos[1]*p_vel[0];
+      const h_mag = Math.sqrt(hx*hx + hy*hy + hz*hz);
+      const N = [hx/h_mag, hy/h_mag, hz/h_mag];
+      
+      const R = [
+        T[1]*N[2] - T[2]*N[1],
+        T[2]*N[0] - T[0]*N[2],
+        T[0]*N[1] - T[1]*N[0]
+      ];
+      
+      // result.v1_ecl is in km/s. Convert to m/s for projection
+      const v_ecl_m = [result.v1_ecl[0] * 1000, result.v1_ecl[1] * 1000, result.v1_ecl[2] * 1000];
+      
+      // Project v_ecl_m onto RTN
+      const v_tangent = v_ecl_m[0]*T[0] + v_ecl_m[1]*T[1] + v_ecl_m[2]*T[2];
+      const v_radial = v_ecl_m[0]*R[0] + v_ecl_m[1]*R[1] + v_ecl_m[2]*R[2];
+      const v_normal = v_ecl_m[0]*N[0] + v_ecl_m[1]*N[1] + v_ecl_m[2]*N[2];
+      
+      const v0_val = Math.sqrt(v_tangent*v_tangent + v_radial*v_radial + v_normal*v_normal); // m/s
+      const p_val = Math.asin(v_normal / v0_val); // radians
+      const y_val = Math.atan2(v_radial, v_tangent); // radians
+      
+      setV0(parseFloat((v0_val / 1000).toFixed(4))); // convert back to km/s
+      setPitch(parseFloat((p_val * 180 / Math.PI).toFixed(3)));
+      setYaw(parseFloat((y_val * 180 / Math.PI).toFixed(3)));
+    } else {
+      const vLocal = eclipticToLocal(result.v1_ecl);
+      const { v0: newV0, pitch: newPitch, yaw: newYaw } = cartesianToPitchYaw(vLocal);
+      setV0(parseFloat(newV0.toFixed(4)));
+      setPitch(parseFloat((newPitch * 180 / Math.PI).toFixed(3)));
+      setYaw(parseFloat((newYaw * 180 / Math.PI).toFixed(3)));
+    }
+
+    globalTimeRef.current = result.launchDay_j2000;
+    setTimeMult(86400); // 1 day per second
     setTargetPlanet(null); // Clear single planet target so we rely on legs
     setMissionLegs(result.legs || null);
-    setIsLaunched(false); // Reset launch state so return trajectory propagates in the HUD first
+    setIsLaunched(false); // Reset launch state so trajectory propagates in the HUD first
 
     if (result.legs && result.legs.length > 0) {
-      const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn' } as Record<number, string>;
       const originName = planetMap[result.legs[0].originId];
       if (originName) {
         setLaunchPlanet(originName);
