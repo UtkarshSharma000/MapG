@@ -232,13 +232,11 @@ export function findOptimalTransfer(
   currentTime: number,
   mu: number,
   isFast: boolean = false
-): { tof: number, vReq: Vector3, dvReq: number } {
-  const startPos = propagateOrbit(earthElements, currentTime);
-  const startVelBase = getOrbitalVelocity(earthElements, currentTime);
-  
+): { tof: number, vReq: Vector3, dvReq: number, depTime: number } {
   let bestTOF = 0;
   let minDV = Infinity;
-  let bestV: Vector3 = [0,0,0];
+  let bestV: Vector3 = [0, 0, 0];
+  let bestDepTime = currentTime;
 
   let minDays = 100;
   let maxDays = 800;
@@ -274,38 +272,72 @@ export function findOptimalTransfer(
     minDays = Math.max(10, minDays * 0.4);
     maxDays = maxDays * 0.6;
   }
+
+  // Porkchop search: Departure offsets of ±180 days in 15-day steps
+  const depOffsets = [-180, -150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150, 180];
   
-  // Pass 1: Coarse search
-  // Larger step for very long search ranges to keep performance stellar
-  const coarseStep = maxDays > 5000 ? 55 : (maxDays > 2000 ? 15 : 5);
-  for (let d = minDays; d <= maxDays; d += coarseStep) {
-    const tofSeconds = d * 24 * 3600;
-    const targetPosFuture = propagateOrbit(targetElements, currentTime + tofSeconds);
-    
-    try {
-      const vLambert = solveLambert(startPos, targetPosFuture, tofSeconds, mu);
-      const dv = Math.sqrt(
-        Math.pow(vLambert[0] - startVelBase[0], 2) +
-        Math.pow(vLambert[1] - startVelBase[1], 2) +
-        Math.pow(vLambert[2] - startVelBase[2], 2)
-      );
-      
-      if (dv < minDV) {
-        minDV = dv;
-        bestTOF = tofSeconds;
-        bestV = vLambert;
-      }
-    } catch (e) {}
+  for (const depOffset of depOffsets) {
+    const depTime = currentTime + depOffset * 86400;
+    const startPos = propagateOrbit(earthElements, depTime);
+    const startVelBase = getOrbitalVelocity(earthElements, depTime);
+
+    // Pass 1: Coarse search
+    // Reduced coarse step for better sampling of narrow outer-planet windows
+    const coarseStep = maxDays > 5000 ? 20 : (maxDays > 2000 ? 10 : 5);
+    for (let d = minDays; d <= maxDays; d += coarseStep) {
+      const tofSeconds = d * 24 * 3600;
+      const targetPosFuture = propagateOrbit(targetElements, depTime + tofSeconds);
+
+      try {
+        const vLambert = solveLambert(startPos, targetPosFuture, tofSeconds, mu);
+        const dv = Math.sqrt(
+          Math.pow(vLambert[0] - startVelBase[0], 2) +
+          Math.pow(vLambert[1] - startVelBase[1], 2) +
+          Math.pow(vLambert[2] - startVelBase[2], 2)
+        );
+
+        if (dv < minDV) {
+          minDV = dv;
+          bestTOF = tofSeconds;
+          bestV = vLambert;
+          bestDepTime = depTime;
+        }
+      } catch (e) {}
+    }
   }
 
-  // Pass 2: Refined search
+  // Pass 2: Refined search around best window
   if (bestTOF > 0) {
+    const startPos = propagateOrbit(earthElements, bestDepTime);
+    const startVelBase = getOrbitalVelocity(earthElements, bestDepTime);
     const centralDay = bestTOF / (24 * 3600);
+    const coarseStep = maxDays > 5000 ? 20 : 5;
     const searchWing = Math.max(4, coarseStep);
-    const stepRefined = Math.max(0.1, searchWing / 20); // Dynamic step for high accuracy
+    const stepRefined = Math.max(0.1, searchWing / 20);
+    
     for (let d = centralDay - searchWing; d <= centralDay + searchWing; d += stepRefined) {
       const tofSeconds = d * 24 * 3600;
-      const targetPosFuture = propagateOrbit(targetElements, currentTime + tofSeconds);
+      const targetPosFuture = propagateOrbit(targetElements, bestDepTime + tofSeconds);
+      try {
+        const vLambert = solveLambert(startPos, targetPosFuture, tofSeconds, mu);
+        const dv = Math.sqrt(
+          Math.pow(vLambert[0] - startVelBase[0], 2) +
+          Math.pow(vLambert[1] - startVelBase[1], 2) +
+          Math.pow(vLambert[2] - startVelBase[2], 2)
+        );
+        if (dv < minDV) {
+          minDV = dv;
+          bestTOF = tofSeconds;
+          bestV = vLambert;
+        }
+      } catch (e) {}
+    }
+
+    // Pass 3: Ultra-fine refinement (0.1 day precision)
+    const refinedDay = bestTOF / (24 * 3600);
+    for (let d = refinedDay - 1.0; d <= refinedDay + 1.0; d += 0.1) {
+      const tofSeconds = d * 24 * 3600;
+      const targetPosFuture = propagateOrbit(targetElements, bestDepTime + tofSeconds);
       try {
         const vLambert = solveLambert(startPos, targetPosFuture, tofSeconds, mu);
         const dv = Math.sqrt(
@@ -322,7 +354,7 @@ export function findOptimalTransfer(
     }
   }
 
-  return { tof: bestTOF, vReq: bestV, dvReq: minDV };
+  return { tof: bestTOF, vReq: bestV, dvReq: minDV, depTime: bestDepTime };
 }
 
 export function simulateInterplanetaryRK4(
@@ -478,9 +510,9 @@ export function simulateInterplanetaryRK4(
         if (targetDt < currentDt) {
           currentDt = targetDt;
         }
-      } else if (d < pSoi * 5) {
+      } else if (d < pSoi * 3) {
         // Safe transition zone out of SOI
-        const factor = (d - pSoi) / (pSoi * 4);
+        const factor = (d - pSoi) / (pSoi * 2);
         const transitionDt = dt + (28800 - dt) * factor;
         if (transitionDt < currentDt) {
           currentDt = transitionDt;
