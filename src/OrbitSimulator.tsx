@@ -684,18 +684,32 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
 
     let startPos = propagateOrbit(earth.elements, time);
     
-    // Offset by Earth's radius (approx 6371 km) in the direction of the prograde velocity
-    // This places the launch just above the planet surface so gravity works in RK4
+    // Calculate RTN frame (Radial, Tangential, Normal)
     const earthVel = getOrbitalVelocity(earth.elements, time);
-    const ev_mag = Math.sqrt(earthVel[0]**2 + earthVel[1]**2 + earthVel[2]**2);
-    const earthRadius = 6371000; 
+    const ev_mag = Math.sqrt(earthVel[0]*earthVel[0] + earthVel[1]*earthVel[1] + earthVel[2]*earthVel[2]);
     
-    // We'll launch from the night-side (anti-radial) or trailing side
-    // Actually just offsetting by normal Z is best
+    // T = Tangential (Prograde)
+    const T = [earthVel[0]/ev_mag, earthVel[1]/ev_mag, earthVel[2]/ev_mag];
+    
+    // h = R x V (Angular momentum, points Normal to orbit)
+    let hx = startPos[1]*earthVel[2] - startPos[2]*earthVel[1];
+    let hy = startPos[2]*earthVel[0] - startPos[0]*earthVel[2];
+    let hz = startPos[0]*earthVel[1] - startPos[1]*earthVel[0];
+    const h_mag = Math.sqrt(hx*hx + hy*hy + hz*hz);
+    const N = [hx/h_mag, hy/h_mag, hz/h_mag];
+    
+    // R = T x N (Radial outwards)
+    const R = [
+      T[1]*N[2] - T[2]*N[1],
+      T[2]*N[0] - T[0]*N[2],
+      T[0]*N[1] - T[1]*N[0]
+    ];
+    
+    const earthRadius = 6371000 + 400000; // Launch from 400km LEO
     startPos = [
-      startPos[0],
-      startPos[1],
-      startPos[2] + earthRadius // slightly above ecliptic
+      startPos[0] + N[0] * earthRadius,
+      startPos[1] + N[1] * earthRadius,
+      startPos[2] + N[2] * earthRadius
     ];
     
     let vReq: [number, number, number] = [0, 0, 0];
@@ -705,26 +719,18 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
     // These values dynamically update as the user moves the sliders
     const p = launchParams.pitch * Math.PI / 180;
     const y = launchParams.yaw * Math.PI / 180;
-    const v0 = launchParams.v0;
+    const v0 = launchParams.v0 * 1000; // convert to m/s
     
-    const vx_local = v0 * Math.sin(p);
-    const vy_local = v0 * Math.cos(p) * Math.cos(y);
-    const vz_local = v0 * Math.cos(p) * Math.sin(y);
+    const v_tangent = v0 * Math.cos(p) * Math.cos(y);
+    const v_radial = v0 * Math.cos(p) * Math.sin(y);
+    const v_normal = v0 * Math.sin(p);
     
-    const OBLIQUITY = 23.43929111 * (Math.PI / 180);
-    const cosE = Math.cos(OBLIQUITY), sinE = Math.sin(OBLIQUITY);
+    const v_inf_x = v_tangent * T[0] + v_radial * R[0] + v_normal * N[0];
+    const v_inf_y = v_tangent * T[1] + v_radial * R[1] + v_normal * N[1];
+    const v_inf_z = v_tangent * T[2] + v_radial * R[2] + v_normal * N[2];
     
-    // Ecliptic plane correction (Pitch = 0 means stays on ecliptic)
-    const v_inf_x = -vy_local * sinE + vz_local * cosE; // Map to Z (out of plane) appropriately
-    const v_inf_y = vx_local; 
-    const v_inf_z = vy_local * cosE + vz_local * sinE;
-
-    // Get base orbital velocity of Earth at time t0
-    // earthVel is already calculated above
-    
-    // In LEO, v0 is just the orbital velocity around Earth. 
-    // We add it to Earth's heliocentric velocity
     vReq = [earthVel[0] + v_inf_x, earthVel[1] + v_inf_y, earthVel[2] + v_inf_z];
+
 
     if (launchParams.missionLegs && launchParams.missionLegs.length > 0) {
       const legs = launchParams.missionLegs;
@@ -740,16 +746,24 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
       // Manual Mode via Sliders
       if (launchParams.targetOrbit === 'LEO') {
         simDuration = 86400 * 30; // 30 days
-      } else if (launchParams.targetOrbit === 'Lunar') {
+      } else if (launchParams.targetOrbit === 'TLI') {
         simDuration = 86400 * 100; // 100 days
       } else {
         // TMI Interplanetary
-        simDuration = 86400 * 365 * (v0 > 20 ? 40 : v0 > 15 ? 30 : 5); // 5 to 40 years based on v0 to show full outward arcs
+        simDuration = 86400 * 365 * (v0 > 20000 ? 50 : v0 > 15000 ? 30 : 5); // 5 to 50 years to show full outward arcs
       }
     }
     
     requiredDVRef.current = dvLabel;
-    const simDt = 600; // Better step for trajectory prediction
+    
+    // Smooth out and optimize performance for real-time slider manipulation
+    const MAX_STEPS = 2000;
+    const simDt = Math.max(600, simDuration / MAX_STEPS);
+    
+    // We can use twoBodyOnly = true for interplanetary manual modes to eliminate lag,
+    // but if it's LEO (v0 < 11.2) we need the launch planet's gravity to see the orbit curve.
+    // However, if we just want it fast, we can optimize `simulateInterplanetaryRK4` directly.
+    const isInterplanetary = !launchParams.missionLegs && v0 > 12000;
     
     const { points: rawPoints, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod } = simulateInterplanetaryRK4(
       startPos as [number, number, number],
@@ -759,7 +773,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
       simDuration,
       simDt,
       targetName,
-      false, // twoBodyOnly disabled so spacecraft is affected by planet gravity
+      isInterplanetary, // Enable twoBodyOnly for fast outer solar system arcs
       (launchParams.missionLegs && launchParams.missionLegs.length > 0) ? true : false // ignoreLaunchPlanet
     );
     
@@ -852,21 +866,20 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
       setStatus("Standby");
       setReachedDestination(false);
 
-      // Constantly recalculate if not launched (interplanetary)
-      if (launchParams.targetPlanet || launchParams.missionLegs) {
-        lastCalcTime.current += delta;
-        if (lastCalcTime.current > 1.0) { // Update frequency reduced to 1s
-           lastCalcTime.current = 0;
-           try {
-             calculateInterplanetaryPath();
-           } catch (err) {
-             console.error('RK4 prediction error:', err);
-           }
-        }
+      // Constantly recalculate if not launched (so the ghost path stays attached to Earth as time moves)
+      // Only do it if paused or time is moving, to save performance when idle we do it once a second
+      lastCalcTime.current += delta;
+      if (lastCalcTime.current > (timeMult > 1 ? 0.2 : 1.0)) { 
+         lastCalcTime.current = 0;
+         try {
+           calculateInterplanetaryPath();
+         } catch (err) {
+           console.error('RK4 prediction error:', err);
+         }
       }
 
       // Update start point of interplanetary curve if not launched, otherwise it disconnects from Earth
-      if ((launchParams.targetPlanet || launchParams.missionLegs) && points.length > 0) {
+      if (points.length > 0) {
         const earth = PLANETS.find(p => p.name === (launchParams.launchPlanet || "Earth"));
         if (earth) {
           const time = globalTimeRef.current;
