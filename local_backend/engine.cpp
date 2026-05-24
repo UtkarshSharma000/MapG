@@ -292,43 +292,31 @@ int main(int argc, char* argv[]) {
             return (r2 - f*r1) / g;
         };
 
-        // --- Find optimal transfer (Search Departure Window + TOF) ---
+        // --- Find optimal transfer (Force departure at globalTime) ---
         double minDV = 1e18;
         double bestTof = 0, bestDepTime = globalTime;
         Eigen::Vector3d bestV0;
         
-        double minDays = 50, maxDays = 500;
-        double aAU = targetEl->a / AU_M;
-        if (aAU < 0.5)       { minDays = 35;   maxDays = 180; }
-        else if (aAU < 0.8)  { minDays = 50;   maxDays = 260; }
-        else if (aAU < 1.3)  { minDays = 10;   maxDays = 120; }
-        else if (aAU < 1.7)  { minDays = 120;  maxDays = 450; }
-        else if (aAU < 6.0)  { minDays = 450;  maxDays = 1200; }
-        else if (aAU < 11.0) { minDays = 800;  maxDays = 2200; }
-        else if (aAU < 22.0) { minDays = 2000; maxDays = 9000; }
-        else                 { minDays = 3000; maxDays = 15000; }
-        
-        double coarseStep = (maxDays > 5000) ? 50.0 : (maxDays > 2000 ? 25.0 : 10.0);
+        double minDays = 3000, maxDays = 15000; // For Neptune
+        double coarseStep = 50.0;
 
-        // Search for the best launch day in a 400-day window to ensure alignment
-        for (double depOffset = 0; depOffset <= 400.0; depOffset += 10.0) {
-            double currentDepTime = globalTime + (depOffset * 86400.0);
-            for (double d = minDays; d <= maxDays; d += coarseStep) {
-                double tof = d * 86400.0;
-                Eigen::Vector3d r1 = propagateOrbit(*earthEl, currentDepTime);
-                Eigen::Vector3d r2 = propagateOrbit(*targetEl, currentDepTime + tof);
-                Eigen::Vector3d vEarth = getOrbitalVelocity(*earthEl, currentDepTime);
-                try {
-                    Eigen::Vector3d vL = solveLambert(r1, r2, tof);
-                    double dv = (vL - vEarth).norm();
-                    if (dv < minDV) { 
-                        minDV = dv; 
-                        bestTof = tof; 
-                        bestV0 = vL; 
-                        bestDepTime = currentDepTime;
-                    }
-                } catch (...) {}
-            }
+        // Search in a window starting from globalTime
+        double currentDepTime = globalTime;
+        for (double d = minDays; d <= maxDays; d += coarseStep) {
+            double tof = d * 86400.0;
+            Eigen::Vector3d r1 = propagateOrbit(*earthEl, currentDepTime);
+            Eigen::Vector3d r2 = propagateOrbit(*targetEl, currentDepTime + tof);
+            Eigen::Vector3d vEarth = getOrbitalVelocity(*earthEl, currentDepTime);
+            try {
+                Eigen::Vector3d vL = solveLambert(r1, r2, tof);
+                double dv = (vL - vEarth).norm();
+                if (dv < minDV) { 
+                    minDV = dv; 
+                    bestTof = tof; 
+                    bestV0 = vL; 
+                    bestDepTime = currentDepTime;
+                }
+            } catch (...) {}
         }
 
         // --- RK4 integrate and sample 500 points ---
@@ -367,6 +355,9 @@ int main(int argc, char* argv[]) {
         double rp = targetEl->radius_m * 1.3;
         double orbitPeriod = 2.0 * M_PI * std::sqrt(rp*rp*rp / muTarget) / 86400.0;
         
+        double timeToWait = bestDepTime - globalTime;
+        bool isReadyToLaunch = (timeToWait <= 1.0);
+
         std::cout << std::fixed << std::setprecision(3);
         std::cout << "{\"points\":[";
         for (int i = 0; i < (int)pts.size(); i++) {
@@ -384,7 +375,9 @@ int main(int argc, char* argv[]) {
                   << "\"usedDuration\":"    << bestTof << ","
                   << "\"simStartTime\":"    << bestDepTime << ","
                   << "\"dvLabel\":"         << total_dv << ","
-                  << "\"vReq\":"            << (bestV0.norm() / 1000.0)
+                  << "\"vReq\":"            << (bestV0.norm() / 1000.0) << ","
+                  << "\"isReadyToLaunch\":" << (isReadyToLaunch ? "true" : "false") << ","
+                  << "\"timeToWait\":"      << timeToWait
                   << "}" << std::endl;
         return 0;
     }
