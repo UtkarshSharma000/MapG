@@ -292,10 +292,11 @@ int main(int argc, char* argv[]) {
             return (r2 - f*r1) / g;
         };
 
-        // --- Find optimal transfer (coarse + fine pass) ---
+        // --- Find optimal transfer (Search Departure Window + TOF) ---
         double minDV = 1e18;
         double bestTof = 0, bestDepTime = globalTime;
         Eigen::Vector3d bestV0;
+        
         double minDays = 50, maxDays = 500;
         double aAU = targetEl->a / AU_M;
         if (aAU < 0.5)       { minDays = 35;   maxDays = 180; }
@@ -308,52 +309,30 @@ int main(int argc, char* argv[]) {
         else                 { minDays = 3000; maxDays = 15000; }
         
         double coarseStep = (maxDays > 5000) ? 50.0 : (maxDays > 2000 ? 25.0 : 10.0);
-        
-        // Coarse pass
-        for (double d = minDays; d <= maxDays; d += coarseStep) {
-            double tof = d * 86400.0;
-            Eigen::Vector3d r1 = propagateOrbit(*earthEl, globalTime);
-            Eigen::Vector3d r2 = propagateOrbit(*targetEl, globalTime + tof);
-            Eigen::Vector3d vEarth = getOrbitalVelocity(*earthEl, globalTime);
-            try {
-                Eigen::Vector3d vL = solveLambert(r1, r2, tof);
-                double dv = (vL - vEarth).norm();
-                if (dv < minDV) { minDV = dv; bestTof = tof; bestV0 = vL; bestDepTime = globalTime; }
-            } catch (...) {}
-        }
-        
-        // Fine pass
-        double centralDay = bestTof / 86400.0;
-        double wing = (maxDays > 5000) ? 50.0 : 15.0;
-        for (double d = centralDay - wing; d <= centralDay + wing; d += 1.0) {
-            double tof = d * 86400.0;
-            if (tof <= 0) continue;
-            Eigen::Vector3d r1 = propagateOrbit(*earthEl, globalTime);
-            Eigen::Vector3d r2 = propagateOrbit(*targetEl, globalTime + tof);
-            Eigen::Vector3d vEarth = getOrbitalVelocity(*earthEl, globalTime);
-            try {
-                Eigen::Vector3d vL = solveLambert(r1, r2, tof);
-                double dv = (vL - vEarth).norm();
-                if (dv < minDV) { minDV = dv; bestTof = tof; bestV0 = vL; }
-            } catch (...) {}
-        }
-        
-        // Ultra-fine pass
-        for (double d = (bestTof/86400.0) - 1.5; d <= (bestTof/86400.0) + 1.5; d += 0.1) {
-            double tof = d * 86400.0;
-            if (tof <= 0) continue;
-            Eigen::Vector3d r1 = propagateOrbit(*earthEl, globalTime);
-            Eigen::Vector3d r2 = propagateOrbit(*targetEl, globalTime + tof);
-            Eigen::Vector3d vEarth = getOrbitalVelocity(*earthEl, globalTime);
-            try {
-                Eigen::Vector3d vL = solveLambert(r1, r2, tof);
-                double dv = (vL - vEarth).norm();
-                if (dv < minDV) { minDV = dv; bestTof = tof; bestV0 = vL; }
-            } catch (...) {}
+
+        // Search for the best launch day in a 400-day window to ensure alignment
+        for (double depOffset = 0; depOffset <= 400.0; depOffset += 10.0) {
+            double currentDepTime = globalTime + (depOffset * 86400.0);
+            for (double d = minDays; d <= maxDays; d += coarseStep) {
+                double tof = d * 86400.0;
+                Eigen::Vector3d r1 = propagateOrbit(*earthEl, currentDepTime);
+                Eigen::Vector3d r2 = propagateOrbit(*targetEl, currentDepTime + tof);
+                Eigen::Vector3d vEarth = getOrbitalVelocity(*earthEl, currentDepTime);
+                try {
+                    Eigen::Vector3d vL = solveLambert(r1, r2, tof);
+                    double dv = (vL - vEarth).norm();
+                    if (dv < minDV) { 
+                        minDV = dv; 
+                        bestTof = tof; 
+                        bestV0 = vL; 
+                        bestDepTime = currentDepTime;
+                    }
+                } catch (...) {}
+            }
         }
 
         // --- RK4 integrate and sample 500 points ---
-        Eigen::Vector3d sc_pos = propagateOrbit(*earthEl, globalTime);
+        Eigen::Vector3d sc_pos = propagateOrbit(*earthEl, bestDepTime);
         Eigen::Vector3d sc_vel = bestV0;
         const int N = 500;
         double dt_step = bestTof / N;
@@ -403,7 +382,7 @@ int main(int argc, char* argv[]) {
                   << "\"isOvershot\":"      << (captured ? "false" : "true") << ","
                   << "\"remainingDeltaV\":" << remaining << ","
                   << "\"usedDuration\":"    << bestTof << ","
-                  << "\"simStartTime\":"    << globalTime << ","
+                  << "\"simStartTime\":"    << bestDepTime << ","
                   << "\"dvLabel\":"         << total_dv << ","
                   << "\"vReq\":"            << (bestV0.norm() / 1000.0)
                   << "}" << std::endl;
