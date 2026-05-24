@@ -378,7 +378,7 @@ function Moon({
     const elements = data.elements;
     for (let i = 0; i <= 100; i++) {
       const t = (i / 100) * elements.period;
-      const [x, y, z] = propagateOrbit(elements, t);
+      const [x, y, z] = propagateOrbit(elements, t, MU_SUN);
       pts.push(
           new THREE.Vector3(x * orbitScale, z * orbitScale, -y * orbitScale)
       );
@@ -388,7 +388,7 @@ function Moon({
 
   useFrame(() => {
     const time = globalTimeRef.current;
-    const [x, y, z] = propagateOrbit(data.elements, time);
+    const [x, y, z] = propagateOrbit(data.elements, time, MU_SUN);
     if (ref.current) {
       ref.current.position.set(x * orbitScale, z * orbitScale, -y * orbitScale);
       const rotationSpeed =
@@ -502,10 +502,10 @@ function GhostPath({
         throw new Error("Invalid planet selection");
       }
 
-      const [x1, y1, z1] = propagateOrbit(departurePlanet.elements, globalTime);
+      const [x1, y1, z1] = propagateOrbit(departurePlanet.elements, globalTime, MU_SUN);
       const tofGuess = 180 * 86400;
       const arrivalTime = globalTime + tofGuess;
-      const [x2, y2, z2] = propagateOrbit(arrivalPlanet.elements, arrivalTime);
+      const [x2, y2, z2] = propagateOrbit(arrivalPlanet.elements, arrivalTime, MU_SUN);
 
       const lbRequest: LambertRequest = {
         r1: [x1 * AU, y1 * AU, z1 * AU],
@@ -617,7 +617,7 @@ function GhostPath({
     if (targetName) {
       const targetPlanet = PLANETS.find(p => p.name === targetName);
       if (targetPlanet) {
-        const [ix, iy, iz] = propagateOrbit(targetPlanet.elements, arrivalTime);
+        const [ix, iy, iz] = propagateOrbit(targetPlanet.elements, arrivalTime, MU_SUN);
         setInterceptPoint(
             new THREE.Vector3(ix * POS_SCALE, iz * POS_SCALE, -iy * POS_SCALE)
         );

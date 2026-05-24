@@ -27,7 +27,7 @@ try {
     if (!earth) throw new Error("Launch planet not found");
 
     let simStartTime = globalTime;
-    let startPos = propagateOrbit(earth.elements, globalTime);
+    let startPos = propagateOrbit(earth.elements, globalTime, MU_SUN);
     let vReq: [number, number, number] = [0, 0, 0];
     let dvLabel = 0;
     let simDuration = 0;
@@ -53,7 +53,7 @@ try {
       const v_inf_y = vy_local * cosE + vz_local * sinE;
       const v_inf_z = -vy_local * sinE + vz_local * cosE;
 
-      const earthVel = getOrbitalVelocity(earth.elements, globalTime);
+      const earthVel = getOrbitalVelocity(earth.elements, globalTime, MU_SUN);
       vReq = [
         earthVel[0] + v_inf_x,
         earthVel[1] + v_inf_y,
@@ -73,7 +73,7 @@ try {
       );
       vReq = transferResult.vReq as [number, number, number];
       simStartTime = transferResult.depTime;
-      startPos = propagateOrbit(earth.elements, transferResult.depTime);
+      startPos = propagateOrbit(earth.elements, transferResult.depTime, MU_SUN);
       simDuration = transferResult.tof * 1.5;
       dvLabel = transferResult.dvReq;
     }
