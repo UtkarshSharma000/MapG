@@ -586,7 +586,7 @@ function GhostPath({
 }) {
   const [points, setPoints] = useState<THREE.Vector3[]>([]);
   const isReadyToLaunchRef = useRef<boolean>(false);
-  const timeToWaitRef = useRef<number>(0);
+  const bestDepTimeRef = useRef<number>(0);
   const shuttleRef = useRef<THREE.Group>(null);
   const progressRef = useRef(0);
   const launchTimeRef = useRef<number | null>(null);
@@ -698,7 +698,7 @@ function GhostPath({
       remainingDeltaV,
     };
     isReadyToLaunchRef.current = isReadyToLaunch;
-    timeToWaitRef.current = timeToWait;
+    bestDepTimeRef.current = simStartTime;
 
     requiredDVRef.current = dvLabel;
     const targetName = launchParams.targetPlanet || (launchParams.missionLegs?.[launchParams.missionLegs.length - 1]?.destId ? 
@@ -836,8 +836,8 @@ function GhostPath({
     const maxIdx = points.length - 1;
 
     if (launchParams.targetPlanet || launchParams.missionLegs) {
-      if (!isReadyToLaunchRef.current) {
-        setStatus(`WAITING: ${Math.round(timeToWaitRef.current / 86400)} days rem.`);
+      if (globalTimeRef.current < bestDepTimeRef.current) {
+        setStatus(`WAITING: ${Math.round((bestDepTimeRef.current - globalTimeRef.current) / 86400)} days rem.`);
         return;
       }
       const elapsed = globalTimeRef.current - launchTimeRef.current;
