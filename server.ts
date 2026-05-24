@@ -64,8 +64,34 @@ async function startServer() {
     let outputData = "";
     let errorData = "";
 
-    // Pipe request JSON to engine stdin
-    engine.stdin.write(JSON.stringify(req.body));
+    // Flatten and sanitize the input for the naive C++ JSON parser
+    const { launchParams, globalTime } = req.body;
+    let finalTargetPlanet = launchParams?.targetPlanet;
+    if (!finalTargetPlanet && launchParams?.missionLegs && launchParams.missionLegs.length > 0) {
+      const lastLeg = launchParams.missionLegs[launchParams.missionLegs.length - 1];
+      const planetMap: Record<number, string> = {
+        1: "Mercury",
+        2: "Venus",
+        3: "Earth",
+        4: "Mars",
+        5: "Jupiter",
+        6: "Saturn",
+        7: "Uranus",
+        8: "Neptune",
+      };
+      finalTargetPlanet = planetMap[lastLeg.destId];
+    }
+    const finalLaunchPlanet = launchParams?.launchPlanet || "Earth";
+    const finalGlobalTime = globalTime ?? launchParams?.launchDay_j2000 ?? 0;
+
+    const flatInput = {
+      launchPlanet: finalLaunchPlanet,
+      targetPlanet: finalTargetPlanet || "Mars",
+      globalTime: finalGlobalTime
+    };
+
+    // Pipe flattened request JSON to engine stdin
+    engine.stdin.write(JSON.stringify(flatInput));
     engine.stdin.end();
 
     engine.stdout.on("data", (data) => {
