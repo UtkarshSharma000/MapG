@@ -251,7 +251,7 @@ export const PLANETS = [
   },
 ];
 
-function AsteroidBelt({ timeMult }: { timeMult: number }) {
+const AsteroidBelt = React.memo(function AsteroidBelt({ timeMult }: { timeMult: number }) {
   const asteroidsRef = useRef<THREE.Points>(null);
   const ASTEROID_COUNT = 3000;
 
@@ -294,9 +294,9 @@ function AsteroidBelt({ timeMult }: { timeMult: number }) {
       <pointsMaterial color="#a89070" size={0.008} sizeAttenuation />
     </points>
   );
-}
+});
 
-function KuiperBelt({ timeMult }: { timeMult: number }) {
+const KuiperBelt = React.memo(function KuiperBelt({ timeMult }: { timeMult: number }) {
   const beltRef = useRef<THREE.Points>(null);
   const PARTICLE_COUNT = 2000;
 
@@ -334,7 +334,7 @@ function KuiperBelt({ timeMult }: { timeMult: number }) {
       <pointsMaterial color="#8899aa" size={0.008} sizeAttenuation />
     </points>
   );
-}
+});
 
 function OortCloud({ timeMult }: { timeMult: number }) {
   const cloudRef = useRef<THREE.Points>(null);
@@ -659,7 +659,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
   const captureTimeRef = useRef<number | null>(null);
   const transferTimeRef = useRef<number>(1000);
   const simDurationRef = useRef<number>(1000);
-  const captureInfoRef = useRef<{status?: string, altitude?: number, period?: number}>({});
+  const captureInfoRef = useRef<{status?: string, altitude?: number, period?: number, isOvershot?: boolean, remainingDeltaV?: number}>({});
   const requiredDVRef = useRef<number>(0);
   const fuelRef = useRef<number>(100); // %
   const [status, setStatus] = useState<string>("Standby");
@@ -690,7 +690,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
     if (launchParams.missionLegs && launchParams.missionLegs.length > 0) {
       const legs = launchParams.missionLegs;
       const lastDestId = legs[legs.length - 1].destId;
-      const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn' } as Record<number, string>;
+      const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune' } as Record<number, string>;
       targetName = planetMap[lastDestId];
       
       let totalDays = 0;
@@ -739,7 +739,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
     requiredDVRef.current = dvLabel;
     const simDt = 600; // Better step for trajectory prediction
     
-    const { points: rawPoints, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod } = simulateInterplanetaryRK4(
+    const { points: rawPoints, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod, isOvershot, remainingDeltaV, usedDuration } = simulateInterplanetaryRK4(
       startPos as [number, number, number],
       vReq,
       time,
@@ -751,8 +751,8 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
     );
     
     transferTimeRef.current = arrivalTime - time;
-    simDurationRef.current = simDuration;
-    captureInfoRef.current = { status: missionStatus, altitude: captureAltitude, period: orbitPeriod };
+    simDurationRef.current = usedDuration || simDuration;
+    captureInfoRef.current = { status: missionStatus, altitude: captureAltitude, period: orbitPeriod, isOvershot, remainingDeltaV };
     
     const threePoints = rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[2] * POS_SCALE, -p[1] * POS_SCALE));
     setPoints(threePoints);
@@ -831,8 +831,8 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
     if (!launchParams.isLaunched) {
       launchTimeRef.current = null;
       progressRef.current = 0;
-      setStatus("Standby");
-      setReachedDestination(false);
+      setStatus((prev) => (prev !== "Standby" ? "Standby" : prev));
+      setReachedDestination((prev) => (prev !== false ? false : prev));
 
       // Constantly recalculate if not launched (interplanetary)
       if (launchParams.targetPlanet || launchParams.missionLegs) {
@@ -844,22 +844,6 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
            } catch (err) {
              console.error('RK4 prediction error:', err);
            }
-        }
-      }
-
-      // Update start point of interplanetary curve if not launched, otherwise it disconnects from Earth
-      if ((launchParams.targetPlanet || launchParams.missionLegs) && points.length > 0) {
-        const earth = PLANETS.find(p => p.name === (launchParams.launchPlanet || "Earth"));
-        if (earth) {
-          const time = globalTimeRef.current;
-          const [eX, eY, eZ] = propagateOrbit(earth.elements, time);
-          const p1 = new THREE.Vector3(eX * POS_SCALE, eZ * POS_SCALE, -eY * POS_SCALE);
-          // Mutate just the first point to stay attached! Visual trick.
-          setPoints(pts => {
-            const newPts = [...pts];
-            newPts[0] = p1;
-            return newPts;
-          });
         }
       }
       return;
@@ -878,32 +862,51 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
       const elapsed = globalTimeRef.current - launchTimeRef.current;
       const pct_sim = Math.max(0, Math.min(1.0, elapsed / simDurationRef.current));
       progressRef.current = pct_sim * maxIdx;
-      setDaysPassed(Math.floor(elapsed / 86400));
+      
+      const nextDaysPassed = Math.floor(elapsed / 86400);
+      setDaysPassed((prev) => (prev !== nextDaysPassed ? nextDaysPassed : prev));
       
       const pct_tof = elapsed / transferTimeRef.current;
       const arrived = pct_tof >= 1.0;
-      if (arrived !== reachedDestination) {
-        setReachedDestination(arrived);
-      }
+      setReachedDestination((prev) => (prev !== arrived ? arrived : prev));
       
+      let targetStatus = "Inertial Cruise";
       if (pct_tof < 0.05) {
-        setStatus("Main Engine Burn");
-        fuelRef.current = Math.max(10, 100 - (requiredDVRef.current / 150) * (pct_tof / 0.05)); 
+        targetStatus = "Main Engine Burn";
+        const startBurnPct = 100;
+        const endBurnPct = Math.max(5, ((3500.0 - requiredDVRef.current) / 3500.0) * 100.0);
+        fuelRef.current = startBurnPct - (startBurnPct - endBurnPct) * (pct_tof / 0.05);
       } else if (pct_tof >= 0.98 && captureInfoRef.current.status) {
-        setStatus(captureInfoRef.current.status);
-        if (!captureTimeRef.current) {
-          captureTimeRef.current = globalTimeRef.current;
+        if (captureInfoRef.current.isOvershot) {
+          targetStatus = "OVERSHOT - INSUFFICIENT FUEL";
+          fuelRef.current = 0;
+        } else {
+          targetStatus = captureInfoRef.current.status;
+          const finalFuelPct = Math.max(1, ((captureInfoRef.current.remainingDeltaV ?? 0) / 3500.0) * 100.0);
+          fuelRef.current = finalFuelPct;
+          if (!captureTimeRef.current) {
+            captureTimeRef.current = globalTimeRef.current;
+          }
+          const nextStayTime = Math.floor((globalTimeRef.current - captureTimeRef.current) / 86400);
+          setStayTimeDays((prev) => (prev !== nextStayTime ? nextStayTime : prev));
         }
-        setStayTimeDays(Math.floor((globalTimeRef.current - captureTimeRef.current) / 86400));
       } else {
-        setStatus("Inertial Cruise");
-        fuelRef.current = Math.max(5, 100 - (requiredDVRef.current / 200) - (pct_tof * 5));
-        captureTimeRef.current = null;
+        if (pct_tof >= 0.98 && captureInfoRef.current.isOvershot) {
+          targetStatus = "OVERSHOT - INSUFFICIENT FUEL";
+          fuelRef.current = 0;
+        } else {
+          targetStatus = "Inertial Cruise";
+          const cruiseFuelPct = Math.max(5, ((3500.0 - requiredDVRef.current) / 3500.0) * 100.0);
+          fuelRef.current = cruiseFuelPct;
+          captureTimeRef.current = null;
+        }
       }
 
-      if (lastStatusRef.current !== status) {
-        lastStatusRef.current = status;
-        if (onStatusUpdate) onStatusUpdate(status);
+      setStatus((prev) => (prev !== targetStatus ? targetStatus : prev));
+
+      if (lastStatusRef.current !== targetStatus) {
+        lastStatusRef.current = targetStatus;
+        if (onStatusUpdate) onStatusUpdate(targetStatus);
       }
     } else {
       // Shuttle movement. If we have lots of points (LEO backend), speed needs to be faster
@@ -915,7 +918,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
     if (launchParams.missionLegs && launchParams.missionLegs.length > 0) {
       const legs = launchParams.missionLegs;
       const lastDestId = legs[legs.length - 1].destId;
-      const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn' } as Record<number, string>;
+      const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune' } as Record<number, string>;
       targetName = planetMap[lastDestId];
     }
     const targetPlanet = PLANETS.find(p => p.name === targetName);
@@ -1222,7 +1225,6 @@ function SystemEngine({
 
       <AsteroidBelt timeMult={timeMult} />
       <KuiperBelt timeMult={timeMult} />
-      <OortCloud timeMult={timeMult} />
 
       {PLANETS.map((p) => (
         <Planet key={p.name} data={p} globalTimeRef={globalTimeRef} onDoubleClick={onPlanetDoubleClick} launchParams={launchParams} />
