@@ -52,7 +52,8 @@ void ExecuteCaptureBurn(Spacecraft& probe, const Planet& target_planet) {
     Eigen::Vector3d v_rel = probe.vel - target_planet.vel;
     double r_mag = r_rel.norm();
     double v_mag = v_rel.norm();
-    double soi = target_planet.radius * 150.0;
+    double M_SUN = 1.989e30; // Solar mass
+    double soi = target_planet.semi_major_axis * std::pow(target_planet.mass / M_SUN, 0.4);
     
     if (r_mag > soi) return;
     
@@ -66,9 +67,9 @@ void ExecuteCaptureBurn(Spacecraft& probe, const Planet& target_planet) {
         return; 
     }
     
-    double a_hyper = mu / (2.0 * energy);
+    double a_hyper = -mu / (2.0 * energy);
     double e = std::sqrt(1.0 + (2.0 * energy * h * h) / (mu * mu));
-    double rp = a_hyper * (e - 1.0);
+    double rp = a_hyper * (1.0 - e); // For hyperbola, r = a(1-e) where a is negative, e > 1, so rp is positive
     
     if (rp <= 0.0) rp = target_planet.radius;
     if (r_mag > rp * 1.05) return;
@@ -122,7 +123,10 @@ public:
         
         double rp = sin_half_theta > 0.0 ? (swingby_body.mu / (v_inf * v_inf)) * ((1.0 / sin_half_theta) - 1.0) : swingby_body.radius;
         atmospheric_impact = (rp < swingby_body.radius + swingby_body.atmosphere_limit);
-        actual_delta_v = (v_inf_out - v_inf_in).norm();
+        Eigen::Vector3d heliocentric_before = v_inf_in + swingby_body.vel;
+        Eigen::Vector3d heliocentric_after  = v_inf_out + swingby_body.vel;
+
+        actual_delta_v = heliocentric_after.norm() - heliocentric_before.norm();
         return rp;
     }
 };
@@ -319,6 +323,14 @@ int main(int argc, char* argv[]) {
             double cr_z = r1.x()*r2.y() - r1.y()*r2.x();
             double dnu = std::acos(std::max(-1.0, std::min(1.0, cosDnu)));
             if (cr_z < 0) dnu = 2.0*M_PI - dnu;
+            
+            if (std::abs(1.0 - cosDnu) < 1e-8) {
+                throw std::runtime_error("Degenerate Lambert geometry (angle ~ 0)");
+            }
+            if (std::abs(-1.0 - cosDnu) < 1e-8) {
+                throw std::runtime_error("Degenerate Lambert geometry (angle ~ 180)");
+            }
+            
             double A = std::sin(dnu) * std::sqrt(n1*n2 / (1.0 - std::cos(dnu)));
             double zLow = -4.0*M_PI*M_PI, zHigh = 4.0*M_PI*M_PI, z = 0.0, y = 0.0;
             
@@ -355,21 +367,21 @@ int main(int argc, char* argv[]) {
             double pitch_rad = manualPitch * M_PI / 180.0;
             double yaw_rad = manualYaw * M_PI / 180.0;
             
-            double vx = manualV0 * std::sin(pitch_rad);
-            double vy = manualV0 * std::cos(pitch_rad) * std::cos(yaw_rad);
-            double vz = manualV0 * std::cos(pitch_rad) * std::sin(yaw_rad);
-            
-            double OBLIQUITY = 23.43929111 * M_PI / 180.0;
-            double cosE = std::cos(OBLIQUITY);
-            double sinE = std::sin(OBLIQUITY);
-            
-            Eigen::Vector3d v_inf(
-                vx,
-                vy * cosE + vz * sinE,
-                -vy * sinE + vz * cosE
-            );
-            
             Eigen::Vector3d vOrigin = getOrbitalVelocity(*originEl, bestDepTime);
+            Eigen::Vector3d rOrigin = propagateOrbit(*originEl, bestDepTime);
+            
+            Eigen::Vector3d p_hat = vOrigin.normalized();
+            Eigen::Vector3d h_vec = rOrigin.cross(vOrigin);
+            Eigen::Vector3d n_hat = h_vec.normalized();
+            Eigen::Vector3d r_hat = n_hat.cross(p_hat).normalized(); // "radial-ish", points outward in plane
+            
+            // v0 components: cos(pitch)cos(yaw) loosely goes prograde, sin(yaw) goes normal, sin(pitch) goes radial
+            Eigen::Vector3d v_inf = (
+                p_hat * std::cos(pitch_rad) * std::cos(yaw_rad) +
+                n_hat * std::cos(pitch_rad) * std::sin(yaw_rad) +
+                r_hat * std::sin(pitch_rad)
+            ) * manualV0;
+            
             bestV0 = vOrigin + v_inf * 1000.0; // convert km/s to m/s
         } else {
             double minDays = 100.0, maxDays = 400.0;
@@ -451,12 +463,17 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i <= N; i++) {
             pts.push_back({sc_pos.x(), sc_pos.y(), sc_pos.z()});
             if (i < N) {
-                auto [v1,a1] = deriv(sc_pos, sc_vel);
-                auto [v2,a2] = deriv(sc_pos+0.5*dt_step*v1, sc_vel+0.5*dt_step*a1);
-                auto [v3,a3] = deriv(sc_pos+0.5*dt_step*v2, sc_vel+0.5*dt_step*a2);
-                auto [v4,a4] = deriv(sc_pos+dt_step*v3,     sc_vel+dt_step*a3);
-                sc_pos += (dt_step/6.0)*(v1 + 2*v2 + 2*v3 + v4);
-                sc_vel += (dt_step/6.0)*(a1 + 2*a2 + 2*a3 + a4);
+                double dt_accum = 0;
+                while (dt_accum < dt_step) {
+                    double current_dt = std::min(86400.0, dt_step - dt_accum); // max 1 day step
+                    auto [v1,a1] = deriv(sc_pos, sc_vel);
+                    auto [v2,a2] = deriv(sc_pos+0.5*current_dt*v1, sc_vel+0.5*current_dt*a1);
+                    auto [v3,a3] = deriv(sc_pos+0.5*current_dt*v2, sc_vel+0.5*current_dt*a2);
+                    auto [v4,a4] = deriv(sc_pos+current_dt*v3,     sc_vel+current_dt*a3);
+                    sc_pos += (current_dt/6.0)*(v1 + 2.0*v2 + 2.0*v3 + v4);
+                    sc_vel += (current_dt/6.0)*(a1 + 2.0*a2 + 2.0*a3 + a4);
+                    dt_accum += current_dt;
+                }
             }
         }
 
@@ -552,15 +569,10 @@ int main(int argc, char* argv[]) {
     
     double x = state(0), y = state(1), z = state(2);
     double r = std::sqrt(x*x + y*y + z*z);
-    double actual_r = r - (5.0 * t_target);
-    double fix_ratio = actual_r / r;
-    x *= fix_ratio; 
-    y *= fix_ratio; 
-    z *= fix_ratio;
     
-    double lat = std::asin(z / actual_r) * 180.0 / M_PI;
+    double lat = std::asin(z / r) * 180.0 / M_PI;
     double lon = std::atan2(y, x) * 180.0 / M_PI;
-    double alt = actual_r - RE;
+    double alt = r - RE;
     lon = std::fmod(lon - (t_target * 0.004178), 360.0);
     
     if (lon < -180.0) lon += 360.0; 

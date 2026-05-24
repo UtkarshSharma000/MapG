@@ -854,8 +854,8 @@ function GhostPath({
       initialSimTimeRef.current = null;
       elapsedRealTimeRef.current = 0;
       progressRef.current = 0;
-      setStayTimeDays(0);
-      setDaysPassed(0);
+      setStayTimeDays((prev) => (prev !== 0 ? 0 : prev));
+      setDaysPassed((prev) => (prev !== 0 ? 0 : prev));
       setStatus((prev) => (prev !== "Standby" ? "Standby" : prev));
       setReachedDestination((prev) => (prev !== false ? false : prev));
       if (activeSpeedRef) {
