@@ -8,8 +8,7 @@ import {
   ArrowRight,
   LogOut,
 } from "lucide-react";
-import OrbitSimulator from "./OrbitSimulator";
-import { PLANETS } from "./constants";
+import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
 import TrajectoryOptimizer, { OptimizeResult, scanPorkchop } from "./TrajectoryOptimizer";
 import { TelemetryPanel } from "./components/TelemetryPanel";
 import { LaunchHUD } from "./components/LaunchHUD";
@@ -24,7 +23,6 @@ export default function App() {
 
   // Launch Parameters
   const [v0, setV0] = useState(7.67);
-  const [isAutoWarp, setIsAutoWarp] = useState(true);
   const [pitch, setPitch] = useState(0);
   const [yaw, setYaw] = useState(0);
   const [nbody, setNbody] = useState(true);
@@ -54,7 +52,7 @@ export default function App() {
   const teiAppliedRef = React.useRef(false);
 
   const getSimulatedOriginId = (): number => {
-    const nameMap = { "MERCURY": 1, "VENUS": 2, "EARTH": 3, "MARS": 4, "JUPITER": 5, "SATURN": 6, "URANUS": 7, "NEPTUNE": 8 } as any;
+    const nameMap = { "MERCURY": 1, "VENUS": 2, "EARTH": 3, "MARS": 4, "JUPITER": 5, "SATURN": 6 } as any;
     if (missionStatus && missionStatus.endsWith("_ORBIT")) {
       const pName = missionStatus.replace("_ORBIT", "").toUpperCase();
       if (nameMap[pName]) return nameMap[pName];
@@ -145,7 +143,7 @@ export default function App() {
     setIsLaunched(false); // Reset launch state so return trajectory propagates in the HUD first
 
     if (result.legs && result.legs.length > 0) {
-      const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune' } as Record<number, string>;
+      const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn' } as Record<number, string>;
       const originName = planetMap[result.legs[0].originId];
       if (originName) {
         setLaunchPlanet(originName);
@@ -172,14 +170,14 @@ export default function App() {
     if (missionLegs && missionLegs.length > 0) {
       currentDestId = missionLegs[missionLegs.length - 1].destId;
     } else if (targetPlanet) {
-      const planetMap = { 'Mercury': 1, 'Venus': 2, 'Earth': 3, 'Mars': 4, 'Jupiter': 5, 'Saturn': 6, 'Uranus': 7, 'Neptune': 8 } as any;
+      const planetMap = { 'Mercury': 1, 'Venus': 2, 'Earth': 3, 'Mars': 4, 'Jupiter': 5, 'Saturn': 6 } as any;
       currentDestId = planetMap[targetPlanet] || 4;
     }
     returnDestIdRef.current = currentDestId;
     setReturnWindow(null); // Clear previous return window so UI knows it is computing
 
     // Set launch/dest correctly in App state to match returning direction
-    const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune' } as Record<number, string>;
+    const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn' } as Record<number, string>;
     const originName = planetMap[currentDestId];
     if (originName) {
       setLaunchPlanet(originName);
@@ -406,7 +404,7 @@ export default function App() {
         isRunning={isSimulatorRunning}
         timeMult={timeMult}
         selectedTarget={selectedTarget}
-        launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs, isAutoWarp }}
+        launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs }}
         globalTimeRef={globalTimeRef}
         onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
         onStatusUpdate={setMissionStatus}
@@ -578,9 +576,14 @@ export default function App() {
         {isSimulatorRunning && <TelemetryPanel />}
         {isSimulatorRunning && (
           <LaunchHUD
-            selectedTarget={selectedTarget}
-            setSelectedTarget={setSelectedTarget}
-            planets={PLANETS}
+            v0={v0}
+            setV0={setV0}
+            pitch={pitch}
+            setPitch={setPitch}
+            yaw={yaw}
+            setYaw={setYaw}
+            nbody={nbody}
+            setNbody={setNbody}
             onSimulateLaunch={handleLaunch}
             onResetSimulation={() => {
               setIsLaunched(false);
@@ -674,7 +677,7 @@ export default function App() {
               {selectedTarget && selectedTarget.name !== "Sun" && (
                 <TrajectoryOptimizer
                   originId={getSimulatedOriginId()}
-                  destId={Number(Object.entries({1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune'}).find(([_, name]) => name === selectedTarget.name)?.[0] || 4)}
+                  destId={Number(Object.entries({1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn'}).find(([_, name]) => name === selectedTarget.name)?.[0] || 4)}
                   globalTimeRef={globalTimeRef}
                   onApply={handleApply}
                 />
@@ -715,32 +718,11 @@ export default function App() {
                 </span>
               </div>
 
-              {/* Timing Warp Mode Selector */}
-              <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 gap-1 text-[9px] font-mono font-bold tracking-wider">
-                <button
-                  type="button"
-                  id="mode-auto-warp"
-                  onClick={() => setIsAutoWarp(true)}
-                  className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${isAutoWarp ? "bg-cyan-500 text-black shadow-md shadow-cyan-500/20 font-extrabold" : "text-white/60 hover:text-white"}`}
-                >
-                  AUTO WARP
-                </button>
-                <button
-                  type="button"
-                  id="mode-phys-sync"
-                  onClick={() => setIsAutoWarp(false)}
-                  className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${!isAutoWarp ? "bg-cyan-500 text-black shadow-md shadow-cyan-500/20 font-extrabold" : "text-white/60 hover:text-white"}`}
-                >
-                  STRICT PHYSICS
-                </button>
-              </div>
-
               <input
                 type="range"
                 min="0"
                 max="5"
                 step="1"
-                disabled={isAutoWarp && isLaunched}
                 value={
                   timeMult === 1
                     ? 0
@@ -763,7 +745,7 @@ export default function App() {
                   else if (val === 4) setTimeMult(86400 * 365.25 * 10);
                   else setTimeMult(86400 * 365.25 * 100);
                 }}
-                className={`w-full h-1 rounded-lg appearance-none cursor-pointer accent-cyan-400 transition-opacity ${isAutoWarp && isLaunched ? "opacity-30 cursor-not-allowed bg-white/5" : "bg-white/10"}`}
+                className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
               />
 
               <div className="flex justify-between text-white/40 font-mono text-[7.5px] tracking-wider">
