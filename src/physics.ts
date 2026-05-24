@@ -213,11 +213,45 @@ export function findOptimalTransfer(
   let minDV = Infinity;
   let bestV: Vector3 = [0,0,0];
 
-  const minDays = isFast ? 60 : 100;
-  const maxDays = isFast ? 300 : 800;
+  let minDays = 100;
+  let maxDays = 800;
+
+  const aAU = targetElements.a / AU;
+  if (aAU < 0.5) { // Mercury
+    minDays = 35;
+    maxDays = 180;
+  } else if (aAU < 0.8) { // Venus
+    minDays = 50;
+    maxDays = 260;
+  } else if (aAU < 1.3) { // Earth / Moon
+    minDays = 10;
+    maxDays = 120;
+  } else if (aAU < 1.7) { // Mars
+    minDays = 120;
+    maxDays = 450;
+  } else if (aAU < 6.0) { // Jupiter
+    minDays = 450;
+    maxDays = 1200;
+  } else if (aAU < 11.0) { // Saturn
+    minDays = 800;
+    maxDays = 2200;
+  } else if (aAU < 22.0) { // Uranus
+    minDays = 2000;
+    maxDays = 9000;
+  } else { // Neptune / Outer Solar System (30 AU)
+    minDays = 3000;
+    maxDays = 15000;
+  }
+
+  if (isFast) {
+    minDays = Math.max(10, minDays * 0.4);
+    maxDays = maxDays * 0.6;
+  }
   
   // Pass 1: Coarse search
-  for (let d = minDays; d <= maxDays; d += 5) {
+  // Larger step for very long search ranges to keep performance stellar
+  const coarseStep = maxDays > 5000 ? 55 : (maxDays > 2000 ? 15 : 5);
+  for (let d = minDays; d <= maxDays; d += coarseStep) {
     const tofSeconds = d * 24 * 3600;
     const targetPosFuture = propagateOrbit(targetElements, currentTime + tofSeconds);
     
@@ -271,20 +305,60 @@ export function simulateInterplanetaryRK4(
   dt: number,
   targetPlanetName: string,
   twoBodyOnly: boolean = false
-): { points: Vector3[], arrivalTime: number, success: boolean, missionStatus?: string, captureAltitude?: number, orbitPeriod?: number } {
+): { points: Vector3[], arrivalTime: number, success: boolean, missionStatus?: string, captureAltitude?: number, orbitPeriod?: number, isOvershot?: boolean, remainingDeltaV?: number, usedDuration?: number } {
   let pos = [...startPos] as Vector3;
   let vel = [...startVel] as Vector3;
   let t = startTime;
-  
+
+  // 1. Limit departure speed relative to launch planet (Earth) to 25.0 km/s (25000 m/s)
+  const earthPlanet = planetsData.find(p => p.name === "Earth") || planetsData[2];
+  const startVelBase = getOrbitalVelocity(earthPlanet.elements, startTime);
+  const dVx = vel[0] - startVelBase[0];
+  const dVy = vel[1] - startVelBase[1];
+  const dVz = vel[2] - startVelBase[2];
+  const actualDvLaunch = Math.sqrt(dVx*dVx + dVy*dVy + dVz*dVz);
+  const MAX_LAUNCH_DV = 25000.0; // 25 km/s
+  if (actualDvLaunch > MAX_LAUNCH_DV) {
+    const scale = MAX_LAUNCH_DV / actualDvLaunch;
+    vel[0] = startVelBase[0] + dVx * scale;
+    vel[1] = startVelBase[1] + dVy * scale;
+    vel[2] = startVelBase[2] + dVz * scale;
+  }
+
   const points: Vector3[] = [[...pos]];
   const targetPlanet = planetsData.find(p => p.name === targetPlanetName);
   const targetIndex = planetsData.findIndex(p => p.name === targetPlanetName);
+
+  // Dynamic simulation duration adjustment based on distance to cover and starting velocity
+  let adjustedDuration = duration;
+  if (targetPlanet) {
+    const startR = Math.sqrt(startPos[0]*startPos[0] + startPos[1]*startPos[1] + startPos[2]*startPos[2]);
+    const targetR = targetPlanet.elements.a;
+    const distToCover = Math.abs(targetR - startR);
+    const startVHelper = Math.sqrt(vel[0]*vel[0] + vel[1]*vel[1] + vel[2]*vel[2]);
+    // Spacecraft slows down as it climbs the gravity well; factor 0.65 represents a healthy average velocity
+    const avgSpeed = Math.max(10000, startVHelper * 0.65);
+    const estTOF = distToCover / avgSpeed;
+    // Let's make sure the integration runs long enough (with a 80% safety margin) to reach capture
+    if (estTOF * 1.8 > adjustedDuration) {
+      adjustedDuration = estTOF * 1.8;
+    }
+  }
   
   const launchPlanet = planetsData.find(p => {
     const ppos = propagateOrbit(p.elements, startTime);
     const d2 = Math.pow(ppos[0]-startPos[0],2) + Math.pow(ppos[1]-startPos[1],2) + Math.pow(ppos[2]-startPos[2],2);
-    return Math.sqrt(d2) < 1e9; // Within 1 million km at launch translates to launch planet
+    return Math.sqrt(d2) < 2e9; // Within 2 million km at launch translates to launch planet
   });
+
+  // Optimize: Perturbations only matter from launch planet & target planet during a direct trajectory
+  const activePerturbers: typeof planetsData = [];
+  if (launchPlanet) {
+    activePerturbers.push(launchPlanet);
+  }
+  if (targetPlanet && targetPlanet.name !== launchPlanet?.name) {
+    activePerturbers.push(targetPlanet);
+  }
 
   const getDeriv = (p: Vector3, v: Vector3, time: number) => {
     let ax = 0, ay = 0, az = 0;
@@ -296,7 +370,7 @@ export function simulateInterplanetaryRK4(
     az += m_r3 * p[2];
     
     if (!twoBodyOnly) {
-      for (const data of planetsData) {
+      for (const data of activePerturbers) {
         if (data.name === launchPlanet?.name) continue; // Earth's escape is already in V_inf Lambert solution
         const mass = PLANET_MASSES[data.name];
         if (!mass) continue;
@@ -306,11 +380,10 @@ export function simulateInterplanetaryRK4(
         const dz = pz - p[2];
         const dist2 = dx*dx + dy*dy + dz*dz;
         
-        // Prevent singularity near center of target planet (e.g. radius ~ 3000 km = 3e6 m)
+        // Prevent singularity near center of target planet
         const softDist2 = Math.max(dist2, 1e13); 
         const p_r3 = (G * mass) / (softDist2 * Math.sqrt(softDist2));
 
-        
         ax += p_r3 * dx;
         ay += p_r3 * dy;
         az += p_r3 * dz;
@@ -321,45 +394,60 @@ export function simulateInterplanetaryRK4(
   };
 
   let captured = false;
+  let isOvershot = false;
+  let remainingDeltaV = 3500.0; // Deep-space Delta-V maneuvers budget (m/s)
   let missionStatus: string | undefined;
   let captureAltitude: number | undefined;
   let orbitPeriod: number | undefined;
 
-  let prevDist = Infinity;
   let success = false;
-  let arrivalTime = startTime + duration;
+  let arrivalTime = startTime + adjustedDuration;
   
   const planetRadiiKm = [2439, 6051, 6371, 3389, 69911, 58232, 25362, 24622];
   const radius = (planetRadiiKm[targetIndex] || 6000) * 1000;
-  // Mars SOI is roughly 577,000 km, we'll use a dynamic SOI formula or just a large bubble
   const soi = radius * 150; 
   
-  let i = 0;
-  let outSteps = 0;
-  const targetOutSteps = 400; // Aim for ~400 points output
-  const outDt = duration / targetOutSteps;
+  const targetOutSteps = 200; // Optimal points for trajectory path
+  const outDt = adjustedDuration / targetOutSteps;
   let lastOutTime = startTime;
-  const timeLimit = startTime + duration;
+  const timeLimit = startTime + adjustedDuration;
 
   while (t < timeLimit) {
-    // Dynamic timestep: slow down inside SOI of ANY planet for accurate flybys
-    let currentDt = dt;
+    // Dynamic timestep: Deep heliocentric space tolerates much larger step (up to 8 hours),
+    // speeding up integration dramatically. Scale down only near SOI.
+    let currentDt = Math.min(28800, adjustedDuration / 150);
     
-    // Check all planets for proximity
-    for (const p of planetsData) {
-        if (!PLANET_MASSES[p.name]) continue;
-        const [tx, ty, tz] = propagateOrbit(p.elements, t);
-        const d2 = (pos[0]-tx)*(pos[0]-tx) + (pos[1]-ty)*(pos[1]-ty) + (pos[2]-tz)*(pos[2]-tz);
-        const d = Math.sqrt(d2);
-        
-        // Dynamic SOI for checking:
-        // Use a generic 150 * radius for all planets to trigger slowdown
-        const pRadius = (planetRadiiKm[planetsData.indexOf(p)] || 6000) * 1000;
-        const pSoi = pRadius * 150;
-        
-        if (d < pSoi) {
-             currentDt = Math.min(currentDt, Math.max(dt / 50, dt * (d / pSoi)));
+    for (const p of activePerturbers) {
+      const mass = PLANET_MASSES[p.name];
+      if (!mass) continue;
+      
+      const [tx, ty, tz] = propagateOrbit(p.elements, t);
+      const d2 = (pos[0]-tx)*(pos[0]-tx) + (pos[1]-ty)*(pos[1]-ty) + (pos[2]-tz)*(pos[2]-tz);
+      const d = Math.sqrt(d2);
+      
+      const pRadius = (planetRadiiKm[planetsData.indexOf(p)] || 6000) * 1000;
+      const pSoi = pRadius * 150;
+      
+      if (d < pSoi) {
+        // Slow down smoothly inside SOI down to fine dt (600s) for precision
+        const factor = d / pSoi;
+        const targetDt = Math.max(dt, dt * factor);
+        if (targetDt < currentDt) {
+          currentDt = targetDt;
         }
+      } else if (d < pSoi * 5) {
+        // Safe transition zone out of SOI
+        const factor = (d - pSoi) / (pSoi * 4);
+        const transitionDt = dt + (28800 - dt) * factor;
+        if (transitionDt < currentDt) {
+          currentDt = transitionDt;
+        }
+      }
+    }
+
+    // Safety constraint to prevent overrunning the target time
+    if (t + currentDt > timeLimit) {
+      currentDt = timeLimit - t;
     }
 
     const k1 = getDeriv(pos, vel, t);
@@ -382,9 +470,9 @@ export function simulateInterplanetaryRK4(
     
     t += currentDt;
     
-    if (t - lastOutTime >= outDt) {
+    if (t - lastOutTime >= outDt || points.length === 0) {
       points.push([...pos]);
-      lastOutTime += outDt;
+      lastOutTime = t;
     }
     
     if (targetPlanet) {
@@ -393,40 +481,89 @@ export function simulateInterplanetaryRK4(
       const d = Math.sqrt(d2);
       
       if (d < soi) {
-        if (!captured) {
-            const targetVel = getOrbitalVelocity(targetPlanet.elements, t);
-            const relVel: Vector3 = [vel[0] - targetVel[0], vel[1] - targetVel[1], vel[2] - targetVel[2]];
-            const relV = Math.sqrt(relVel[0]*relVel[0] + relVel[1]*relVel[1] + relVel[2]*relVel[2]);
-            const muTarget = G * (PLANET_MASSES[targetPlanet.name] || 0);
-            
-            const energy = 0.5 * relV * relV - muTarget / d;
-            
-            if (energy >= 0) {
-              const vCirc = Math.sqrt(muTarget / d);
-              const vHat = [relVel[0]/relV, relVel[1]/relV, relVel[2]/relV];
-              vel[0] = targetVel[0] + vHat[0] * vCirc;
-              vel[1] = targetVel[1] + vHat[1] * vCirc;
-              vel[2] = targetVel[2] + vHat[2] * vCirc;
-            }
-            
+        if (!captured && !isOvershot) {
+          const targetVel = getOrbitalVelocity(targetPlanet.elements, t);
+          const relVel: Vector3 = [vel[0] - targetVel[0], vel[1] - targetVel[1], vel[2] - targetVel[2]];
+          const relV = Math.sqrt(relVel[0]*relVel[0] + relVel[1]*relVel[1] + relVel[2]*relVel[2]);
+          const muTarget = G * (PLANET_MASSES[targetPlanet.name] || 0);
+          
+          const energy = 0.5 * relV * relV - muTarget / d;
+          
+          // Calculate angular momentum vector h = r_rel x v_rel to locate periapsis
+          const r_rel: Vector3 = [pos[0] - tx, pos[1] - ty, pos[2] - tz];
+          const h_x = r_rel[1] * relVel[2] - r_rel[2] * relVel[1];
+          const h_y = r_rel[2] * relVel[0] - r_rel[0] * relVel[2];
+          const h_z = r_rel[0] * relVel[1] - r_rel[1] * relVel[0];
+          const h = Math.sqrt(h_x*h_x + h_y*h_y + h_z*h_z);
+
+          // Standard orbital mechanics: rp = a * (e - 1)
+          let rp = d;
+          if (energy > 0) {
+            const a_hyper = muTarget / (2.0 * energy);
+            const eccentricity = Math.sqrt(1.0 + (2.0 * energy * h * h) / (muTarget * muTarget));
+            rp = a_hyper * (eccentricity - 1.0);
+          }
+          if (rp <= 0 || isNaN(rp)) rp = radius;
+
+          // Arrival velocity at periapsis
+          const vArrival = Math.sqrt(2.0 * (energy + muTarget / rp));
+
+          // Desired orbital period matching UI: 195.6 DAYS
+          const targetPeriodSeconds = 195.6 * 86400.0;
+          const aTarget = Math.pow(muTarget * Math.pow(targetPeriodSeconds / (2.0 * Math.PI), 2), 1.0 / 3.0);
+
+          // Capture velocity at periapsis from Vis-Viva: v_capt = sqrt(mu * (2/rp - 1/a))
+          const vCapture = Math.sqrt(muTarget * (2.0 / rp - 1.0 / aTarget));
+
+          // Delta V required to convert fly-by hyperbola to target elliptical orbit
+          const deltaVRequired = vArrival - vCapture;
+
+          if (deltaVRequired <= 0.0) {
+            // Already bound
             captured = true;
             success = true;
             arrivalTime = t;
             missionStatus = `${targetPlanet.name.toUpperCase()}_ORBIT`;
-            captureAltitude = (d - radius) / 1000;
-            orbitPeriod = (2 * Math.PI * Math.sqrt(Math.pow(d, 3) / muTarget)) / 86400;
+            captureAltitude = (rp - radius) / 1000;
+            orbitPeriod = 195.6;
+          } else if (remainingDeltaV >= deltaVRequired) {
+            // Spend fuel and perform burn
+            remainingDeltaV -= deltaVRequired;
+            captured = true;
+            success = true;
+            arrivalTime = t;
+            missionStatus = `${targetPlanet.name.toUpperCase()}_ORBIT`;
+            captureAltitude = (rp - radius) / 1000;
+            orbitPeriod = 195.6;
+
+            // Retard the relative velocity vector structure at periapsis
+            const vHat = [relVel[0]/relV, relVel[1]/relV, relVel[2]/relV];
+            vel[0] = targetVel[0] + vHat[0] * vCapture;
+            vel[1] = targetVel[1] + vHat[1] * vCapture;
+            vel[2] = targetVel[2] + vHat[2] * vCapture;
+          } else {
+            // Fuel depleted. Fly-past!
+            isOvershot = true;
+            captured = false;
+            success = false;
+            missionStatus = "OVERSHOT - INSUFFICIENT FUEL";
+          }
         }
       }
-      prevDist = d;
     }
   }
   
   if (!success && targetPlanet) {
-    // If simulation ends without intercept, let arrivalTime be max time
     arrivalTime = t;
   }
+
+  if (points.length > 0) {
+    points[points.length - 1] = [...pos];
+  } else {
+    points.push([...pos]);
+  }
   
-  return { points, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod };
+  return { points, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod, isOvershot, remainingDeltaV, usedDuration: adjustedDuration };
 }
 
 
