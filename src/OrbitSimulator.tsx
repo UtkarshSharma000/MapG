@@ -839,10 +839,13 @@ function GhostPath({
 
     if (launchParams.targetPlanet || launchParams.missionLegs) {
       if (globalTimeRef.current < bestDepTimeRef.current) {
-        setStatus(`WAITING: ${Math.round((bestDepTimeRef.current - globalTimeRef.current) / 86400)} days rem.`);
+        const remainingDays = (bestDepTimeRef.current - globalTimeRef.current) / 86400;
+        setStatus(`WAITING: ${Math.round(remainingDays)} days rem.`);
         launchTimeRef.current = globalTimeRef.current;
         if (activeSpeedRef) {
-          activeSpeedRef.current = -1;
+          // Fast-forward wait time to take exactly 3 seconds max
+          const waitTimeGap = bestDepTimeRef.current - globalTimeRef.current;
+          activeSpeedRef.current = Math.max(86400 * 10, waitTimeGap / 3.0);
         }
         return;
       }
@@ -864,19 +867,19 @@ function GhostPath({
 
       if (activeSpeedRef) {
         if (!arrived) {
-          // Dynamic speed profiles: 3s launch burn, 9s deep space coast, 3s capture burn
+          // Dynamic speed profiles: 6s launch burn, 18s deep space coast, 6s capture burn (30s total)
           // Ensures any transfer duration (from simple Earth-Mars to decades-long Neptune)
           // behaves realistically and is fully visually trackable!
-          const speedBurn = (transferTimeRef.current * 0.05) / 3.0;
-          const speedCoast = (transferTimeRef.current * 0.93) / 9.0;
-          const speedCapture = (transferTimeRef.current * 0.02) / 3.0;
+          const speedBurn = (transferTimeRef.current * 0.15) / 6.0;
+          const speedCoast = (transferTimeRef.current * 0.70) / 18.0;
+          const speedCapture = (transferTimeRef.current * 0.15) / 6.0;
 
           let calculatedSpeed = speedCoast;
           if (pct_tof < 0.15) {
-            const factor = Math.max(0, Math.min(1, (pct_tof - 0.05) / 0.10));
+            const factor = Math.max(0, Math.min(1, pct_tof / 0.15));
             calculatedSpeed = THREE.MathUtils.lerp(speedBurn, speedCoast, factor);
           } else if (pct_tof > 0.85) {
-            const factor = Math.max(0, Math.min(1, (pct_tof - 0.85) / 0.13));
+            const factor = Math.max(0, Math.min(1, (pct_tof - 0.85) / 0.15));
             calculatedSpeed = THREE.MathUtils.lerp(speedCoast, speedCapture, factor);
           }
           activeSpeedRef.current = Math.max(1, calculatedSpeed);

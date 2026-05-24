@@ -19,7 +19,7 @@ else
     EIGEN_INC="-I/usr/include/eigen3"
 fi
 
-echo "--- Compiling Propagator ---"
+echo "--- Compiling Propagator & Transfer Engine ---"
 ARCH=$(uname -m)
 if [ "$ARCH" = "aarch64" ]; then
     OPT_FLAGS="-O3 -mcpu=neoverse-n1"
@@ -29,7 +29,11 @@ fi
 g++ $OPT_FLAGS -std=c++17 $EIGEN_INC local_backend/Propagator.cpp -o local_backend/odyssey_engine || \
 g++ -O3 -std=c++17 $EIGEN_INC local_backend/Propagator.cpp -o local_backend/odyssey_engine
 
+g++ $OPT_FLAGS -std=c++17 $EIGEN_INC local_backend/engine.cpp -o local_backend/odyssey_engine_interplanetary || \
+g++ -O3 -std=c++17 $EIGEN_INC local_backend/engine.cpp -o local_backend/odyssey_engine_interplanetary
+
 echo "--- Setting Permissions ---"
 chmod +x local_backend/odyssey_engine
+chmod +x local_backend/odyssey_engine_interplanetary
 
-echo "--- Build Successful: ./local_backend/odyssey_engine ---"
+echo "--- Build Successful: binaries ready ---"
