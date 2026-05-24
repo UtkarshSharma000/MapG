@@ -290,7 +290,11 @@ int main(int argc, char* argv[]) {
                 double cVal = C_stump(z), sVal = S_stump(z);
                 if (cVal < 1e-12) { zLow = z; z = (z+zHigh)/2.0; continue; }
                 y = n1 + n2 + A*(z*sVal - 1.0) / std::sqrt(cVal);
-                if (A > 0 && y < 0) { zLow = z; z = (z+zHigh)/2.0; continue; }
+                if (y < 0) {
+                    if (A > 0) zLow = z; else zHigh = z;
+                    z = (zHigh + zLow) / 2.0;
+                    continue;
+                }
                 double x = std::sqrt(y / cVal);
                 double tCalc = (x*x*x*sVal + A*std::sqrt(y)) / std::sqrt(MU_SUN_CALC);
                 if (std::abs(tCalc - tof) < std::max(0.01, 1e-7*tof)) break;
@@ -332,8 +336,25 @@ int main(int argc, char* argv[]) {
             minDays = 3000.0; maxDays = 15000.0; coarseStep = 200.0;
         }
 
-        // Search for the best launch day in a 400-day window
-        for (double depOffset = 0; depOffset <= 400.0; depOffset += 10.0) {
+        double maxDepOffset = 400.0;
+        if (targetLower == "mercury" || originLower == "mercury") {
+            maxDepOffset = 180.0;
+        } else if (targetLower == "venus" || originLower == "venus") {
+            maxDepOffset = 600.0;
+        } else if (targetLower == "mars" || originLower == "mars") {
+            maxDepOffset = 800.0;
+        } else if (targetLower == "jupiter" || originLower == "jupiter") {
+            maxDepOffset = 600.0;
+        } else if (targetLower == "saturn" || originLower == "saturn") {
+            maxDepOffset = 600.0;
+        } else if (targetLower == "uranus" || originLower == "uranus") {
+            maxDepOffset = 600.0;
+        } else if (targetLower == "neptune" || originLower == "neptune") {
+            maxDepOffset = 600.0;
+        }
+
+        // Search for the best launch day in a dynamic window
+        for (double depOffset = 0; depOffset <= maxDepOffset; depOffset += 10.0) {
             double currentDepTime = globalTime + (depOffset * 86400.0);
             for (double d = minDays; d <= maxDays; d += coarseStep) {
                 double tof = d * 86400.0;

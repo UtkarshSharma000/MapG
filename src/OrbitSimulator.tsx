@@ -1222,7 +1222,7 @@ function GhostPath({
       )}
 
       {launchParams?.isLaunched && points.length > 0 && (
-        <group ref={shuttleRef} position={points[0]}>
+        <group ref={shuttleRef} position={[0, 0, 0]}>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <coneGeometry args={[0.1, 0.3, 16]} />
             <meshStandardMaterial
@@ -1401,7 +1401,7 @@ function SystemEngine({
     const safeDelta = Math.min(delta, 0.1);
     
     let currentSpeed = timeMult;
-    if (activeSpeedRef.current > 0) {
+    if (activeSpeedRef.current >= 0) {
       currentSpeed = activeSpeedRef.current;
     }
     
