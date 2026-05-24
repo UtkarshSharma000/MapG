@@ -751,7 +751,7 @@ function GhostPath({
           calculateInterplanetaryPath();
         }
       }
-    }, 3000);
+    }, 200);
 
     return () => clearTimeout(timer);
   }, [launchParams, calculateInterplanetaryPath]);
@@ -821,15 +821,18 @@ function GhostPath({
       progressRef.current = 0;
       setStatus((prev) => (prev !== "Standby" ? "Standby" : prev));
       setReachedDestination((prev) => (prev !== false ? false : prev));
-
-      if (launchParams.targetPlanet || launchParams.missionLegs) {
-        // Path is now calculated once via useEffect on target change
-        // rather than every 5 seconds in useFrame to prevent UI stutter
+      if (activeSpeedRef) {
+        activeSpeedRef.current = -1;
       }
       return;
     }
 
-    if (points.length === 0 || !shuttleRef.current) return;
+    if (points.length === 0 || !shuttleRef.current) {
+      if (activeSpeedRef) {
+        activeSpeedRef.current = -1;
+      }
+      return;
+    }
 
     if (launchTimeRef.current === null) {
       launchTimeRef.current = globalTimeRef.current;
@@ -861,7 +864,8 @@ function GhostPath({
         prev !== nextDaysPassed ? nextDaysPassed : prev
       );
 
-      const pct_tof = elapsed / transferTimeRef.current;
+      const duration = transferTimeRef.current && !isNaN(transferTimeRef.current) ? transferTimeRef.current : 300 * 86400;
+      const pct_tof = duration > 0 ? elapsed / duration : 1.0;
       const arrived = pct_tof >= 1.0;
       setReachedDestination((prev) => (prev !== arrived ? arrived : prev));
 
@@ -870,9 +874,9 @@ function GhostPath({
           // Dynamic speed profiles: 6s launch burn, 18s deep space coast, 6s capture burn (30s total)
           // Ensures any transfer duration (from simple Earth-Mars to decades-long Neptune)
           // behaves realistically and is fully visually trackable!
-          const speedBurn = (transferTimeRef.current * 0.15) / 6.0;
-          const speedCoast = (transferTimeRef.current * 0.70) / 18.0;
-          const speedCapture = (transferTimeRef.current * 0.15) / 6.0;
+          const speedBurn = (duration * 0.15) / 6.0;
+          const speedCoast = (duration * 0.70) / 18.0;
+          const speedCapture = (duration * 0.15) / 6.0;
 
           let calculatedSpeed = speedCoast;
           if (pct_tof < 0.15) {
@@ -971,7 +975,8 @@ function GhostPath({
     const elapsed =
       globalTimeRef.current -
       (launchTimeRef.current || globalTimeRef.current);
-    const pct_tof = elapsed / transferTimeRef.current;
+    const flightDuration = transferTimeRef.current && !isNaN(transferTimeRef.current) ? transferTimeRef.current : 300 * 86400;
+    const pct_tof = flightDuration > 0 ? elapsed / flightDuration : 1.0;
 
     if (pct_tof >= 1.0 && targetPlanet) {
       const time = globalTimeRef.current;
