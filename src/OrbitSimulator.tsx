@@ -23,6 +23,7 @@ import { PLANETS } from "./constants";
 import axios from "axios";
 import { api } from "./api/client";
 import { LambertRequest } from "./types/orbit";
+import { LaunchParams } from "./types/mission";
 
 export const MOONS: Record<string, any[]> = {
   Earth: [
@@ -627,18 +628,32 @@ function GhostPath({
   const lastStatusRef = useRef<string | null>(null);
   const lastTargetPlanetRef = useRef<string | null>(null);
   const lastMissionLegsRef = useRef<any>(null);
+  const lastUIUpdate = useRef(0);
   const idleCallbackRef = useRef<number | null>(null);
 
-  const calculateTrajectoryRemote = async (data: any, signal?: AbortSignal) => {
+  const calculateTrajectoryRemote = async (data: { launchParams: LaunchParams; globalTime: number }, signal?: AbortSignal) => {
     try {
       console.log("Sending trajectory request to /api/lambert", data);
-      // For now, mapping the launch params to a Lambert request.
-      // This is a simplification and should be refined in a production scenario.
+      
+      const { launchParams, globalTime } = data;
+      const departurePlanet = PLANETS.find(p => p.name === launchParams.launchPlanet);
+      const arrivalPlanet = PLANETS.find(p => p.name === launchParams.targetPlanet);
+
+      if (!departurePlanet || !arrivalPlanet) {
+        throw new Error("Invalid planet selection");
+      }
+
+      // Propagate planets to get positions
+      const [x1, y1, z1] = propagateOrbit(departurePlanet.elements, globalTime);
+      const tofGuess = 180 * 86400; // Simplified tof guess
+      const arrivalTime = globalTime + tofGuess;
+      const [x2, y2, z2] = propagateOrbit(arrivalPlanet.elements, arrivalTime);
+
       const lbRequest: LambertRequest = {
-        r1: planetState1,
-        r2: planetState2,
-        tof: tofSeconds,
-        mu: 1.327e11,
+        r1: [x1 * AU, y1 * AU, z1 * AU],
+        r2: [x2 * AU, y2 * AU, z2 * AU],
+        tof: tofGuess,
+        mu: MU_SUN,
         prograde: true,
         max_revs: 0
       };
@@ -646,10 +661,17 @@ function GhostPath({
       const lbResponse = await api.solveLambert(lbRequest);
       console.log("Lambert solved:", lbResponse);
       
-      // After Lambert, we would propagate, but let's test the Lambert call first
-      return { success: true, points: [] }; 
+      return { 
+        success: true, 
+        points: [], // Will implement full propagation in next turn
+        arrivalTime: arrivalTime 
+      }; 
     } catch (error: any) {
-      console.error("Trajectory calculation failed", error);
+      if (axios.isCancel(error)) {
+        console.log("Calculation aborted");
+      } else {
+        console.error("Trajectory calculation failed", error);
+      }
       return null;
     }
   };
@@ -980,7 +1002,10 @@ function GhostPath({
         }
 
         const nextDaysPassed = Math.floor(elapsedFlight / 86400);
-        setDaysPassed((prev) => (prev !== nextDaysPassed ? nextDaysPassed : prev));
+        if (performance.now() - lastUIUpdate.current > 500) {
+          setDaysPassed(nextDaysPassed);
+          lastUIUpdate.current = performance.now();
+        }
 
         let targetStatus = "Inertial Cruise";
         if (pct_flight < 0.15) {
