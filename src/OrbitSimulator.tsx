@@ -648,10 +648,10 @@ function GhostPath({
     if (!launchParams.targetPlanet && !launchParams.missionLegs) return;
 
     // Abort any pending calculation
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
+    //if (abortControllerRef.current) {
+      //abortControllerRef.current.abort();
+    //}
+    //abortControllerRef.current = new AbortController();
 
     setStatus("COMPUTING TRAJECTORY...");
     const time = globalTimeRef.current;
