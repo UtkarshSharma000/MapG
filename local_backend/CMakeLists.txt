@@ -1,5 +1,38 @@
 cmake_minimum_required(VERSION 3.20)
-project(AstrodynamicsEngine VERSION 1.0 LANGUAGES CXX)
+
+project(AeroBackend VERSION 1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(CMAKE_CXX_FLAGS_RELEASE
+    "-O3 -march=native -ffast-math -pthread"
+)
+
+find_package(Eigen3 CONFIG REQUIRED)
+
+include_directories(
+    src
+    /usr/include/eigen3
+    ${CMAKE_SOURCE_DIR}/external
+    ${CMAKE_SOURCE_DIR}/cspice/include
+)
+
+add_executable(aero_backend
+
+    src/main.cpp
+
+    src/core/Time.cpp
+    src/ephem/SpiceWrapper.cpp
+    src/mission/LambertIzzo.cpp
+    src/propagation/Propagator.cpp
+)
+
+target_link_libraries(aero_backend PRIVATE
+    Eigen3::Eigen
+    ${CMAKE_SOURCE_DIR}/cspice/lib/cspice.a
+    pthread
+)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

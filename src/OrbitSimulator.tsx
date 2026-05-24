@@ -21,6 +21,8 @@ import {
 } from "./physics";
 import { PLANETS } from "./constants";
 import axios from "axios";
+import { api } from "./api/client";
+import { LambertRequest } from "./types/orbit";
 
 export const MOONS: Record<string, any[]> = {
   Earth: [
@@ -629,22 +631,25 @@ function GhostPath({
 
   const calculateTrajectoryRemote = async (data: any, signal?: AbortSignal) => {
     try {
-      console.log("Sending trajectory request to /api/calculate", data);
-      const response = await axios.post("/api/calculate", data, { 
-        signal,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      console.log("Received trajectory response:", response.data);
-      return response.data;
+      console.log("Sending trajectory request to /api/lambert", data);
+      // For now, mapping the launch params to a Lambert request.
+      // This is a simplification and should be refined in a production scenario.
+      const lbRequest: LambertRequest = {
+        r1: [0, 0, 0], // Needs to be populated from planet state
+        r2: [1e8, 0, 0], // Needs to be populated from planet state
+        tof: 1000000, // Needs to be calculated
+        mu: 1.327e11,
+        prograde: true,
+        max_revs: 0
+      };
+      
+      const lbResponse = await api.solveLambert(lbRequest);
+      console.log("Lambert solved:", lbResponse);
+      
+      // After Lambert, we would propagate, but let's test the Lambert call first
+      return { success: true, points: [] }; 
     } catch (error: any) {
-      if (axios.isCancel(error)) {
-        console.log("Calculation aborted by request");
-      } else {
-        console.error("Remote trajectory calculation failed. Origin:", window.location.origin);
-        console.error("Error details:", error.message, error.response?.status, error.response?.data);
-      }
+      console.error("Trajectory calculation failed", error);
       return null;
     }
   };
