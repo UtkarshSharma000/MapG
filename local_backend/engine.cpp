@@ -188,6 +188,42 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        // --- Parse manual launch params (if any) ---
+        double manualV0 = -1.0, manualPitch = 0.0, manualYaw = 0.0;
+        bool isManual = false;
+        bool autoRoute = true;
+        {
+            auto am = input.find("\"autoRoute\"");
+            if (am != std::string::npos) {
+                auto c = input.find(":", am);
+                if (c != std::string::npos) {
+                    if (input.substr(c + 1, 5).find("false") != std::string::npos) {
+                        autoRoute = false;
+                    }
+                }
+            }
+            auto vm = input.find("\"v0\"");
+            if (vm != std::string::npos) {
+                auto c = input.find(":", vm);
+                if (c != std::string::npos) {
+                    try { 
+                        manualV0 = std::stod(input.substr(c + 1)); 
+                        if (!autoRoute) isManual = true; 
+                    } catch (...) {}
+                }
+            }
+            auto pm = input.find("\"pitch\"");
+            if (pm != std::string::npos) {
+                auto c = input.find(":", pm);
+                if (c != std::string::npos) try { manualPitch = std::stod(input.substr(c + 1)); } catch (...) {}
+            }
+            auto ym = input.find("\"yaw\"");
+            if (ym != std::string::npos) {
+                auto c = input.find(":", ym);
+                if (c != std::string::npos) try { manualYaw = std::stod(input.substr(c + 1)); } catch (...) {}
+            }
+        }
+
         auto solveKepler = [](double M, double ecc) -> double {
             double E = M;
             for (int i = 0; i < 100; i++) {
@@ -312,65 +348,90 @@ int main(int argc, char* argv[]) {
         double bestTof = 0, bestDepTime = globalTime;
         Eigen::Vector3d bestV0;
         
-        double minDays = 100.0, maxDays = 400.0;
-        double coarseStep = 10.0;
-        
-        std::string targetLower = targetPlanet;
-        for (auto &c : targetLower) c = std::tolower(c);
-        std::string originLower = launchPlanet;
-        for (auto &c : originLower) c = std::tolower(c);
+        if (isManual) {
+            bestTof = 400.0 * 86400.0;
+            bestDepTime = globalTime;
+            
+            double pitch_rad = manualPitch * M_PI / 180.0;
+            double yaw_rad = manualYaw * M_PI / 180.0;
+            
+            double vx = manualV0 * std::sin(pitch_rad);
+            double vy = manualV0 * std::cos(pitch_rad) * std::cos(yaw_rad);
+            double vz = manualV0 * std::cos(pitch_rad) * std::sin(yaw_rad);
+            
+            double OBLIQUITY = 23.43929111 * M_PI / 180.0;
+            double cosE = std::cos(OBLIQUITY);
+            double sinE = std::sin(OBLIQUITY);
+            
+            Eigen::Vector3d v_inf(
+                vx,
+                vy * cosE + vz * sinE,
+                -vy * sinE + vz * cosE
+            );
+            
+            Eigen::Vector3d vOrigin = getOrbitalVelocity(*originEl, bestDepTime);
+            bestV0 = vOrigin + v_inf * 1000.0; // convert km/s to m/s
+        } else {
+            double minDays = 100.0, maxDays = 400.0;
+            double coarseStep = 10.0;
+            
+            std::string targetLower = targetPlanet;
+            for (auto &c : targetLower) c = std::tolower(c);
+            std::string originLower = launchPlanet;
+            for (auto &c : originLower) c = std::tolower(c);
 
-        if (targetLower == "mercury" || originLower == "mercury") {
-            minDays = 50.0; maxDays = 200.0; coarseStep = 5.0;
-        } else if (targetLower == "venus" || originLower == "venus") {
-            minDays = 80.0; maxDays = 250.0; coarseStep = 5.0;
-        } else if (targetLower == "mars" || originLower == "mars") {
-            minDays = 150.0; maxDays = 500.0; coarseStep = 10.0;
-        } else if (targetLower == "jupiter" || originLower == "jupiter") {
-            minDays = 400.0; maxDays = 1200.0; coarseStep = 20.0;
-        } else if (targetLower == "saturn" || originLower == "saturn") {
-            minDays = 800.0; maxDays = 3000.0; coarseStep = 40.0;
-        } else if (targetLower == "uranus" || originLower == "uranus") {
-            minDays = 2000.0; maxDays = 8000.0; coarseStep = 100.0;
-        } else if (targetLower == "neptune" || originLower == "neptune") {
-            minDays = 3000.0; maxDays = 15000.0; coarseStep = 200.0;
-        }
+            if (targetLower == "mercury" || originLower == "mercury") {
+                minDays = 50.0; maxDays = 200.0; coarseStep = 5.0;
+            } else if (targetLower == "venus" || originLower == "venus") {
+                minDays = 80.0; maxDays = 250.0; coarseStep = 5.0;
+            } else if (targetLower == "mars" || originLower == "mars") {
+                minDays = 150.0; maxDays = 500.0; coarseStep = 10.0;
+            } else if (targetLower == "jupiter" || originLower == "jupiter") {
+                minDays = 400.0; maxDays = 1200.0; coarseStep = 20.0;
+            } else if (targetLower == "saturn" || originLower == "saturn") {
+                minDays = 800.0; maxDays = 3000.0; coarseStep = 40.0;
+            } else if (targetLower == "uranus" || originLower == "uranus") {
+                minDays = 2000.0; maxDays = 8000.0; coarseStep = 100.0;
+            } else if (targetLower == "neptune" || originLower == "neptune") {
+                minDays = 3000.0; maxDays = 15000.0; coarseStep = 200.0;
+            }
 
-        double maxDepOffset = 400.0;
-        if (targetLower == "mercury" || originLower == "mercury") {
-            maxDepOffset = 180.0;
-        } else if (targetLower == "venus" || originLower == "venus") {
-            maxDepOffset = 600.0;
-        } else if (targetLower == "mars" || originLower == "mars") {
-            maxDepOffset = 800.0;
-        } else if (targetLower == "jupiter" || originLower == "jupiter") {
-            maxDepOffset = 600.0;
-        } else if (targetLower == "saturn" || originLower == "saturn") {
-            maxDepOffset = 600.0;
-        } else if (targetLower == "uranus" || originLower == "uranus") {
-            maxDepOffset = 600.0;
-        } else if (targetLower == "neptune" || originLower == "neptune") {
-            maxDepOffset = 600.0;
-        }
+            double maxDepOffset = 400.0;
+            if (targetLower == "mercury" || originLower == "mercury") {
+                maxDepOffset = 180.0;
+            } else if (targetLower == "venus" || originLower == "venus") {
+                maxDepOffset = 600.0;
+            } else if (targetLower == "mars" || originLower == "mars") {
+                maxDepOffset = 800.0;
+            } else if (targetLower == "jupiter" || originLower == "jupiter") {
+                maxDepOffset = 600.0;
+            } else if (targetLower == "saturn" || originLower == "saturn") {
+                maxDepOffset = 600.0;
+            } else if (targetLower == "uranus" || originLower == "uranus") {
+                maxDepOffset = 600.0;
+            } else if (targetLower == "neptune" || originLower == "neptune") {
+                maxDepOffset = 600.0;
+            }
 
-        // Search for the best launch day in a dynamic window
-        for (double depOffset = 0; depOffset <= maxDepOffset; depOffset += 10.0) {
-            double currentDepTime = globalTime + (depOffset * 86400.0);
-            for (double d = minDays; d <= maxDays; d += coarseStep) {
-                double tof = d * 86400.0;
-                Eigen::Vector3d r1 = propagateOrbit(*originEl, currentDepTime);
-                Eigen::Vector3d r2 = propagateOrbit(*targetEl, currentDepTime + tof);
-                Eigen::Vector3d vOrigin = getOrbitalVelocity(*originEl, currentDepTime);
-                try {
-                    Eigen::Vector3d vL = solveLambert(r1, r2, tof);
-                    double dv = (vL - vOrigin).norm();
-                    if (dv < minDV) { 
-                        minDV = dv; 
-                        bestTof = tof; 
-                        bestV0 = vL; 
-                        bestDepTime = currentDepTime;
-                    }
-                } catch (...) {}
+            // Search for the best launch day in a dynamic window
+            for (double depOffset = 0; depOffset <= maxDepOffset; depOffset += 10.0) {
+                double currentDepTime = globalTime + (depOffset * 86400.0);
+                for (double d = minDays; d <= maxDays; d += coarseStep) {
+                    double tof = d * 86400.0;
+                    Eigen::Vector3d r1 = propagateOrbit(*originEl, currentDepTime);
+                    Eigen::Vector3d r2 = propagateOrbit(*targetEl, currentDepTime + tof);
+                    Eigen::Vector3d vOrigin = getOrbitalVelocity(*originEl, currentDepTime);
+                    try {
+                        Eigen::Vector3d vL = solveLambert(r1, r2, tof);
+                        double dv = (vL - vOrigin).norm();
+                        if (dv < minDV) { 
+                            minDV = dv; 
+                            bestTof = tof; 
+                            bestV0 = vL; 
+                            bestDepTime = currentDepTime;
+                        }
+                    } catch (...) {}
+                }
             }
         }
 
@@ -403,8 +464,28 @@ int main(int argc, char* argv[]) {
         double max_dv = 100000.0; // unlimited budget
         Eigen::Vector3d vOriginDep = getOrbitalVelocity(*originEl, bestDepTime);
         double total_dv = (bestV0 - vOriginDep).norm();
-        bool captured = (total_dv <= max_dv);
-        double remaining = max_dv - total_dv;
+        
+        bool captured = false;
+        double remaining = 0.0;
+        
+        if (isManual) {
+            // Find minimum distance to targetEl during the 400 days
+            double minDist = 1e18;
+            for (int i = 0; i <= N; i++) {
+                double t_shuttle = bestDepTime + i * dt_step;
+                Eigen::Vector3d p_targ = propagateOrbit(*targetEl, t_shuttle);
+                Eigen::Vector3d p_shut(pts[i][0], pts[i][1], pts[i][2]);
+                double d = (p_targ - p_shut).norm();
+                if (d < minDist) minDist = d;
+            }
+            // Roughly within 5 million km for a generic "close encounter" or capture
+            // It's a rough check for user feedback.
+            captured = (minDist <= 5000000.0 * 1000.0); // 5M km in meters
+        } else {
+            captured = (total_dv <= max_dv);
+            remaining = max_dv - total_dv;
+        }
+
         double capture_alt = targetEl->radius_m / 1000.0 * 0.3;
         double muTarget = targetEl->mu;
         double rp = targetEl->radius_m * 1.3;
