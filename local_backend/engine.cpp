@@ -399,7 +399,7 @@ int main(int argc, char* argv[]) {
             std::cout << "[" << pts[i][0] << "," << pts[i][1] << "," << pts[i][2] << "]";
         }
         std::cout << "],"
-                  << "\"arrivalTime\":"     << (globalTime + bestTof) << ","
+                  << "\"arrivalTime\":"     << (bestDepTime + bestTof) << ","
                   << "\"success\":"         << (captured ? "true" : "false") << ","
                   << "\"missionStatus\":\"" << (captured ? "ORBIT CAPTURE" : "OVERSHOT") << "\","
                   << "\"captureAltitude\":" << capture_alt << ","
