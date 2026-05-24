@@ -1,9 +1,8 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { spawn, execSync } from "child_process";
+import { spawn } from "child_process";
 import fs from "fs";
-import { Worker } from "worker_threads";
 
 async function startServer() {
   const app = express();
@@ -50,50 +49,51 @@ async function startServer() {
     }
   });
 
-  // Calculate Interplanetary Trajectory via Node.js Worker Threads
+  // Calculate Interplanetary Trajectory via C++ Engine Subprocess
   app.post("/api/calculate", (req, res) => {
-    const { launchParams, globalTime } = req.body;
-
-    // Use tsx to execute the TypeScript worker in an ESM environment
-    const workerPath = path.join(process.cwd(), "src/worker.ts");
+    console.log("Spawning odyssey_engine calculate...");
+    const enginePath = path.join(process.cwd(), "local_backend/odyssey_engine");
     
-    const worker = new Worker(workerPath,
-      {
-        workerData: {
-          type: "CALCULATE_PATH",
-          payload: { launchParams, globalTime },
-        },
-        execArgv: ["--import", "tsx"]
-      }
-    );
+    // Check if engine exists, if not try building it
+    if (!fs.existsSync(enginePath)) {
+      console.error("C++ Engine not found at", enginePath);
+      return res.status(500).json({ error: "Orbital engine not found. Ensure build.sh ran successfully." });
+    }
 
-    const timeout = setTimeout(() => {
-      worker.terminate();
-      if (!res.headersSent) {
-        res.status(504).json({ error: "Calculation timed out after 30 seconds" });
-      }
-    }, 30000);
+    const engine = spawn(enginePath, ["calculate"]);
+    let outputData = "";
+    let errorData = "";
 
-    worker.on("message", (message) => {
-      clearTimeout(timeout);
-      if (message.success) {
-        res.json(message.data);
-      } else {
-        res.status(500).json({ error: message.error });
+    // Pipe request JSON to engine stdin
+    engine.stdin.write(JSON.stringify(req.body));
+    engine.stdin.end();
+
+    engine.stdout.on("data", (data) => {
+      outputData += data.toString();
+    });
+
+    engine.stderr.on("data", (data) => {
+      errorData += data.toString();
+      console.error("C++ Engine Error:", data.toString());
+    });
+
+    engine.on("close", (code) => {
+      if (code !== 0) {
+        console.error(`C++ Engine exited with code ${code}`);
+        return res.status(500).json({ error: "Trajectory calculation failed", message: errorData });
+      }
+      try {
+        const jsonResponse = JSON.parse(outputData);
+        res.json(jsonResponse);
+      } catch (parseError) {
+        console.error("Failed to parse engine output:", outputData);
+        res.status(500).json({ error: "Invalid response from calculation engine" });
       }
     });
 
-    worker.on("error", (err) => {
-      clearTimeout(timeout);
-      if (!res.headersSent) {
-        res.status(500).json({ error: err.message });
-      }
-    });
-
-    worker.on("exit", (code) => {
-      if (code !== 0 && !res.headersSent) {
-        res.status(500).json({ error: `Worker exited with code ${code}` });
-      }
+    engine.on("error", (err) => {
+      console.error("Failed to start C++ engine:", err);
+      res.status(500).json({ error: "Failed to spawn calculation process" });
     });
   });
 
