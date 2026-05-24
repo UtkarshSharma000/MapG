@@ -277,9 +277,9 @@ export function findOptimalTransfer(
   const T2 = targetElements.period / 86400; // days
   const synodicPeriod = Math.abs(1 / (1 / T1 - 1 / T2));
   
-  // Search at least one full synodic cycle to ensure we hit the window
-  const searchRange = Math.min(Math.max(365, synodicPeriod), 1000); 
-  const depStep = 15; // 15-day granularity for coarse pass
+  // Search window for departure: reduced to ±3 synodic months or ±180 days max
+  const searchRange = Math.min(Math.max(180, synodicPeriod * 0.5), 365); 
+  const depStep = 30; // 30-day granularity for coarse pass (was 15)
   
   const depOffsets: number[] = [];
   for (let d = -Math.floor(searchRange / 2); d <= Math.floor(searchRange / 2); d += depStep) {
@@ -290,9 +290,10 @@ export function findOptimalTransfer(
     const depTime = currentTime + depOffset * 86400;
     const startPos = propagateOrbit(earthElements, depTime);
     const startVelBase = getOrbitalVelocity(earthElements, depTime);
+    const currentPlanetRadius = targetElements.a;
 
     // Pass 1: Coarse search
-    const coarseStep = maxDays > 5000 ? 30 : (maxDays > 2000 ? 15 : 5);
+    const coarseStep = maxDays > 5000 ? 50 : (maxDays > 2000 ? 25 : 10);
     for (let d = minDays; d <= maxDays; d += coarseStep) {
       const tofSeconds = d * 24 * 3600;
       const targetPosFuture = propagateOrbit(targetElements, depTime + tofSeconds);
@@ -305,26 +306,26 @@ export function findOptimalTransfer(
           Math.pow(vLambert[2] - startVelBase[2], 2)
         );
 
-        if (dv < minDV || bestCandidates.length < 3) {
+        if (dv < minDV || bestCandidates.length < 1) {
           if (dv < minDV) minDV = dv;
           bestCandidates.push({ tof: tofSeconds, vReq: vLambert, dvReq: dv, depTime });
-          // Only keep top 3 local minima regions
+          // Only keep the local best candidate per departure to keep searches fast
           bestCandidates.sort((a, b) => a.dvReq - b.dvReq);
-          if (bestCandidates.length > 5) bestCandidates.pop();
+          if (bestCandidates.length > 2) bestCandidates.pop();
         }
       } catch (e) {}
     }
   }
 
-  // Pass 2: Refined search around all candidates
+  // Pass 2: Refined search around limited set of candidates
   let absoluteBest = bestCandidates[0] || { tof: 0, vReq: [0,0,0], dvReq: Infinity, depTime: currentTime };
   
   for (const cand of bestCandidates) {
     const startPos = propagateOrbit(earthElements, cand.depTime);
     const startVelBase = getOrbitalVelocity(earthElements, cand.depTime);
     const centralDay = cand.tof / 86400;
-    const searchWing = maxDays > 5000 ? 40 : 10;
-    const stepRefined = Math.max(0.2, searchWing / 25);
+    const searchWing = maxDays > 5000 ? 50 : 15;
+    const stepRefined = Math.max(1.0, searchWing / 15);
     
     for (let d = centralDay - searchWing; d <= centralDay + searchWing; d += stepRefined) {
       const tofSeconds = d * 24 * 3600;
