@@ -24,6 +24,7 @@ export default function App() {
 
   // Launch Parameters
   const [v0, setV0] = useState(7.67);
+  const [isAutoWarp, setIsAutoWarp] = useState(true);
   const [pitch, setPitch] = useState(0);
   const [yaw, setYaw] = useState(0);
   const [nbody, setNbody] = useState(true);
@@ -405,7 +406,7 @@ export default function App() {
         isRunning={isSimulatorRunning}
         timeMult={timeMult}
         selectedTarget={selectedTarget}
-        launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs }}
+        launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs, isAutoWarp }}
         globalTimeRef={globalTimeRef}
         onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
         onStatusUpdate={setMissionStatus}
@@ -714,11 +715,32 @@ export default function App() {
                 </span>
               </div>
 
+              {/* Timing Warp Mode Selector */}
+              <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 gap-1 text-[9px] font-mono font-bold tracking-wider">
+                <button
+                  type="button"
+                  id="mode-auto-warp"
+                  onClick={() => setIsAutoWarp(true)}
+                  className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${isAutoWarp ? "bg-cyan-500 text-black shadow-md shadow-cyan-500/20 font-extrabold" : "text-white/60 hover:text-white"}`}
+                >
+                  AUTO WARP
+                </button>
+                <button
+                  type="button"
+                  id="mode-phys-sync"
+                  onClick={() => setIsAutoWarp(false)}
+                  className={`flex-1 py-1.5 rounded-lg text-center transition-all cursor-pointer ${!isAutoWarp ? "bg-cyan-500 text-black shadow-md shadow-cyan-500/20 font-extrabold" : "text-white/60 hover:text-white"}`}
+                >
+                  STRICT PHYSICS
+                </button>
+              </div>
+
               <input
                 type="range"
                 min="0"
                 max="5"
                 step="1"
+                disabled={isAutoWarp && isLaunched}
                 value={
                   timeMult === 1
                     ? 0
@@ -741,7 +763,7 @@ export default function App() {
                   else if (val === 4) setTimeMult(86400 * 365.25 * 10);
                   else setTimeMult(86400 * 365.25 * 100);
                 }}
-                className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                className={`w-full h-1 rounded-lg appearance-none cursor-pointer accent-cyan-400 transition-opacity ${isAutoWarp && isLaunched ? "opacity-30 cursor-not-allowed bg-white/5" : "bg-white/10"}`}
               />
 
               <div className="flex justify-between text-white/40 font-mono text-[7.5px] tracking-wider">

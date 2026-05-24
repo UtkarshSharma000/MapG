@@ -766,6 +766,11 @@ function GhostPath({
       try {
         const { v0, pitch, yaw, nbody, launchLocation, targetLocation } =
           launchParams;
+        
+        if (v0 === undefined || pitch === undefined || yaw === undefined || isNaN(v0) || isNaN(pitch) || isNaN(yaw)) {
+          return;
+        }
+
         const startLat = launchLocation?.lat || 0;
         const startLon = launchLocation?.lon || 0;
         const targetLat = targetLocation?.lat || 0;
@@ -783,7 +788,7 @@ function GhostPath({
             targetLon,
           },
         });
-        if (res.data.path) {
+        if (res.data && Array.isArray(res.data.path)) {
           // Fix: Scale LEO points using Earth's visual log radius instead of linear size scale
           const visualRadius = Math.max(0.4, Math.log10(6371) * 0.4);
           const orbitPoints = res.data.path.map((p: number[]) =>
@@ -907,136 +912,270 @@ function GhostPath({
     }
     const targetPlanet = PLANETS.find((p) => p.name === targetName);
 
-    if (elapsedRealTimeRef.current < WAIT_DURATION) {
-      // 1. Waiting / Warping phase
-      const pct_wait = elapsedRealTimeRef.current / WAIT_DURATION;
-      // Cubic ease-in-out curve
-      const smoothPctWait = pct_wait < 0.5 ? 4 * pct_wait * pct_wait * pct_wait : 1 - Math.pow(-2 * pct_wait + 2, 3) / 2;
-      
-      const initialSimTime = initialSimTimeRef.current;
-      const bestDepTime = bestDepTimeRef.current;
-      globalTimeRef.current = initialSimTime + smoothPctWait * (bestDepTime - initialSimTime);
-      
-      if (activeSpeedRef) {
-        activeSpeedRef.current = 0; // Lock standard increment to prevent double stepping clock
-      }
+    const duration = transferTimeRef.current && !isNaN(transferTimeRef.current) ? transferTimeRef.current : 300 * 86400;
+    const arrivalTime = bestDepTimeRef.current + duration;
 
-      // Shuttle sits in parking orbit around the launch planet
-      const launchPlName = launchParams.launchPlanet || "Earth";
-      const launchPlanetObj = PLANETS.find(p => p.name === launchPlName);
-      if (launchPlanetObj) {
-        const { pos, lookAtPos } = getParkingOrbitPosition(launchPlanetObj, globalTimeRef.current);
-        shuttleRef.current.position.copy(pos);
-        shuttleRef.current.lookAt(lookAtPos);
-      }
+    if (launchParams?.isAutoWarp === false) {
+      // ==========================================
+      // STRICT PHYSICS SYNC (MANUAL MODE)
+      // ==========================================
+      if (globalTimeRef.current < bestDepTimeRef.current) {
+        // 1. Waiting phase (Launch is in the future)
+        setReachedDestination(false);
+        if (activeSpeedRef) {
+          activeSpeedRef.current = -1; // Give control back to user slider
+        }
 
-      const daysRem = (bestDepTime - globalTimeRef.current) / 86400;
-      const newStatus = `WAITING: ${Math.max(0, Math.round(daysRem))} days rem.`;
-      setStatus(newStatus);
-      if (lastStatusRef.current !== newStatus) {
-        lastStatusRef.current = newStatus;
-        if (onStatusUpdate) onStatusUpdate(newStatus);
-      }
-    } else if (elapsedRealTimeRef.current < WAIT_DURATION + FLIGHT_DURATION) {
-      // 2. Flight phase
-      const pct_flight = (elapsedRealTimeRef.current - WAIT_DURATION) / FLIGHT_DURATION;
-      // Cubic ease-in-out curve
-      const smoothPct = pct_flight < 0.5 ? 4 * pct_flight * pct_flight * pct_flight : 1 - Math.pow(-2 * pct_flight + 2, 3) / 2;
+        const launchPlName = launchParams.launchPlanet || "Earth";
+        const launchPlanetObj = PLANETS.find(p => p.name === launchPlName);
+        if (launchPlanetObj) {
+          const { pos, lookAtPos } = getParkingOrbitPosition(launchPlanetObj, globalTimeRef.current);
+          shuttleRef.current.position.copy(pos);
+          shuttleRef.current.lookAt(lookAtPos);
+        }
 
-      const duration = transferTimeRef.current && !isNaN(transferTimeRef.current) ? transferTimeRef.current : 300 * 86400;
-      globalTimeRef.current = bestDepTimeRef.current + smoothPct * duration;
-      progressRef.current = smoothPct * maxIdx;
+        const daysRem = (bestDepTimeRef.current - globalTimeRef.current) / 86400;
+        const newStatus = `WAITING: ${Math.max(0, Math.round(daysRem))} days rem.`;
+        setStatus(newStatus);
+        if (lastStatusRef.current !== newStatus) {
+          lastStatusRef.current = newStatus;
+          if (onStatusUpdate) onStatusUpdate(newStatus);
+        }
+      } else if (globalTimeRef.current < arrivalTime) {
+        // 2. Flight phase (Launch in progress relative to clock)
+        setReachedDestination(false);
+        if (activeSpeedRef) {
+          activeSpeedRef.current = -1; // Give control back to user slider
+        }
 
-      if (activeSpeedRef) {
-        activeSpeedRef.current = 0; // Lock standard increment to prevent double stepping clock
-      }
+        const elapsedFlight = globalTimeRef.current - bestDepTimeRef.current;
+        const pct_flight = Math.max(0, Math.min(1.0, elapsedFlight / duration));
+        progressRef.current = pct_flight * maxIdx;
 
-      let currentIdx = Math.floor(progressRef.current);
-      if (currentIdx >= maxIdx) {
-        currentIdx = maxIdx - 1;
-        progressRef.current = maxIdx;
-      }
+        let currentIdx = Math.floor(progressRef.current);
+        if (currentIdx >= maxIdx) {
+          currentIdx = maxIdx - 1;
+          progressRef.current = maxIdx;
+        }
 
-      const p1 = points[currentIdx];
-      const p2 = points[currentIdx + 1];
-      if (p1 && p2) {
-        const t = progressRef.current - currentIdx;
-        shuttleRef.current.position.lerpVectors(p1, p2, t);
-        shuttleRef.current.lookAt(p2);
-      }
+        const p1 = points[currentIdx];
+        const p2 = points[currentIdx + 1];
+        if (p1 && p2) {
+          const t = progressRef.current - currentIdx;
+          shuttleRef.current.position.lerpVectors(p1, p2, t);
+          shuttleRef.current.lookAt(p2);
+        }
 
-      const nextDaysPassed = Math.floor((smoothPct * duration) / 86400);
-      setDaysPassed((prev) => (prev !== nextDaysPassed ? nextDaysPassed : prev));
+        const nextDaysPassed = Math.floor(elapsedFlight / 86400);
+        setDaysPassed((prev) => (prev !== nextDaysPassed ? nextDaysPassed : prev));
 
-      let targetStatus = "Inertial Cruise";
-      if (smoothPct < 0.15) {
-        targetStatus = "Main Engine Burn";
-        const startBurnPct = 100;
-        const endBurnPct = Math.max(
-          5,
-          ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
-        );
-        fuelRef.current = startBurnPct - (startBurnPct - endBurnPct) * (smoothPct / 0.15);
-      } else if (smoothPct >= 0.85) {
-        targetStatus = captureInfoRef.current.status || "Capture Burn";
-        const startFuelPct = Math.max(
-          5,
-          ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
-        );
-        const finalFuelPct = Math.max(
-          1,
-          ((captureInfoRef.current.remainingDeltaV ?? 0) / maxDeltaVRef.current) * 100.0
-        );
-        const termPct = (smoothPct - 0.85) / 0.15;
-        fuelRef.current = startFuelPct + (finalFuelPct - startFuelPct) * termPct;
+        let targetStatus = "Inertial Cruise";
+        if (pct_flight < 0.15) {
+          targetStatus = "Main Engine Burn";
+          const startBurnPct = 100;
+          const endBurnPct = Math.max(
+            5,
+            ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
+          );
+          fuelRef.current = startBurnPct - (startBurnPct - endBurnPct) * (pct_flight / 0.15);
+        } else if (pct_flight >= 0.85) {
+          targetStatus = captureInfoRef.current.status || "Capture Burn";
+          const startFuelPct = Math.max(
+            5,
+            ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
+          );
+          const finalFuelPct = Math.max(
+            1,
+            ((captureInfoRef.current.remainingDeltaV ?? 0) / maxDeltaVRef.current) * 100.0
+          );
+          const termPct = (pct_flight - 0.85) / 0.15;
+          fuelRef.current = startFuelPct + (finalFuelPct - startFuelPct) * termPct;
+        } else {
+          const cruiseFuelPct = Math.max(
+            5,
+            ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
+          );
+          fuelRef.current = cruiseFuelPct;
+        }
+
+        setStatus((prev) => (prev !== targetStatus ? targetStatus : prev));
+        if (lastStatusRef.current !== targetStatus) {
+          lastStatusRef.current = targetStatus;
+          if (onStatusUpdate) onStatusUpdate(targetStatus);
+        }
       } else {
-        const cruiseFuelPct = Math.max(
-          5,
-          ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
-        );
-        fuelRef.current = cruiseFuelPct;
-      }
+        // 3. Arrived phase (Arrived at destination)
+        setReachedDestination(true);
+        if (activeSpeedRef) {
+          activeSpeedRef.current = -1; // Give control back to user slider
+        }
 
-      setStatus((prev) => (prev !== targetStatus ? targetStatus : prev));
-      if (lastStatusRef.current !== targetStatus) {
-        lastStatusRef.current = targetStatus;
-        if (onStatusUpdate) onStatusUpdate(targetStatus);
+        if (targetPlanet) {
+          const { pos, lookAtPos } = getParkingOrbitPosition(targetPlanet, globalTimeRef.current);
+          shuttleRef.current.position.copy(pos);
+          shuttleRef.current.lookAt(lookAtPos);
+        }
+
+        if (!captureTimeRef.current) {
+          captureTimeRef.current = globalTimeRef.current;
+        }
+
+        const daysArrived = (globalTimeRef.current - arrivalTime) / 86400;
+        setStayTimeDays(Math.floor(daysArrived));
+
+        let targetStatus = captureInfoRef.current.status || "Orbit Capture";
+        if (captureInfoRef.current.isOvershot) {
+          targetStatus = "OVERSHOT - INSUFFICIENT FUEL";
+          fuelRef.current = 0;
+        } else {
+          const finalFuelPct = Math.max(
+            1,
+            ((captureInfoRef.current.remainingDeltaV ?? 0) / maxDeltaVRef.current) * 100.0
+          );
+          fuelRef.current = finalFuelPct;
+        }
+
+        setStatus((prev) => (prev !== targetStatus ? targetStatus : prev));
+        if (lastStatusRef.current !== targetStatus) {
+          lastStatusRef.current = targetStatus;
+          if (onStatusUpdate) onStatusUpdate(targetStatus);
+        }
       }
     } else {
-      // 3. Arrived phase
-      setReachedDestination(true);
-      if (activeSpeedRef) {
-        activeSpeedRef.current = -1; // Give control back to the user slider
-      }
+      // ==========================================
+      // AUTOMATIC TIME DILATION (WARP MODE)
+      // ==========================================
+      if (elapsedRealTimeRef.current < WAIT_DURATION) {
+        // 1. Waiting / Warping phase
+        const pct_wait = elapsedRealTimeRef.current / WAIT_DURATION;
+        // Cubic ease-in-out curve
+        const smoothPctWait = pct_wait < 0.5 ? 4 * pct_wait * pct_wait * pct_wait : 1 - Math.pow(-2 * pct_wait + 2, 3) / 2;
+        
+        const initialSimTime = initialSimTimeRef.current;
+        const bestDepTime = bestDepTimeRef.current;
+        globalTimeRef.current = initialSimTime + smoothPctWait * (bestDepTime - initialSimTime);
+        
+        if (activeSpeedRef) {
+          activeSpeedRef.current = 0; // Lock standard increment to prevent double stepping clock
+        }
 
-      if (targetPlanet) {
-        const { pos, lookAtPos } = getParkingOrbitPosition(targetPlanet, globalTimeRef.current);
-        shuttleRef.current.position.copy(pos);
-        shuttleRef.current.lookAt(lookAtPos);
-      }
+        // Shuttle sits in parking orbit around the launch planet
+        const launchPlName = launchParams.launchPlanet || "Earth";
+        const launchPlanetObj = PLANETS.find(p => p.name === launchPlName);
+        if (launchPlanetObj) {
+          const { pos, lookAtPos } = getParkingOrbitPosition(launchPlanetObj, globalTimeRef.current);
+          shuttleRef.current.position.copy(pos);
+          shuttleRef.current.lookAt(lookAtPos);
+        }
 
-      if (!captureTimeRef.current) {
-        captureTimeRef.current = globalTimeRef.current;
-      }
-      const nextStayTime = Math.floor((globalTimeRef.current - captureTimeRef.current) / 86400);
-      setStayTimeDays((prev) => (prev !== nextStayTime ? nextStayTime : prev));
+        const daysRem = (bestDepTime - globalTimeRef.current) / 86400;
+        const newStatus = `WAITING: ${Math.max(0, Math.round(daysRem))} days rem.`;
+        setStatus(newStatus);
+        if (lastStatusRef.current !== newStatus) {
+          lastStatusRef.current = newStatus;
+          if (onStatusUpdate) onStatusUpdate(newStatus);
+        }
+      } else if (elapsedRealTimeRef.current < WAIT_DURATION + FLIGHT_DURATION) {
+        // 2. Flight phase
+        const pct_flight = (elapsedRealTimeRef.current - WAIT_DURATION) / FLIGHT_DURATION;
+        // Cubic ease-in-out curve
+        const smoothPct = pct_flight < 0.5 ? 4 * pct_flight * pct_flight * pct_flight : 1 - Math.pow(-2 * pct_flight + 2, 3) / 2;
 
-      let targetStatus = captureInfoRef.current.status || "Orbit Capture";
-      if (captureInfoRef.current.isOvershot) {
-        targetStatus = "OVERSHOT - INSUFFICIENT FUEL";
-        fuelRef.current = 0;
+        globalTimeRef.current = bestDepTimeRef.current + smoothPct * duration;
+        progressRef.current = smoothPct * maxIdx;
+
+        if (activeSpeedRef) {
+          activeSpeedRef.current = 0; // Lock standard increment to prevent double stepping clock
+        }
+
+        let currentIdx = Math.floor(progressRef.current);
+        if (currentIdx >= maxIdx) {
+          currentIdx = maxIdx - 1;
+          progressRef.current = maxIdx;
+        }
+
+        const p1 = points[currentIdx];
+        const p2 = points[currentIdx + 1];
+        if (p1 && p2) {
+          const t = progressRef.current - currentIdx;
+          shuttleRef.current.position.lerpVectors(p1, p2, t);
+          shuttleRef.current.lookAt(p2);
+        }
+
+        const nextDaysPassed = Math.floor((smoothPct * duration) / 86400);
+        setDaysPassed((prev) => (prev !== nextDaysPassed ? nextDaysPassed : prev));
+
+        let targetStatus = "Inertial Cruise";
+        if (smoothPct < 0.15) {
+          targetStatus = "Main Engine Burn";
+          const startBurnPct = 100;
+          const endBurnPct = Math.max(
+            5,
+            ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
+          );
+          fuelRef.current = startBurnPct - (startBurnPct - endBurnPct) * (smoothPct / 0.15);
+        } else if (smoothPct >= 0.85) {
+          targetStatus = captureInfoRef.current.status || "Capture Burn";
+          const startFuelPct = Math.max(
+            5,
+            ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
+          );
+          const finalFuelPct = Math.max(
+            1,
+            ((captureInfoRef.current.remainingDeltaV ?? 0) / maxDeltaVRef.current) * 100.0
+          );
+          const termPct = (smoothPct - 0.85) / 0.15;
+          fuelRef.current = startFuelPct + (finalFuelPct - startFuelPct) * termPct;
+        } else {
+          const cruiseFuelPct = Math.max(
+            5,
+            ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
+          );
+          fuelRef.current = cruiseFuelPct;
+        }
+
+        setStatus((prev) => (prev !== targetStatus ? targetStatus : prev));
+        if (lastStatusRef.current !== targetStatus) {
+          lastStatusRef.current = targetStatus;
+          if (onStatusUpdate) onStatusUpdate(targetStatus);
+        }
       } else {
-        const finalFuelPct = Math.max(
-          1,
-          ((captureInfoRef.current.remainingDeltaV ?? 0) / maxDeltaVRef.current) * 100.0
-        );
-        fuelRef.current = finalFuelPct;
-      }
+        // 3. Arrived phase
+        setReachedDestination(true);
+        if (activeSpeedRef) {
+          activeSpeedRef.current = -1; // Give control back to the user slider
+        }
 
-      setStatus((prev) => (prev !== targetStatus ? targetStatus : prev));
-      if (lastStatusRef.current !== targetStatus) {
-        lastStatusRef.current = targetStatus;
-        if (onStatusUpdate) onStatusUpdate(targetStatus);
+        if (targetPlanet) {
+          const { pos, lookAtPos } = getParkingOrbitPosition(targetPlanet, globalTimeRef.current);
+          shuttleRef.current.position.copy(pos);
+          shuttleRef.current.lookAt(lookAtPos);
+        }
+
+        if (!captureTimeRef.current) {
+          captureTimeRef.current = globalTimeRef.current;
+        }
+
+        const daysArrived = (globalTimeRef.current - arrivalTime) / 86400;
+        setStayTimeDays(Math.floor(daysArrived));
+
+        let targetStatus = captureInfoRef.current.status || "Orbit Capture";
+        if (captureInfoRef.current.isOvershot) {
+          targetStatus = "OVERSHOT - INSUFFICIENT FUEL";
+          fuelRef.current = 0;
+        } else {
+          const finalFuelPct = Math.max(
+            1,
+            ((captureInfoRef.current.remainingDeltaV ?? 0) / maxDeltaVRef.current) * 100.0
+          );
+          fuelRef.current = finalFuelPct;
+        }
+
+        setStatus((prev) => (prev !== targetStatus ? targetStatus : prev));
+        if (lastStatusRef.current !== targetStatus) {
+          lastStatusRef.current = targetStatus;
+          if (onStatusUpdate) onStatusUpdate(targetStatus);
+        }
       }
     }
   });
