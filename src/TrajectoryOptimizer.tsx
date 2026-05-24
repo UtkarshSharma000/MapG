@@ -38,10 +38,8 @@ export const PLANETS: Record<number, {
   4: { name:'Mars',    a:1.5237, e:0.0934, inc_deg:1.85,  raan_deg:49.56,  argp_deg:286.50, M0_deg:355.43, T_days:686.97 },
   5: { name:'Jupiter', a:5.2034, e:0.0489, inc_deg:1.30,  raan_deg:100.46, argp_deg:273.87, M0_deg:34.40,  T_days:4332.6 },
   6: { name:'Saturn',  a:9.5371, e:0.0565, inc_deg:2.49,  raan_deg:113.66, argp_deg:339.39, M0_deg:50.08,  T_days:10759  },
-  7: { name:'Uranus',  a:19.2010, e:0.0457, inc_deg:0.77,  raan_deg:74.0,   argp_deg:96.6,   M0_deg:142.00, T_days:30688  },
-  8: { name:'Neptune', a:30.0470, e:0.0113, inc_deg:1.77,  raan_deg:131.7,  argp_deg:273.1,  M0_deg:256.00, T_days:60182  },
 }
-const PLANET_IDS = [1, 2, 3, 4, 5, 6, 7, 8]
+const PLANET_IDS = [1, 2, 3, 4, 5, 6]
 
 const AU_KM  = 1.496e8
 const GM_SUN = 1.327124e20  // m³/s²
@@ -193,44 +191,25 @@ function lambertIzzo(
   return { v1, v2 }
 }
 
-export function getTransferBounds(originId: number, destId: number): { searchDays: number, tofMin: number, tofMax: number } {
-  const p1 = PLANETS[originId] || PLANETS[3];
-  const p2 = PLANETS[destId] || PLANETS[4];
-  const aTransfer = (p1.a + p2.a) / 2.0;
-  const hohmannTofDays = 182.62 * Math.pow(aTransfer, 1.5);
-  
-  // Set nice, generous bounds around the Hohmann TOF
-  const tofMin = Math.max(10, Math.round(hohmannTofDays * 0.4));
-  const tofMax = Math.max(60, Math.round(hohmannTofDays * 1.8));
-  const searchDays = Math.max(800, Math.round(hohmannTofDays * 0.6));
-  
-  return { searchDays, tofMin, tofMax };
-}
-
 // ── Porkchop scan ──────────────────────────────────────────────────────────
 export function scanPorkchop(
   originId: number,
   destId: number,
   t0_days: number,
-  searchDays?: number,
-  tofMin?: number,
-  tofMax?: number,
-  steps = 50
+  searchDays = 800,
+  tofMin = 60,
+  tofMax = 800,
+  steps = 60
 ): OptimizeResult | null {
-  const bounds = getTransferBounds(originId, destId);
-  const sDays = (searchDays !== undefined && searchDays > 0) ? searchDays : bounds.searchDays;
-  const tMin = (tofMin !== undefined && tofMin > 0) ? tofMin : bounds.tofMin;
-  const tMax = (tofMax !== undefined && tofMax > 0) ? tofMax : bounds.tofMax;
-
   const AU_to_km = AU_KM
   let best: OptimizeResult | null = null
   let bestDv = Infinity
 
   for (let di = 0; di < steps; di++) {
-    const launch_days = t0_days + (di / steps) * sDays
+    const launch_days = t0_days + (di / steps) * searchDays
 
     for (let ti = 0; ti < steps; ti++) {
-      const tof_days = tMin + (ti / steps) * (tMax - tMin)
+      const tof_days = tofMin + (ti / steps) * (tofMax - tofMin)
       const tof_s    = tof_days * 86400
 
       const s1 = planetStateVector(originId, launch_days)
@@ -277,11 +256,11 @@ function findBestFlyby(
   const allRes = [];
 
   for (const flybyId of candidates) {
-    const leg1 = scanPorkchop(originId, flybyId, t0_days, undefined, undefined, undefined, 40)
+    const leg1 = scanPorkchop(originId, flybyId, t0_days, 600, 60, 500, 40)
     if (!leg1) continue
 
     const leg2ArrivalDay = (leg1.launchDay_j2000 / 86400) + leg1.tof_days
-    const leg2 = scanPorkchop(flybyId, destId, leg2ArrivalDay, undefined, undefined, undefined, 40)
+    const leg2 = scanPorkchop(flybyId, destId, leg2ArrivalDay, 600, 60, 800, 40)
     if (!leg2) continue
 
     const totalDv = leg1.dv1_kms + leg2.dv1_kms
