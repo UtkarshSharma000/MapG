@@ -13,10 +13,11 @@ struct LambertSolution {
 
 class LambertSolver {
 public:
+    // Solve Lambert's problem using universal variable method
     static std::vector<LambertSolution> solve(
         const Eigen::Vector3d& r1, 
         const Eigen::Vector3d& r2, 
-        double tof_seconds, 
+        double tof, 
         double mu, 
         bool prograde = true,
         int max_revs = 0
