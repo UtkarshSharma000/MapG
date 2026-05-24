@@ -358,7 +358,7 @@ int main(int argc, char* argv[]) {
         };
 
         for (int i = 0; i < N; i++) {
-            pts.push_back({sc_pos.x()/1000.0, sc_pos.y()/1000.0, sc_pos.z()/1000.0});
+            pts.push_back({sc_pos.x(), sc_pos.y(), sc_pos.z()});
             auto [v1,a1] = deriv(sc_pos, sc_vel);
             auto [v2,a2] = deriv(sc_pos + 0.5*dt_step*v1, sc_vel + 0.5*dt_step*a1);
             auto [v3,a3] = deriv(sc_pos + 0.5*dt_step*v2, sc_vel + 0.5*dt_step*a2);
