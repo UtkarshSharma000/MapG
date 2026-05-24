@@ -635,9 +635,9 @@ function GhostPath({
       // For now, mapping the launch params to a Lambert request.
       // This is a simplification and should be refined in a production scenario.
       const lbRequest: LambertRequest = {
-        r1: [0, 0, 0], // Needs to be populated from planet state
-        r2: [1e8, 0, 0], // Needs to be populated from planet state
-        tof: 1000000, // Needs to be calculated
+        r1: planetState1,
+        r2: planetState2,
+        tof: tofSeconds,
         mu: 1.327e11,
         prograde: true,
         max_revs: 0
