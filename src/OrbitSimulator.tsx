@@ -838,6 +838,7 @@ function GhostPath({
     if (launchParams.targetPlanet || launchParams.missionLegs) {
       if (globalTimeRef.current < bestDepTimeRef.current) {
         setStatus(`WAITING: ${Math.round((bestDepTimeRef.current - globalTimeRef.current) / 86400)} days rem.`);
+        launchTimeRef.current = globalTimeRef.current;
         return;
       }
       const elapsed = globalTimeRef.current - launchTimeRef.current;
