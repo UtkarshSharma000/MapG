@@ -587,6 +587,7 @@ function GhostPath({
 }) {
   const [points, setPoints] = useState<THREE.Vector3[]>([]);
   const isReadyToLaunchRef = useRef<boolean>(false);
+  const trajectoryLockedRef = useRef<boolean>(false);
   const bestDepTimeRef = useRef<number>(0);
   const shuttleRef = useRef<THREE.Group>(null);
   const progressRef = useRef(0);
@@ -650,6 +651,7 @@ function GhostPath({
 
   const calculateInterplanetaryPath = useCallback(async () => {
     if (!launchParams) return;
+    if (launchParams.isLaunched && trajectoryLockedRef.current) return;
     if (!launchParams.targetPlanet && !launchParams.missionLegs && !(launchParams.isLaunched && launchParams.v0 >= 5)) return;
 
     // Abort any pending calculation
@@ -729,6 +731,13 @@ function GhostPath({
 
   useEffect(() => {
     if (!launchParams) return;
+
+    if (launchParams.isLaunched) {
+      trajectoryLockedRef.current = true;
+      return;
+    } else {
+      trajectoryLockedRef.current = false;
+    }
 
     // Debounce interplanetary calculations to preserve system resources
     const timer = setTimeout(() => {
