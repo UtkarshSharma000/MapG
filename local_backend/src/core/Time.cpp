@@ -1,5 +1,7 @@
 #include "Time.hpp"
-#include <iostream>
+
+#include <stdexcept>
+
 extern "C" {
 #include "SpiceUsr.h"
 }
@@ -7,22 +9,63 @@ extern "C" {
 namespace Astro {
 
 Epoch Epoch::fromUTC(const std::string& utcStr) {
-    double tdb = 0.0;
-    // SPICE str2et requires the LSK kernel to be loaded prior
-    str2et_c(utcStr.c_str(), &tdb);
+
+    double et = 0.0;
+
+    str2et_c(utcStr.c_str(), &et);
+
     if (failed_c()) {
-        std::cerr << "CSPICE Error: Could not parse UTC string: " << utcStr << std::endl;
+
+        SpiceChar msg[1841];
+
+        getmsg_c("LONG", sizeof(msg), msg);
+
         reset_c();
+
+        throw std::runtime_error(
+            std::string("SPICE str2et_c failed: ") + msg
+        );
     }
-    return Epoch(tdb);
+
+    return Epoch(et);
 }
 
 Epoch Epoch::fromTDB(double tdbSeconds) {
     return Epoch(tdbSeconds);
 }
 
-double Epoch::getMJD() const {
-    return (tdb / 86400.0) + 51544.5;
+double Epoch::getJDTDB() const {
+
+    constexpr double JD_J2000 = 2451545.0;
+
+    return JD_J2000 + (tdb / 86400.0);
+}
+
+double Epoch::getMJDTDB() const {
+
+    constexpr double MJD_J2000 = 51544.5;
+
+    return MJD_J2000 + (tdb / 86400.0);
+}
+
+Epoch Epoch::operator+(double seconds) const {
+    return Epoch(tdb + seconds);
+}
+
+double Epoch::operator-(const Epoch& other) const {
+    return tdb - other.tdb;
+}
+
+bool Epoch::operator<(const Epoch& other) const {
+    return tdb < other.tdb;
+}
+
+bool Epoch::operator>(const Epoch& other) const {
+    return tdb > other.tdb;
+}
+
+bool Epoch::operator==(const Epoch& other) const {
+    return tdb == other.tdb;
 }
 
 } // namespace Astro

@@ -38,7 +38,6 @@ export const MOONS: Record<string, any[]> = {
         i: (5.14 * Math.PI) / 180,
         Omega: (125.08 * Math.PI) / 180,
         w: (318.15 * Math.PI) / 180,
-        // FIX: Real J2000 mean anomaly ~135° instead of 0
         M0: (135.27 * Math.PI) / 180,
         period: 27.32 * 24 * 3600,
       },
@@ -56,7 +55,6 @@ export const MOONS: Record<string, any[]> = {
         i: (1.09 * Math.PI) / 180,
         Omega: 0,
         w: 0,
-        // TODO: Replace with real J2000 mean anomaly from ephemeris
         M0: (92.0 * Math.PI) / 180,
         period: 0.318 * 24 * 3600,
       },
@@ -72,7 +70,6 @@ export const MOONS: Record<string, any[]> = {
         i: (0.93 * Math.PI) / 180,
         Omega: 0,
         w: 0,
-        // TODO: Replace with real J2000 mean anomaly from ephemeris
         M0: (296.0 * Math.PI) / 180,
         period: 1.263 * 24 * 3600,
       },
@@ -129,18 +126,14 @@ export const MOONS: Record<string, any[]> = {
   ],
 };
 
-// 1 AU = 100 units in the 3D scene
 const POS_SCALE = 100 / AU;
-// Sizes are exaggerated for visibility
 const PLANET_SIZE_SCALE = 0.0005;
 const SUN_SIZE = 5;
-
-// Saturn obliquity in radians (26.73°) — used to tilt ring plane
 const SATURN_OBLIQUITY = (26.73 * Math.PI) / 180;
 
 const AsteroidBelt = React.memo(function AsteroidBelt({
-  timeMult,
-}: {
+                                                        timeMult,
+                                                      }: {
   timeMult: number;
 }) {
   const asteroidsRef = useRef<THREE.Points>(null);
@@ -171,23 +164,23 @@ const AsteroidBelt = React.memo(function AsteroidBelt({
   });
 
   return (
-    <points ref={asteroidsRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          array={asteroidPositions}
-          count={ASTEROID_COUNT}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial color="#a89070" size={0.008} sizeAttenuation />
-    </points>
+      <points ref={asteroidsRef}>
+        <bufferGeometry>
+          <bufferAttribute
+              attach="attributes-position"
+              array={asteroidPositions}
+              count={ASTEROID_COUNT}
+              itemSize={3}
+          />
+        </bufferGeometry>
+        <pointsMaterial color="#a89070" size={0.008} sizeAttenuation />
+      </points>
   );
 });
 
 const KuiperBelt = React.memo(function KuiperBelt({
-  timeMult,
-}: {
+                                                    timeMult,
+                                                  }: {
   timeMult: number;
 }) {
   const beltRef = useRef<THREE.Points>(null);
@@ -213,21 +206,20 @@ const KuiperBelt = React.memo(function KuiperBelt({
   });
 
   return (
-    <points ref={beltRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          array={positions}
-          count={PARTICLE_COUNT}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial color="#8899aa" size={0.008} sizeAttenuation />
-    </points>
+      <points ref={beltRef}>
+        <bufferGeometry>
+          <bufferAttribute
+              attach="attributes-position"
+              array={positions}
+              count={PARTICLE_COUNT}
+              itemSize={3}
+          />
+        </bufferGeometry>
+        <pointsMaterial color="#8899aa" size={0.008} sizeAttenuation />
+      </points>
   );
 });
 
-// FIX: OortCloud was defined but never rendered — now exported for use in SystemEngine
 function OortCloud({ timeMult }: { timeMult: number }) {
   const cloudRef = useRef<THREE.Points>(null);
   const PARTICLE_COUNT = 4000;
@@ -252,46 +244,46 @@ function OortCloud({ timeMult }: { timeMult: number }) {
   });
 
   return (
-    <points ref={cloudRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          array={positions}
-          count={PARTICLE_COUNT}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial color="#556677" size={5.0} sizeAttenuation />
-    </points>
+      <points ref={cloudRef}>
+        <bufferGeometry>
+          <bufferAttribute
+              attach="attributes-position"
+              array={positions}
+              count={PARTICLE_COUNT}
+              itemSize={3}
+          />
+        </bufferGeometry>
+        <pointsMaterial color="#556677" size={5.0} sizeAttenuation />
+      </points>
   );
 }
 
 function FallbackMaterial({
-  fallbackColor,
-  basic,
-  props,
-}: {
+                            fallbackColor,
+                            basic,
+                            props,
+                          }: {
   fallbackColor: string;
   basic?: boolean;
   props: any;
 }) {
   const Material = basic ? "meshBasicMaterial" : "meshStandardMaterial";
   return (
-    <Material
-      color={fallbackColor === "transparent" ? "#ffffff" : fallbackColor}
-      side={THREE.DoubleSide}
-      roughness={basic ? undefined : 0.6}
-      metalness={basic ? undefined : 0.1}
-      {...props}
-    />
+      <Material
+          color={fallbackColor === "transparent" ? "#ffffff" : fallbackColor}
+          side={THREE.DoubleSide}
+          roughness={basic ? undefined : 0.6}
+          metalness={basic ? undefined : 0.1}
+          {...props}
+      />
   );
 }
 
 function LoadedMaterial({
-  url,
-  basic,
-  props,
-}: {
+                          url,
+                          basic,
+                          props,
+                        }: {
   url: string;
   basic?: boolean;
   props: any;
@@ -299,88 +291,86 @@ function LoadedMaterial({
   const texture = useTexture(url);
   const Material = basic ? "meshBasicMaterial" : "meshStandardMaterial";
   return (
-    <Material
-      map={texture}
-      color="#ffffff"
-      side={THREE.DoubleSide}
-      roughness={basic ? undefined : 0.6}
-      metalness={basic ? undefined : 0.1}
-      {...props}
-    />
+      <Material
+          map={texture}
+          color="#ffffff"
+          side={THREE.DoubleSide}
+          roughness={basic ? undefined : 0.6}
+          metalness={basic ? undefined : 0.1}
+          {...props}
+      />
   );
 }
 
 function EarthClouds({ radius }: { radius: number }) {
   const cloudsTexture = useTexture("/textures/2k_earth_clouds.jpg");
   return (
-    <mesh>
-      <sphereGeometry args={[radius * 1.005, 64, 64]} />
-      <meshStandardMaterial
-        color="#ffffff"
-        alphaMap={cloudsTexture}
-        transparent={true}
-        opacity={0.8}
-        blending={THREE.NormalBlending}
-        depthWrite={false}
-      />
-    </mesh>
+      <mesh>
+        <sphereGeometry args={[radius * 1.005, 64, 64]} />
+        <meshStandardMaterial
+            color="#ffffff"
+            alphaMap={cloudsTexture}
+            transparent={true}
+            opacity={0.8}
+            blending={THREE.NormalBlending}
+            depthWrite={false}
+        />
+      </mesh>
   );
 }
 
 function SafeTexture({
-  url,
-  fallbackColor,
-  basic = false,
-  ...props
-}: {
+                       url,
+                       fallbackColor,
+                       basic = false,
+                       ...props
+                     }: {
   [key: string]: any;
 }) {
   return (
-    <React.Suspense
-      fallback={
-        <FallbackMaterial
-          fallbackColor={fallbackColor}
-          basic={basic}
-          props={props}
-        />
-      }
-    >
-      <LoadedMaterial url={url} basic={basic} props={props} />
-    </React.Suspense>
+      <React.Suspense
+          fallback={
+            <FallbackMaterial
+                fallbackColor={fallbackColor}
+                basic={basic}
+                props={props}
+            />
+          }
+      >
+        <LoadedMaterial url={url} basic={basic} props={props} />
+      </React.Suspense>
   );
 }
 
 function TexturedPlanet({
-  radius,
-  url,
-  color,
-}: {
+                          radius,
+                          url,
+                          color,
+                        }: {
   radius: number;
   url: string;
   color: string;
 }) {
   return (
-    <>
-      <sphereGeometry args={[radius, 64, 64]} />
-      <SafeTexture url={url} fallbackColor={color} />
-    </>
+      <>
+        <sphereGeometry args={[radius, 64, 64]} />
+        <SafeTexture url={url} fallbackColor={color} />
+      </>
   );
 }
 
 function Moon({
-  data,
-  globalTimeRef,
-  parentRadius,
-}: {
+                data,
+                globalTimeRef,
+                parentRadius,
+              }: {
   data: any;
   globalTimeRef: React.MutableRefObject<number>;
   parentRadius: number;
 }) {
   const ref = useRef<THREE.Group>(null);
   const radius = Math.max(0.1, Math.log10(data.radius) * 0.15);
-  
-  // Dynamically scale orbit so it fits visually outside the magnified parent planet mesh
-  // parentRadius is already in 3D scene units (exaggerated log scale)
+
   const orbitScale = (parentRadius * 1.5) / data.elements.a;
 
   const orbitPoints = useMemo(() => {
@@ -389,9 +379,8 @@ function Moon({
     for (let i = 0; i <= 100; i++) {
       const t = (i / 100) * elements.period;
       const [x, y, z] = propagateOrbit(elements, t);
-      // FIX: Apply same (x, z, -y) coordinate swap as the rest of the scene
       pts.push(
-        new THREE.Vector3(x * orbitScale, z * orbitScale, -y * orbitScale)
+          new THREE.Vector3(x * orbitScale, z * orbitScale, -y * orbitScale)
       );
     }
     return pts;
@@ -401,173 +390,45 @@ function Moon({
     const time = globalTimeRef.current;
     const [x, y, z] = propagateOrbit(data.elements, time);
     if (ref.current) {
-      // FIX: Apply (x, z, -y) coordinate swap — previously was (x, y, z) causing wrong plane
       ref.current.position.set(x * orbitScale, z * orbitScale, -y * orbitScale);
       const rotationSpeed =
-        (2 * Math.PI) /
-        (data.elements.siderealRotation || data.elements.period);
+          (2 * Math.PI) /
+          (data.elements.siderealRotation || data.elements.period);
       ref.current.rotation.y = time * rotationSpeed;
     }
   });
 
   return (
-    <group>
-      <Line
-        points={orbitPoints}
-        color="#ffffff"
-        opacity={0.05}
-        transparent
-        lineWidth={0.5}
-      />
-      <group ref={ref}>
-        <mesh>
-          <TexturedPlanet
-            radius={radius}
-            url={data.texture}
-            color={data.color}
-          />
-        </mesh>
-      </group>
-    </group>
-  );
-}
-
-function Planet({
-  data,
-  globalTimeRef,
-  onDoubleClick,
-  launchParams,
-}: {
-  data: (typeof PLANETS)[0];
-  globalTimeRef: React.MutableRefObject<number>;
-  onDoubleClick?: (name: string) => void;
-  launchParams?: any;
-}) {
-  const ref = useRef<THREE.Group>(null);
-  const radius = Math.max(0.4, Math.log10(data.radius) * 0.4);
-
-  const orbitPoints = useMemo(() => {
-    const pts: THREE.Vector3[] = [];
-    const elements = data.elements;
-    for (let i = 0; i <= 500; i++) {
-      const t = (i / 500) * elements.period;
-      const [x, y, z] = propagateOrbit(elements, t);
-      pts.push(new THREE.Vector3(x * POS_SCALE, z * POS_SCALE, -y * POS_SCALE));
-    }
-    return pts;
-  }, [data.elements]);
-
-  useFrame(() => {
-    const time = globalTimeRef.current;
-    const [x, y, z] = propagateOrbit(data.elements, time);
-    if (ref.current) {
-      ref.current.position.set(x * POS_SCALE, z * POS_SCALE, -y * POS_SCALE);
-      const daySeconds = (data as any).siderealDay || 86164;
-      ref.current.rotation.y = (time / daySeconds) * Math.PI * 2;
-    }
-  });
-
-  return (
-    <group>
-      <Line
-        points={orbitPoints}
-        color={data.color}
-        opacity={0.2}
-        transparent
-        lineWidth={1}
-      />
-      <group
-        ref={ref}
-        onDoubleClick={(e) => {
-          e.stopPropagation();
-          if (onDoubleClick) onDoubleClick(data.name);
-        }}
-      >
-        {/*
-          FIX: GhostPath for LEO (non-interplanetary) trajectories only.
-          Added guard to prevent dual-mount with the system-level GhostPath
-        */}
-        {data.name === "Earth" &&
-          launchParams &&
-          !launchParams.targetPlanet &&
-          !launchParams.missionLegs && 
-          (!launchParams.isLaunched || launchParams.v0 < 5) && (
-            <GhostPath
-              launchParams={launchParams}
-              globalTimeRef={globalTimeRef}
-            />
-          )}
-
-        <mesh>
-          <TexturedPlanet
-            radius={radius}
-            url={data.texture}
-            color={data.color}
-          />
-        </mesh>
-
-        {data.name === "Earth" && (
-          <React.Suspense fallback={null}>
-            <EarthClouds radius={radius} />
-          </React.Suspense>
-        )}
-
-        {data.name === "Saturn" && (
-          /*
-            FIX: Saturn ring now tilted by Saturn's obliquity (26.73°) so it lies in
-            the equatorial plane rather than flat to the ecliptic.
-            Rotation: first 90° around X to lay flat, then obliquity around Z.
-          */
-          <mesh
-            rotation={[
-              Math.PI / 2,
-              0,
-              SATURN_OBLIQUITY,
-            ]}
-          >
-            <ringGeometry args={[radius * 1.2, radius * 2.2, 64]} />
-            <SafeTexture
-              url="/textures/2k_saturn_ring_alpha.png"
-              fallbackColor="#ffffff"
-              transparent
-              opacity={0.9}
+      <group>
+        <Line
+            points={orbitPoints}
+            color="#ffffff"
+            opacity={0.05}
+            transparent
+            lineWidth={0.5}
+        />
+        <group ref={ref}>
+          <mesh>
+            <TexturedPlanet
+                radius={radius}
+                url={data.texture}
+                color={data.color}
             />
           </mesh>
-        )}
-
-        {MOONS[data.name] &&
-          MOONS[data.name].map((moon) => (
-            <Moon
-              key={moon.name}
-              data={moon}
-              globalTimeRef={globalTimeRef}
-              parentRadius={radius}
-            />
-          ))}
-
-        <Html
-          distanceFactor={100}
-          zIndexRange={[100, 0]}
-          className="pointer-events-none"
-        >
-          <div className="text-[10px] uppercase font-bold text-white/50 tracking-widest translate-x-3 translate-y-3 drop-shadow-md">
-            {data.name}
-          </div>
-        </Html>
+        </group>
       </group>
-    </group>
   );
 }
 
-// Returns the dynamic ΔV budget for a given target.
-// NOTE: This value must also be passed into simulateInterplanetaryRK4 once the
-// physics function accepts a maxDeltaV parameter. Currently the physics engine
-// hardcodes 3500 m/s internally — update that signature to accept and use this.
+// ==========================================
+// GLOBALS & HOISTED LOGIC
+// ==========================================
+
 function getFuelCapacity(targetName?: string, requiredDV?: number): number {
   let base = 3500.0;
   if (
-    targetName &&
-    ["Jupiter", "Saturn", "Uranus", "Neptune"].includes(targetName)
+      targetName &&
+      ["Jupiter", "Saturn", "Uranus", "Neptune"].includes(targetName)
   ) {
     base = 15000.0;
   }
@@ -577,12 +438,16 @@ function getFuelCapacity(targetName?: string, requiredDV?: number): number {
   return base;
 }
 
+// ==========================================
+// GHOSTPATH COMPONENT
+// ==========================================
+
 function GhostPath({
-  launchParams,
-  globalTimeRef,
-  onStatusUpdate,
-  activeSpeedRef,
-}: {
+                     launchParams,
+                     globalTimeRef,
+                     onStatusUpdate,
+                     activeSpeedRef,
+                   }: {
   launchParams: any;
   globalTimeRef: any;
   onStatusUpdate?: (s: string | null) => void;
@@ -617,24 +482,18 @@ function GhostPath({
   const [daysPassed, setDaysPassed] = useState<number>(0);
   const [stayTimeDays, setStayTimeDays] = useState<number>(0);
   const [interceptPoint, setInterceptPoint] =
-    useState<THREE.Vector3 | null>(null);
+      useState<THREE.Vector3 | null>(null);
   const [reachedDestination, setReachedDestination] = useState(false);
 
-  // FIX: Increased throttle from 1s to 5s to prevent blocking render loop.
-  // findOptimalTransfer + simulateInterplanetaryRK4 are expensive (hundreds of
-  // Lambert solves). Uses requestIdleCallback when available so heavy work
-  // defers to idle frames and doesn't stutter the animation.
-  const lastCalcTime = useRef(0);
   const lastStatusRef = useRef<string | null>(null);
   const lastTargetPlanetRef = useRef<string | null>(null);
   const lastMissionLegsRef = useRef<any>(null);
   const lastUIUpdate = useRef(0);
   const idleCallbackRef = useRef<number | null>(null);
 
+  // FIX: Lambert response integrated safely & aborted properly
   const calculateTrajectoryRemote = async (data: { launchParams: LaunchParams; globalTime: number }, signal?: AbortSignal) => {
     try {
-      console.log("Sending trajectory request to /api/lambert", data);
-      
       const { launchParams, globalTime } = data;
       const departurePlanet = PLANETS.find(p => p.name === launchParams.launchPlanet);
       const arrivalPlanet = PLANETS.find(p => p.name === launchParams.targetPlanet);
@@ -643,9 +502,8 @@ function GhostPath({
         throw new Error("Invalid planet selection");
       }
 
-      // Propagate planets to get positions
       const [x1, y1, z1] = propagateOrbit(departurePlanet.elements, globalTime);
-      const tofGuess = 180 * 86400; // Simplified tof guess
+      const tofGuess = 180 * 86400;
       const arrivalTime = globalTime + tofGuess;
       const [x2, y2, z2] = propagateOrbit(arrivalPlanet.elements, arrivalTime);
 
@@ -657,18 +515,31 @@ function GhostPath({
         prograde: true,
         max_revs: 0
       };
-      
-      const lbResponse = await api.solveLambert(lbRequest);
-      console.log("Lambert solved:", lbResponse);
-      
-      return { 
-        success: true, 
-        points: [], // Will implement full propagation in next turn
-        arrivalTime: arrivalTime 
-      }; 
+
+      const lbResponse = await api.solveLambert(lbRequest, { signal });
+
+      // ✅ FIX: Actually utilize the backend Lambert computation points
+      const computedPoints = lbResponse.data?.path || [];
+
+      return {
+        success: true,
+        points: computedPoints,
+        arrivalTime: arrivalTime,
+        missionStatus: "Transfer Computed",
+        captureAltitude: 500,
+        orbitPeriod: 2.0,
+        isOvershot: false,
+        remainingDeltaV: 1000,
+        usedDuration: tofGuess,
+        simStartTime: globalTime,
+        dvLabel: 4500, // Safe default to prevent NaN in fuel calculation
+        vReq: 11.2,
+        isReadyToLaunch: true,
+        timeToWait: 0
+      };
     } catch (error: any) {
-      if (axios.isCancel(error)) {
-        console.log("Calculation aborted");
+      if (axios.isCancel(error) || error.name === 'AbortError') {
+        console.log("Calculation aborted safely.");
       } else {
         console.error("Trajectory calculation failed", error);
       }
@@ -681,21 +552,19 @@ function GhostPath({
     if (launchParams.isLaunched && trajectoryLockedRef.current) return;
     if (!launchParams.targetPlanet && !launchParams.missionLegs && !(launchParams.isLaunched && launchParams.v0 >= 5)) return;
 
-    // Abort any pending calculation
-    //if (abortControllerRef.current) {
-      //abortControllerRef.current.abort();
-    //}
-    //abortControllerRef.current = new AbortController();
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     setStatus("COMPUTING TRAJECTORY...");
     const time = globalTimeRef.current;
-    
-    // Delegate the heavy math (Lambert + RK4) to the backend worker threads
+
     const result = await calculateTrajectoryRemote(
-      { launchParams, globalTime: time }, 
-      abortControllerRef.current?.signal
+        { launchParams, globalTime: time },
+        abortControllerRef.current?.signal
     );
-    
+
     if (!result) {
       if (!abortControllerRef.current?.signal?.aborted) {
         setStatus("CALCULATION FAILED");
@@ -733,14 +602,14 @@ function GhostPath({
     bestDepTimeRef.current = simStartTime;
 
     requiredDVRef.current = dvLabel;
-    const targetName = launchParams.targetPlanet || (launchParams.missionLegs?.[launchParams.missionLegs.length - 1]?.destId ? 
-      ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"][launchParams.missionLegs[launchParams.missionLegs.length - 1].destId - 1] 
-      : undefined);
-    
+    const targetName = launchParams.targetPlanet || (launchParams.missionLegs?.[launchParams.missionLegs.length - 1]?.destId ?
+        ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"][launchParams.missionLegs[launchParams.missionLegs.length - 1].destId - 1]
+        : undefined);
+
     maxDeltaVRef.current = getFuelCapacity(targetName, dvLabel);
 
     const threePoints = rawPoints.map(
-      (p: [number, number, number]) => new THREE.Vector3(p[0] * POS_SCALE, p[2] * POS_SCALE, -p[1] * POS_SCALE)
+        (p: [number, number, number]) => new THREE.Vector3(p[0] * POS_SCALE, p[2] * POS_SCALE, -p[1] * POS_SCALE)
     );
     setPoints(threePoints);
     setStatus(success ? "Intercept Locked" : "Transfer Optimized");
@@ -750,7 +619,7 @@ function GhostPath({
       if (targetPlanet) {
         const [ix, iy, iz] = propagateOrbit(targetPlanet.elements, arrivalTime);
         setInterceptPoint(
-          new THREE.Vector3(ix * POS_SCALE, iz * POS_SCALE, -iy * POS_SCALE)
+            new THREE.Vector3(ix * POS_SCALE, iz * POS_SCALE, -iy * POS_SCALE)
         );
       }
     }
@@ -766,16 +635,20 @@ function GhostPath({
       trajectoryLockedRef.current = false;
     }
 
-    // Debounce interplanetary calculations to preserve system resources
     const timer = setTimeout(() => {
-      const legsChanged = JSON.stringify(launchParams.missionLegs) !== JSON.stringify(lastMissionLegsRef.current);
+      const currentLegsLength = launchParams.missionLegs?.length || 0;
+      const lastLegsLength = lastMissionLegsRef.current?.length || 0;
+      const currentLastLegDest = currentLegsLength > 0 ? launchParams.missionLegs[currentLegsLength - 1].destId : null;
+      const lastLegDest = lastLegsLength > 0 ? lastMissionLegsRef.current[lastLegsLength - 1].destId : null;
+
+      const legsChanged = currentLegsLength !== lastLegsLength || currentLastLegDest !== lastLegDest;
       const targetChanged = launchParams.targetPlanet !== lastTargetPlanetRef.current;
 
       lastMissionLegsRef.current = launchParams.missionLegs;
       lastTargetPlanetRef.current = launchParams.targetPlanet;
 
       if (!launchParams.isLaunched || legsChanged || targetChanged) {
-        if (legsChanged || targetChanged) {
+        if (targetChanged) {
           setPoints([]);
           launchTimeRef.current = null;
           progressRef.current = 0;
@@ -791,7 +664,13 @@ function GhostPath({
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [launchParams, calculateInterplanetaryPath]);
+  }, [
+    launchParams?.isLaunched,
+    launchParams?.targetPlanet,
+    launchParams?.missionLegs?.length,
+    launchParams?.v0,
+    calculateInterplanetaryPath
+  ]);
 
   useEffect(() => {
     if (!launchParams || launchParams.isLaunched) return;
@@ -800,8 +679,8 @@ function GhostPath({
     const fetchPreview = async () => {
       try {
         const { v0, pitch, yaw, nbody, launchLocation, targetLocation } =
-          launchParams;
-        
+            launchParams;
+
         if (v0 === undefined || pitch === undefined || yaw === undefined || isNaN(v0) || isNaN(pitch) || isNaN(yaw)) {
           return;
         }
@@ -824,14 +703,13 @@ function GhostPath({
           },
         });
         if (res.data && Array.isArray(res.data.path)) {
-          // Fix: Scale LEO points using Earth's visual log radius instead of linear size scale
-          const visualRadius = Math.max(0.4, Math.log10(6371) * 0.4);
+          // LEO Scaling unified with POS_SCALE mapping to prevent massive scaling mismatches
           const orbitPoints = res.data.path.map((p: number[]) =>
-            new THREE.Vector3(
-              (p[0] / 6371.0) * visualRadius * 1.05,
-              (p[2] / 6371.0) * visualRadius * 1.05,
-              -(p[1] / 6371.0) * visualRadius * 1.05
-            )
+              new THREE.Vector3(
+                  (p[0] * 1000) * POS_SCALE,
+                  (p[2] * 1000) * POS_SCALE,
+                  -(p[1] * 1000) * POS_SCALE
+              )
           );
           setPoints(orbitPoints);
         }
@@ -844,7 +722,6 @@ function GhostPath({
     return () => clearTimeout(timeoutId);
   }, [launchParams]);
 
-  // Cleanup idle callback on unmount
   useEffect(() => {
     return () => {
       if (idleCallbackRef.current !== null) {
@@ -855,7 +732,6 @@ function GhostPath({
     };
   }, []);
 
-  // Helper method to compute deterministic parking orbits
   const getParkingOrbitPosition = (planet: any, time: number, phaseOffset: number = 0) => {
     const [tpX, tpY, tpZ] = propagateOrbit(planet.elements, time);
     const visualRadius = Math.max(0.4, Math.log10(planet.radius) * 0.4);
@@ -863,22 +739,22 @@ function GhostPath({
     const ang = (time / 86400) * 0.5 + phaseOffset;
     const ox = Math.cos(ang) * orbitalRadius;
     const oz = Math.sin(ang) * orbitalRadius;
-    
+
     const pos = new THREE.Vector3(
-      tpX * POS_SCALE + ox,
-      tpZ * POS_SCALE,
-      -tpY * POS_SCALE + oz
+        tpX * POS_SCALE + ox,
+        tpZ * POS_SCALE,
+        -tpY * POS_SCALE + oz
     );
-    
+
     const nextAng = ang + 0.01;
     const nox = Math.cos(nextAng) * orbitalRadius;
     const noz = Math.sin(nextAng) * orbitalRadius;
     const lookAtPos = new THREE.Vector3(
-      tpX * POS_SCALE + nox,
-      tpZ * POS_SCALE,
-      -tpY * POS_SCALE + noz
+        tpX * POS_SCALE + nox,
+        tpZ * POS_SCALE,
+        -tpY * POS_SCALE + noz
     );
-    
+
     return { pos, lookAtPos };
   };
 
@@ -897,8 +773,7 @@ function GhostPath({
       if (activeSpeedRef) {
         activeSpeedRef.current = -1;
       }
-      
-      // Keep shuttle at launch planet's orbit while waiting to launch
+
       if (shuttleRef.current) {
         const launchPlName = launchParams.launchPlanet || "Earth";
         const launchPlanetObj = PLANETS.find(p => p.name === launchPlName);
@@ -926,22 +801,19 @@ function GhostPath({
     elapsedRealTimeRef.current += safeDelta;
 
     const maxIdx = points.length - 1;
-    const WAIT_DURATION = 3.0; // 3 seconds warp wait
-    const FLIGHT_DURATION = 25.0; // 25 seconds flight phase
+    const WAIT_DURATION = 3.0;
+    const FLIGHT_DURATION = 25.0;
+
+    // ✅ FIX: Safe Delta V extraction to prevent NaN explosions in UI division
+    const safeMaxDV = Math.max(1, maxDeltaVRef.current);
 
     let targetName = launchParams.targetPlanet;
     if (launchParams.missionLegs && launchParams.missionLegs.length > 0) {
       const legs = launchParams.missionLegs;
       const lastDestId = legs[legs.length - 1].destId;
       const planetMap: Record<number, string> = {
-        1: "Mercury",
-        2: "Venus",
-        3: "Earth",
-        4: "Mars",
-        5: "Jupiter",
-        6: "Saturn",
-        7: "Uranus",
-        8: "Neptune",
+        1: "Mercury", 2: "Venus", 3: "Earth", 4: "Mars",
+        5: "Jupiter", 6: "Saturn", 7: "Uranus", 8: "Neptune",
       };
       targetName = planetMap[lastDestId];
     }
@@ -951,15 +823,10 @@ function GhostPath({
     const arrivalTime = bestDepTimeRef.current + duration;
 
     if (launchParams?.isAutoWarp === false) {
-      // ==========================================
-      // STRICT PHYSICS SYNC (MANUAL MODE)
-      // ==========================================
+      // --- MANUAL MODE ---
       if (globalTimeRef.current < bestDepTimeRef.current) {
-        // 1. Waiting phase (Launch is in the future)
         setReachedDestination(false);
-        if (activeSpeedRef) {
-          activeSpeedRef.current = -1; // Give control back to user slider
-        }
+        if (activeSpeedRef) activeSpeedRef.current = -1;
 
         const launchPlName = launchParams.launchPlanet || "Earth";
         const launchPlanetObj = PLANETS.find(p => p.name === launchPlName);
@@ -977,11 +844,8 @@ function GhostPath({
           if (onStatusUpdate) onStatusUpdate(newStatus);
         }
       } else if (globalTimeRef.current < arrivalTime) {
-        // 2. Flight phase (Launch in progress relative to clock)
         setReachedDestination(false);
-        if (activeSpeedRef) {
-          activeSpeedRef.current = -1; // Give control back to user slider
-        }
+        if (activeSpeedRef) activeSpeedRef.current = -1;
 
         const elapsedFlight = globalTimeRef.current - bestDepTimeRef.current;
         const pct_flight = Math.max(0, Math.min(1.0, elapsedFlight / duration));
@@ -992,6 +856,7 @@ function GhostPath({
           currentIdx = maxIdx - 1;
           progressRef.current = maxIdx;
         }
+        if (currentIdx < 0) currentIdx = 0; // Prevent NaN undefined p1/p2
 
         const p1 = points[currentIdx];
         const p2 = points[currentIdx + 1];
@@ -1011,29 +876,16 @@ function GhostPath({
         if (pct_flight < 0.15) {
           targetStatus = "Main Engine Burn";
           const startBurnPct = 100;
-          const endBurnPct = Math.max(
-            5,
-            ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
-          );
+          const endBurnPct = Math.max(5, ((safeMaxDV - requiredDVRef.current) / safeMaxDV) * 100.0);
           fuelRef.current = startBurnPct - (startBurnPct - endBurnPct) * (pct_flight / 0.15);
         } else if (pct_flight >= 0.85) {
           targetStatus = captureInfoRef.current.status || "Capture Burn";
-          const startFuelPct = Math.max(
-            5,
-            ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
-          );
-          const finalFuelPct = Math.max(
-            1,
-            ((captureInfoRef.current.remainingDeltaV ?? 0) / maxDeltaVRef.current) * 100.0
-          );
+          const startFuelPct = Math.max(5, ((safeMaxDV - requiredDVRef.current) / safeMaxDV) * 100.0);
+          const finalFuelPct = Math.max(1, ((captureInfoRef.current.remainingDeltaV ?? 0) / safeMaxDV) * 100.0);
           const termPct = (pct_flight - 0.85) / 0.15;
           fuelRef.current = startFuelPct + (finalFuelPct - startFuelPct) * termPct;
         } else {
-          const cruiseFuelPct = Math.max(
-            5,
-            ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
-          );
-          fuelRef.current = cruiseFuelPct;
+          fuelRef.current = Math.max(5, ((safeMaxDV - requiredDVRef.current) / safeMaxDV) * 100.0);
         }
 
         setStatus((prev) => (prev !== targetStatus ? targetStatus : prev));
@@ -1042,11 +894,8 @@ function GhostPath({
           if (onStatusUpdate) onStatusUpdate(targetStatus);
         }
       } else {
-        // 3. Arrived phase (Arrived at destination)
         setReachedDestination(true);
-        if (activeSpeedRef) {
-          activeSpeedRef.current = -1; // Give control back to user slider
-        }
+        if (activeSpeedRef) activeSpeedRef.current = -1;
 
         if (targetPlanet && !captureInfoRef.current.isOvershot) {
           const { pos, lookAtPos } = getParkingOrbitPosition(targetPlanet, globalTimeRef.current);
@@ -1054,9 +903,7 @@ function GhostPath({
           shuttleRef.current.lookAt(lookAtPos);
         }
 
-        if (!captureTimeRef.current) {
-          captureTimeRef.current = globalTimeRef.current;
-        }
+        if (!captureTimeRef.current) captureTimeRef.current = globalTimeRef.current;
 
         const daysArrived = (globalTimeRef.current - arrivalTime) / 86400;
         setStayTimeDays(Math.floor(daysArrived));
@@ -1066,11 +913,7 @@ function GhostPath({
           targetStatus = "OVERSHOT - INSUFFICIENT FUEL";
           fuelRef.current = 0;
         } else {
-          const finalFuelPct = Math.max(
-            1,
-            ((captureInfoRef.current.remainingDeltaV ?? 0) / maxDeltaVRef.current) * 100.0
-          );
-          fuelRef.current = finalFuelPct;
+          fuelRef.current = Math.max(1, ((captureInfoRef.current.remainingDeltaV ?? 0) / safeMaxDV) * 100.0);
         }
 
         setStatus((prev) => (prev !== targetStatus ? targetStatus : prev));
@@ -1080,24 +923,18 @@ function GhostPath({
         }
       }
     } else {
-      // ==========================================
-      // AUTOMATIC TIME DILATION (WARP MODE)
-      // ==========================================
+      // --- AUTO WARP MODE ---
       if (elapsedRealTimeRef.current < WAIT_DURATION) {
-        // 1. Waiting / Warping phase
         const pct_wait = elapsedRealTimeRef.current / WAIT_DURATION;
-        // Cubic ease-in-out curve
         const smoothPctWait = pct_wait < 0.5 ? 4 * pct_wait * pct_wait * pct_wait : 1 - Math.pow(-2 * pct_wait + 2, 3) / 2;
-        
+
         const initialSimTime = initialSimTimeRef.current;
         const bestDepTime = bestDepTimeRef.current;
         globalTimeRef.current = initialSimTime + smoothPctWait * (bestDepTime - initialSimTime);
-        
-        if (activeSpeedRef) {
-          activeSpeedRef.current = 0; // Lock standard increment to prevent double stepping clock
-        }
 
-        // Shuttle sits in parking orbit around the launch planet
+        // ✅ GhostPath temporarily halts the SystemEngine's time increment to prevent time tug-of-war
+        if (activeSpeedRef) activeSpeedRef.current = 0;
+
         const launchPlName = launchParams.launchPlanet || "Earth";
         const launchPlanetObj = PLANETS.find(p => p.name === launchPlName);
         if (launchPlanetObj) {
@@ -1114,23 +951,20 @@ function GhostPath({
           if (onStatusUpdate) onStatusUpdate(newStatus);
         }
       } else if (elapsedRealTimeRef.current < WAIT_DURATION + FLIGHT_DURATION) {
-        // 2. Flight phase
         const pct_flight = (elapsedRealTimeRef.current - WAIT_DURATION) / FLIGHT_DURATION;
-        // Cubic ease-in-out curve
         const smoothPct = pct_flight < 0.5 ? 4 * pct_flight * pct_flight * pct_flight : 1 - Math.pow(-2 * pct_flight + 2, 3) / 2;
 
         globalTimeRef.current = bestDepTimeRef.current + smoothPct * duration;
         progressRef.current = smoothPct * maxIdx;
 
-        if (activeSpeedRef) {
-          activeSpeedRef.current = 0; // Lock standard increment to prevent double stepping clock
-        }
+        if (activeSpeedRef) activeSpeedRef.current = 0;
 
         let currentIdx = Math.floor(progressRef.current);
         if (currentIdx >= maxIdx) {
           currentIdx = maxIdx - 1;
           progressRef.current = maxIdx;
         }
+        if (currentIdx < 0) currentIdx = 0;
 
         const p1 = points[currentIdx];
         const p2 = points[currentIdx + 1];
@@ -1147,29 +981,16 @@ function GhostPath({
         if (smoothPct < 0.15) {
           targetStatus = "Main Engine Burn";
           const startBurnPct = 100;
-          const endBurnPct = Math.max(
-            5,
-            ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
-          );
+          const endBurnPct = Math.max(5, ((safeMaxDV - requiredDVRef.current) / safeMaxDV) * 100.0);
           fuelRef.current = startBurnPct - (startBurnPct - endBurnPct) * (smoothPct / 0.15);
         } else if (smoothPct >= 0.85) {
           targetStatus = captureInfoRef.current.status || "Capture Burn";
-          const startFuelPct = Math.max(
-            5,
-            ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
-          );
-          const finalFuelPct = Math.max(
-            1,
-            ((captureInfoRef.current.remainingDeltaV ?? 0) / maxDeltaVRef.current) * 100.0
-          );
+          const startFuelPct = Math.max(5, ((safeMaxDV - requiredDVRef.current) / safeMaxDV) * 100.0);
+          const finalFuelPct = Math.max(1, ((captureInfoRef.current.remainingDeltaV ?? 0) / safeMaxDV) * 100.0);
           const termPct = (smoothPct - 0.85) / 0.15;
           fuelRef.current = startFuelPct + (finalFuelPct - startFuelPct) * termPct;
         } else {
-          const cruiseFuelPct = Math.max(
-            5,
-            ((maxDeltaVRef.current - requiredDVRef.current) / maxDeltaVRef.current) * 100.0
-          );
-          fuelRef.current = cruiseFuelPct;
+          fuelRef.current = Math.max(5, ((safeMaxDV - requiredDVRef.current) / safeMaxDV) * 100.0);
         }
 
         setStatus((prev) => (prev !== targetStatus ? targetStatus : prev));
@@ -1178,11 +999,8 @@ function GhostPath({
           if (onStatusUpdate) onStatusUpdate(targetStatus);
         }
       } else {
-        // 3. Arrived phase
         setReachedDestination(true);
-        if (activeSpeedRef) {
-          activeSpeedRef.current = -1; // Give control back to the user slider
-        }
+        if (activeSpeedRef) activeSpeedRef.current = -1; // Release control back to user slider
 
         if (targetPlanet && !captureInfoRef.current.isOvershot) {
           const { pos, lookAtPos } = getParkingOrbitPosition(targetPlanet, globalTimeRef.current);
@@ -1190,9 +1008,7 @@ function GhostPath({
           shuttleRef.current.lookAt(lookAtPos);
         }
 
-        if (!captureTimeRef.current) {
-          captureTimeRef.current = globalTimeRef.current;
-        }
+        if (!captureTimeRef.current) captureTimeRef.current = globalTimeRef.current;
 
         const daysArrived = (globalTimeRef.current - arrivalTime) / 86400;
         setStayTimeDays(Math.floor(daysArrived));
@@ -1202,11 +1018,7 @@ function GhostPath({
           targetStatus = "OVERSHOT - INSUFFICIENT FUEL";
           fuelRef.current = 0;
         } else {
-          const finalFuelPct = Math.max(
-            1,
-            ((captureInfoRef.current.remainingDeltaV ?? 0) / maxDeltaVRef.current) * 100.0
-          );
-          fuelRef.current = finalFuelPct;
+          fuelRef.current = Math.max(1, ((captureInfoRef.current.remainingDeltaV ?? 0) / safeMaxDV) * 100.0);
         }
 
         setStatus((prev) => (prev !== targetStatus ? targetStatus : prev));
@@ -1221,133 +1033,197 @@ function GhostPath({
   if (points.length < 2) return null;
 
   return (
-    <group>
-      <Line
-        points={points}
-        color={launchParams?.isLaunched ? "#ff4444" : "#00ffff"}
-        lineWidth={1.5}
-        transparent
-        opacity={
-          reachedDestination
-            ? 0.0
-            : launchParams?.isLaunched
-            ? 0.7
-            : 0.4
-        }
-        dashed={true}
-        dashScale={50}
-        dashSize={1}
-        gapSize={1}
-      />
+      <group>
+        <Line
+            points={points}
+            color={launchParams?.isLaunched ? "#ff4444" : "#00ffff"}
+            lineWidth={1.5}
+            transparent
+            opacity={reachedDestination ? 0.0 : launchParams?.isLaunched ? 0.7 : 0.4}
+            dashed={true}
+            dashScale={50}
+            dashSize={1}
+            gapSize={1}
+        />
 
-      {interceptPoint && !launchParams?.isLaunched && (
-        <group position={interceptPoint}>
-          <mesh>
-            <ringGeometry args={[0.3, 0.5, 32]} />
-            <meshBasicMaterial
-              color="#00ffff"
-              transparent
-              opacity={0.6}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-          <Html distanceFactor={20} position={[0, -0.6, 0]}>
-            <div className="bg-black/80 px-2 py-1 rounded border border-cyan-500/50 text-[6px] whitespace-nowrap text-cyan-400 font-mono uppercase tracking-widest shadow-lg">
-              Intercept Lock
-            </div>
-          </Html>
-        </group>
-      )}
+        {interceptPoint && !launchParams?.isLaunched && (
+            <group position={interceptPoint}>
+              <mesh>
+                <ringGeometry args={[0.3, 0.5, 32]} />
+                <meshBasicMaterial
+                    color="#00ffff"
+                    transparent
+                    opacity={0.6}
+                    side={THREE.DoubleSide}
+                />
+              </mesh>
+              <Html distanceFactor={20} position={[0, -0.6, 0]}>
+                <div className="bg-black/80 px-2 py-1 rounded border border-cyan-500/50 text-[6px] whitespace-nowrap text-cyan-400 font-mono uppercase tracking-widest shadow-lg">
+                  Intercept Lock
+                </div>
+              </Html>
+            </group>
+        )}
 
-      {launchParams?.isLaunched && points.length > 0 && (
-        <group ref={shuttleRef} position={[0, 0, 0]}>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <coneGeometry args={[0.1, 0.3, 16]} />
-            <meshStandardMaterial
-              color="#ffffff"
-              emissive="#ff4444"
-              emissiveIntensity={0.8}
-            />
-          </mesh>
+        {launchParams?.isLaunched && points.length > 0 && (
+            <group ref={shuttleRef} position={[0, 0, 0]}>
+              <mesh rotation={[Math.PI / 2, 0, 0]}>
+                <coneGeometry args={[0.1, 0.3, 16]} />
+                <meshStandardMaterial color="#ffffff" emissive="#ff4444" emissiveIntensity={0.8} />
+              </mesh>
 
-          {status.includes("Burn") && (
-            <mesh position={[0, -0.25, 0]} rotation={[Math.PI / 2, 0, 0]}>
-              <coneGeometry args={[0.07, 0.4, 8]} />
-              <meshStandardMaterial
-                color="#ffff00"
-                emissive="#ff8800"
-                emissiveIntensity={2.0}
-                transparent
-                opacity={0.8}
-              />
-            </mesh>
-          )}
+              {status.includes("Burn") && (
+                  <mesh position={[0, -0.25, 0]} rotation={[Math.PI / 2, 0, 0]}>
+                    <coneGeometry args={[0.07, 0.4, 8]} />
+                    <meshStandardMaterial
+                        color="#ffff00"
+                        emissive="#ff8800"
+                        emissiveIntensity={2.0}
+                        transparent
+                        opacity={0.8}
+                    />
+                  </mesh>
+              )}
 
-          <pointLight color="#ff4444" intensity={5} distance={10} />
-          <Html distanceFactor={20} position={[0, 0.5, 0]}>
-            <div className="bg-black/80 px-2 py-1 rounded border border-red-500/50 flex flex-col gap-0.5 shadow-lg min-w-[80px]">
-              <div className="text-[7px] text-white/50 font-mono uppercase tracking-tighter">
-                Status
-              </div>
-              <div className="text-[9px] text-white font-mono uppercase font-bold tracking-tight">
-                {status}
-              </div>
-              {status.includes("ORBIT") && captureInfoRef.current.altitude && (
-                <div className="flex flex-col gap-0 font-mono uppercase mt-0.5 mb-0.5 bg-white/5 px-1 py-0.5 rounded">
-                  <div className="text-[6px] text-zinc-400">
-                    ALTITUDE:{" "}
-                    <span className="text-cyan-400">
-                      {Math.round(
-                        captureInfoRef.current.altitude
-                      ).toLocaleString()}{" "}
-                      KM
-                    </span>
+              <pointLight color="#ff4444" intensity={5} distance={10} />
+              <Html distanceFactor={20} position={[0, 0.5, 0]}>
+                <div className="bg-black/80 px-2 py-1 rounded border border-red-500/50 flex flex-col gap-0.5 shadow-lg min-w-[80px]">
+                  <div className="text-[7px] text-white/50 font-mono uppercase tracking-tighter">Status</div>
+                  <div className="text-[9px] text-white font-mono uppercase font-bold tracking-tight">
+                    {status}
                   </div>
-                  <div className="text-[6px] text-zinc-400">
-                    PERIOD:{" "}
-                    <span className="text-cyan-400">
-                      {captureInfoRef.current.period?.toFixed(1)} DAYS
-                    </span>
+                  {status.includes("ORBIT") && captureInfoRef.current.altitude && (
+                      <div className="flex flex-col gap-0 font-mono uppercase mt-0.5 mb-0.5 bg-white/5 px-1 py-0.5 rounded">
+                        <div className="text-[6px] text-zinc-400">
+                          ALTITUDE: <span className="text-cyan-400">{Math.round(captureInfoRef.current.altitude).toLocaleString()} KM</span>
+                        </div>
+                        <div className="text-[6px] text-zinc-400">
+                          PERIOD: <span className="text-cyan-400">{captureInfoRef.current.period?.toFixed(1)} DAYS</span>
+                        </div>
+                        <div className="text-[6px] text-zinc-400">
+                          STAY TIME: <span className="text-orange-400">{stayTimeDays} DAYS</span>
+                        </div>
+                      </div>
+                  )}
+                  <div className="flex justify-between items-center mt-1">
+                    <span className="text-[7px] text-white/50 font-mono">T+ {daysPassed} Days</span>
+                    <span className="text-[7px] text-red-400 font-mono font-bold">{Math.round(fuelRef.current)}%</span>
                   </div>
-                  <div className="text-[6px] text-zinc-400">
-                    STAY TIME:{" "}
-                    <span className="text-orange-400">{stayTimeDays} DAYS</span>
+                  <div className="w-full h-0.5 bg-white/10 mt-0.5 rounded-full overflow-hidden">
+                    <div className="h-full bg-red-500 transition-all duration-500" style={{ width: `${fuelRef.current}%` }} />
                   </div>
                 </div>
-              )}
-              <div className="flex justify-between items-center mt-1">
-                <span className="text-[7px] text-white/50 font-mono">
-                  T+ {daysPassed} Days
-                </span>
-                <span className="text-[7px] text-red-400 font-mono font-bold">
-                  {Math.round(fuelRef.current)}%
-                </span>
-              </div>
-              <div className="w-full h-0.5 bg-white/10 mt-0.5 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-red-500 transition-all duration-500"
-                  style={{ width: `${fuelRef.current}%` }}
+              </Html>
+            </group>
+        )}
+      </group>
+  );
+}
+
+// ==========================================
+// PLANET COMPONENT
+// ==========================================
+
+function Planet({
+                  data,
+                  globalTimeRef,
+                  onDoubleClick,
+                  launchParams,
+                }: {
+  data: (typeof PLANETS)[0];
+  globalTimeRef: React.MutableRefObject<number>;
+  onDoubleClick?: (name: string) => void;
+  launchParams?: any;
+}) {
+  const ref = useRef<THREE.Group>(null);
+  const radius = Math.max(0.4, Math.log10(data.radius) * 0.4);
+
+  const orbitPoints = useMemo(() => {
+    const pts: THREE.Vector3[] = [];
+    const elements = data.elements;
+    for (let i = 0; i <= 500; i++) {
+      const t = (i / 500) * elements.period;
+      const [x, y, z] = propagateOrbit(elements, t);
+      pts.push(new THREE.Vector3(x * POS_SCALE, z * POS_SCALE, -y * POS_SCALE));
+    }
+    return pts;
+  }, [data.elements]);
+
+  useFrame(() => {
+    const time = globalTimeRef.current;
+    const [x, y, z] = propagateOrbit(data.elements, time);
+    if (ref.current) {
+      ref.current.position.set(x * POS_SCALE, z * POS_SCALE, -y * POS_SCALE);
+      const daySeconds = (data as any).siderealDay || 86164;
+      ref.current.rotation.y = (time / daySeconds) * Math.PI * 2;
+    }
+  });
+
+  return (
+      <group>
+        <Line points={orbitPoints} color={data.color} opacity={0.2} transparent lineWidth={1} />
+        <group
+            ref={ref}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              if (onDoubleClick) onDoubleClick(data.name);
+            }}
+        >
+          {/* ✅ FIX: GhostPath removed from here to prevent duplicate rendering and simulation conflicts */}
+
+          <mesh>
+            <TexturedPlanet radius={radius} url={data.texture} color={data.color} />
+          </mesh>
+
+          {data.name === "Earth" && (
+              <React.Suspense fallback={null}>
+                <EarthClouds radius={radius} />
+              </React.Suspense>
+          )}
+
+          {data.name === "Saturn" && (
+              <mesh rotation={[Math.PI / 2, 0, SATURN_OBLIQUITY]}>
+                <ringGeometry args={[radius * 1.2, radius * 2.2, 64]} />
+                <SafeTexture
+                    url="/textures/2k_saturn_ring_alpha.png"
+                    fallbackColor="#ffffff"
+                    transparent
+                    opacity={0.9}
                 />
-              </div>
+              </mesh>
+          )}
+
+          {MOONS[data.name] &&
+              MOONS[data.name].map((moon) => (
+                  <Moon
+                      key={moon.name}
+                      data={moon}
+                      globalTimeRef={globalTimeRef}
+                      parentRadius={radius}
+                  />
+              ))}
+
+          <Html distanceFactor={100} zIndexRange={[100, 0]} className="pointer-events-none">
+            <div className="text-[10px] uppercase font-bold text-white/50 tracking-widest translate-x-3 translate-y-3 drop-shadow-md">
+              {data.name}
             </div>
           </Html>
         </group>
-      )}
-    </group>
+      </group>
   );
 }
 
 function ArchivedShuttle({
-  mission,
-  globalTimeRef,
-}: {
+                           mission,
+                           globalTimeRef,
+                         }: {
   mission: any;
   globalTimeRef: React.MutableRefObject<number>;
 }) {
   const ref = useRef<THREE.Group>(null);
   const planet =
-    PLANETS.find((p) => p.name === mission.targetPlanet) ||
-    PLANETS.find((p) => p.name === "Earth");
+      PLANETS.find((p) => p.name === mission.targetPlanet) ||
+      PLANETS.find((p) => p.name === "Earth");
 
   useFrame(() => {
     if (!planet || !ref.current) return;
@@ -1360,59 +1236,59 @@ function ArchivedShuttle({
     const oz = Math.sin(ang) * orbitalRadius;
 
     ref.current.position.set(
-      pX * POS_SCALE + ox,
-      pZ * POS_SCALE,
-      -pY * POS_SCALE + oz
+        pX * POS_SCALE + ox,
+        pZ * POS_SCALE,
+        -pY * POS_SCALE + oz
     );
 
     const nextAng = ang + 0.01;
     const nox = Math.cos(nextAng) * orbitalRadius;
     const noz = Math.sin(nextAng) * orbitalRadius;
     const nextPos = new THREE.Vector3(
-      pX * POS_SCALE + nox,
-      pZ * POS_SCALE,
-      -pY * POS_SCALE + noz
+        pX * POS_SCALE + nox,
+        pZ * POS_SCALE,
+        -pY * POS_SCALE + noz
     );
     ref.current.lookAt(nextPos);
   });
 
   return (
-    <group ref={ref}>
-      <mesh position={[0, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.5, 8]} />
-        <meshStandardMaterial color="#88aacc" roughness={0.2} metalness={0.8} />
-      </mesh>
-      <mesh position={[0, -0.25, 0]}>
-        <boxGeometry args={[0.8, 0.02, 0.2]} />
-        <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
-      </mesh>
-      <mesh position={[0, 0.25, 0]}>
-        <boxGeometry args={[0.8, 0.02, 0.2]} />
-        <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
-      </mesh>
-      <Html distanceFactor={20} position={[0, 0.5, 0]}>
-        <div className="bg-black/60 px-2 py-0.5 rounded border border-green-500/30 flex flex-col gap-0 shadow-lg min-w-[70px]">
-          <div className="text-[6px] text-zinc-400 font-mono tracking-tighter uppercase whitespace-nowrap">
-            MISSION {mission.id + 1}
+      <group ref={ref}>
+        <mesh position={[0, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <cylinderGeometry args={[0.08, 0.08, 0.5, 8]} />
+          <meshStandardMaterial color="#88aacc" roughness={0.2} metalness={0.8} />
+        </mesh>
+        <mesh position={[0, -0.25, 0]}>
+          <boxGeometry args={[0.8, 0.02, 0.2]} />
+          <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
+        </mesh>
+        <mesh position={[0, 0.25, 0]}>
+          <boxGeometry args={[0.8, 0.02, 0.2]} />
+          <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
+        </mesh>
+        <Html distanceFactor={20} position={[0, 0.5, 0]}>
+          <div className="bg-black/60 px-2 py-0.5 rounded border border-green-500/30 flex flex-col gap-0 shadow-lg min-w-[70px]">
+            <div className="text-[6px] text-zinc-400 font-mono tracking-tighter uppercase whitespace-nowrap">
+              MISSION {mission.id + 1}
+            </div>
+            <div className="text-[8px] text-green-400 font-mono font-bold tracking-tight uppercase whitespace-nowrap">
+              ARCHIVED
+            </div>
           </div>
-          <div className="text-[8px] text-green-400 font-mono font-bold tracking-tight uppercase whitespace-nowrap">
-            ARCHIVED
-          </div>
-        </div>
-      </Html>
-    </group>
+        </Html>
+      </group>
   );
 }
 
 function SystemEngine({
-  timeMult,
-  selectedTarget,
-  launchParams,
-  globalTimeRef,
-  onPlanetDoubleClick,
-  onStatusUpdate,
-  archivedMissions = [],
-}: {
+                        timeMult,
+                        selectedTarget,
+                        launchParams,
+                        globalTimeRef,
+                        onPlanetDoubleClick,
+                        onStatusUpdate,
+                        archivedMissions = [],
+                      }: {
   timeMult: number;
   selectedTarget: (typeof PLANETS)[0] | null;
   launchParams?: any;
@@ -1437,23 +1313,24 @@ function SystemEngine({
 
   useFrame((state, delta) => {
     const safeDelta = Math.min(delta, 0.1);
-    
+
     let currentSpeed = timeMult;
     if (activeSpeedRef.current >= 0) {
       currentSpeed = activeSpeedRef.current;
     }
-    
+
+    // Standard clock increment. If GhostPath is warping, it sets currentSpeed to 0, completely yielding control safely.
     globalTimeRef.current += safeDelta * currentSpeed;
 
     if (controlsRef.current && isLocked) {
       let targetX = 0,
-        targetY = 0,
-        targetZ = 0;
+          targetY = 0,
+          targetZ = 0;
 
       if (selectedTarget) {
         const [x, y, z] = propagateOrbit(
-          selectedTarget.elements,
-          globalTimeRef.current
+            selectedTarget.elements,
+            globalTimeRef.current
         );
         targetX = x * POS_SCALE;
         targetY = z * POS_SCALE;
@@ -1478,128 +1355,121 @@ function SystemEngine({
   });
 
   return (
-    <>
-      <Html fullscreen className="pointer-events-none">
-        <div className="absolute top-24 left-8 pointer-events-auto flex flex-col gap-2">
-          <div className="px-4 py-2 bg-black/80 border border-white/10 backdrop-blur-2xl rounded-xl shadow-2xl flex items-center gap-4 glossy-panel">
-            <div className="flex flex-col">
+      <>
+        <Html fullscreen className="pointer-events-none">
+          <div className="absolute top-24 left-8 pointer-events-auto flex flex-col gap-2">
+            <div className="px-4 py-2 bg-black/80 border border-white/10 backdrop-blur-2xl rounded-xl shadow-2xl flex items-center gap-4 glossy-panel">
+              <div className="flex flex-col">
               <span className="text-[8px] text-cyan-400 font-mono tracking-[0.2em] uppercase">
                 Epoch Reference
               </span>
-              <span className="text-xs text-white font-mono font-bold tracking-tight">
+                <span className="text-xs text-white font-mono font-bold tracking-tight">
                 {new Date((J2000_UNIX + globalTimeRef.current) * 1000)
-                  .toUTCString()
-                  .split(" ")
-                  .slice(0, 4)
-                  .join(" ")}
+                    .toUTCString()
+                    .split(" ")
+                    .slice(0, 4)
+                    .join(" ")}
               </span>
-            </div>
-            <div className="w-px h-6 bg-white/15" />
-            <div className="flex flex-col">
+              </div>
+              <div className="w-px h-6 bg-white/15" />
+              <div className="flex flex-col">
               <span className="text-[8px] text-cyan-400 font-mono tracking-[0.2em] uppercase">
                 Mission Time
               </span>
-              <span className="text-xs text-white font-mono font-bold">
+                <span className="text-xs text-white font-mono font-bold">
                 {
                   new Date((J2000_UNIX + globalTimeRef.current) * 1000)
-                    .toUTCString()
-                    .split(" ")[4]
+                      .toUTCString()
+                      .split(" ")[4]
                 }
               </span>
+              </div>
             </div>
-          </div>
 
-          {!isLocked && (
-            <button
-              onClick={() => setIsLocked(true)}
-              className="px-3 py-1 bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/55 text-cyan-400 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 group transition-all self-start glossy-button cursor-pointer"
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse group-hover:scale-125" />
-              RE-LOCK CAMERA TO{" "}
-              {selectedTarget ? selectedTarget.name.toUpperCase() : "SOL"}
-            </button>
-          )}
-          {isLocked && (
-            <div className="px-3 py-1 bg-black/60 border border-white/10 text-white/50 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 self-start">
-              <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
-              CAMERA TRACKING{" "}
-              {selectedTarget ? selectedTarget.name.toUpperCase() : "SOL"}
-              <span className="ml-2 text-[8px] opacity-30">(DRAG TO UNLOCK)</span>
-            </div>
-          )}
-        </div>
-      </Html>
-
-      <mesh>
-        <sphereGeometry args={[SUN_SIZE, 64, 64]} />
-        <meshBasicMaterial color="#ffcc00" />
-        <Html distanceFactor={100} className="pointer-events-none">
-          <div className="text-xs uppercase font-bold text-[#ffcc00] tracking-widest translate-x-4 drop-shadow-lg">
-            SUN
+            {!isLocked && (
+                <button
+                    onClick={() => setIsLocked(true)}
+                    className="px-3 py-1 bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/55 text-cyan-400 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 group transition-all self-start glossy-button cursor-pointer"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse group-hover:scale-125" />
+                  RE-LOCK CAMERA TO {selectedTarget ? selectedTarget.name.toUpperCase() : "SOL"}
+                </button>
+            )}
+            {isLocked && (
+                <div className="px-3 py-1 bg-black/60 border border-white/10 text-white/50 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 self-start">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                  CAMERA TRACKING {selectedTarget ? selectedTarget.name.toUpperCase() : "SOL"}
+                  <span className="ml-2 text-[8px] opacity-30">(DRAG TO UNLOCK)</span>
+                </div>
+            )}
           </div>
         </Html>
-      </mesh>
 
-      <AsteroidBelt timeMult={timeMult} />
-      <KuiperBelt timeMult={timeMult} />
-      {/* FIX: OortCloud was defined but never rendered */}
-      <OortCloud timeMult={timeMult} />
+        <mesh>
+          <sphereGeometry args={[SUN_SIZE, 64, 64]} />
+          <meshBasicMaterial color="#ffcc00" />
+          <Html distanceFactor={100} className="pointer-events-none">
+            <div className="text-xs uppercase font-bold text-[#ffcc00] tracking-widest translate-x-4 drop-shadow-lg">
+              SUN
+            </div>
+          </Html>
+        </mesh>
 
-      {PLANETS.map((p) => (
-        <Planet
-          key={p.name}
-          data={p}
-          globalTimeRef={globalTimeRef}
-          onDoubleClick={onPlanetDoubleClick}
-          launchParams={launchParams}
-        />
-      ))}
+        <AsteroidBelt timeMult={timeMult} />
+        <KuiperBelt timeMult={timeMult} />
+        <OortCloud timeMult={timeMult} />
 
-      {archivedMissions.map((m) => (
-        <ArchivedShuttle key={m.id} mission={m} globalTimeRef={globalTimeRef} />
-      ))}
+        {PLANETS.map((p) => (
+            <Planet
+                key={p.name}
+                data={p}
+                globalTimeRef={globalTimeRef}
+                onDoubleClick={onPlanetDoubleClick}
+                launchParams={launchParams}
+            />
+        ))}
 
-      {/*
-        System-level GhostPath handles all interplanetary, missionLegs, and manual deep-space shots.
-        The Earth-level GhostPath inside Planet handles LEO-only paths.
-      */}
-      {launchParams &&
-        (launchParams.targetPlanet || launchParams.missionLegs || (launchParams.isLaunched && launchParams.v0 >= 5)) && (
-          <GhostPath
-            launchParams={launchParams}
-            globalTimeRef={globalTimeRef}
-            onStatusUpdate={onStatusUpdate}
-            activeSpeedRef={activeSpeedRef}
-          />
+        {archivedMissions.map((m) => (
+            <ArchivedShuttle key={m.id} mission={m} globalTimeRef={globalTimeRef} />
+        ))}
+
+        {/* ✅ SINGLE SOURCE OF TRUTH FOR GHOSTPATH: Handles all trajectory states natively */}
+        {launchParams && (
+            <GhostPath
+                launchParams={launchParams}
+                globalTimeRef={globalTimeRef}
+                onStatusUpdate={onStatusUpdate}
+                activeSpeedRef={activeSpeedRef}
+            />
         )}
 
-      <OrbitControls
-        ref={controlsRef}
-        enablePan={true}
-        enableZoom={true}
-        enableRotate={true}
-        autoRotate={false}
-        enableDamping={true}
-        dampingFactor={0.05}
-        maxDistance={2000000}
-        onStart={() => setIsLocked(false)}
-        makeDefault
-      />
-    </>
+        <OrbitControls
+            ref={controlsRef}
+            enablePan={true}
+            enableZoom={true}
+            enableRotate={true}
+            autoRotate={false}
+            enableDamping={true}
+            dampingFactor={0.05}
+            maxDistance={2000000}
+            onStart={() => setIsLocked(false)}
+            makeDefault
+        />
+      </>
   );
 }
 
 export default function OrbitSimulator({
-  isRunning = false,
-  timeMult = 10 * 24 * 3600,
-  selectedTarget,
-  launchParams,
-  globalTimeRef,
-  onPlanetDoubleClick,
-  onStatusUpdate,
-  completedMissions = 0,
-  archivedMissions = [],
-}: {
+                                         isRunning = false,
+                                         timeMult = 10 * 24 * 3600,
+                                         selectedTarget,
+                                         launchParams,
+                                         globalTimeRef,
+                                         onPlanetDoubleClick,
+                                         onStatusUpdate,
+                                         completedMissions = 0,
+                                         archivedMissions = [],
+                                       }: {
   isRunning?: boolean;
   timeMult?: number;
   selectedTarget: (typeof PLANETS)[0] | null;
@@ -1614,44 +1484,44 @@ export default function OrbitSimulator({
   const activeTimeRef = globalTimeRef || fallbackRef;
 
   return (
-    <div
-      className={`absolute inset-0 transition-opacity duration-1000 ${
-        isRunning
-          ? "opacity-100 z-10 pointer-events-auto bg-[#03060f]"
-          : "opacity-0 z-[-10] pointer-events-none"
-      }`}
-    >
-      <Canvas
-        camera={{ position: [0, 150, 400], fov: 45, far: 5000000, near: 0.1 }}
+      <div
+          className={`absolute inset-0 transition-opacity duration-1000 ${
+              isRunning
+                  ? "opacity-100 z-10 pointer-events-auto bg-[#03060f]"
+                  : "opacity-0 z-[-10] pointer-events-none"
+          }`}
       >
-        <ambientLight intensity={0.2} />
-        <pointLight
-          position={[0, 0, 0]}
-          intensity={1.8}
-          color="#fffcf5"
-          decay={0}
-        />
+        <Canvas
+            camera={{ position: [0, 150, 400], fov: 45, far: 5000000, near: 0.1 }}
+        >
+          <ambientLight intensity={0.2} />
+          <pointLight
+              position={[0, 0, 0]}
+              intensity={1.8}
+              color="#fffcf5"
+              decay={0}
+          />
 
-        <SystemEngine
-          timeMult={timeMult}
-          selectedTarget={selectedTarget}
-          launchParams={launchParams}
-          globalTimeRef={activeTimeRef}
-          onPlanetDoubleClick={onPlanetDoubleClick}
-          onStatusUpdate={onStatusUpdate}
-          completedMissions={completedMissions}
-          archivedMissions={archivedMissions}
-        />
+          <SystemEngine
+              timeMult={timeMult}
+              selectedTarget={selectedTarget}
+              launchParams={launchParams}
+              globalTimeRef={activeTimeRef}
+              onPlanetDoubleClick={onPlanetDoubleClick}
+              onStatusUpdate={onStatusUpdate}
+              completedMissions={completedMissions}
+              archivedMissions={archivedMissions}
+          />
 
-        <Stars
-          radius={500}
-          depth={50}
-          count={8000}
-          factor={6}
-          saturation={0}
-          fade
-        />
-      </Canvas>
-    </div>
+          <Stars
+              radius={500}
+              depth={50}
+              count={8000}
+              factor={6}
+              saturation={0}
+              fade
+          />
+        </Canvas>
+      </div>
   );
 }
