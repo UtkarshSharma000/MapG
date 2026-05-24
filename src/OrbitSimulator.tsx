@@ -767,7 +767,7 @@ function GhostPath({
   }, [launchParams, calculateInterplanetaryPath]);
 
   useEffect(() => {
-    if (!launchParams) return;
+    if (!launchParams || launchParams.isLaunched) return;
     if (launchParams.targetPlanet || launchParams.missionLegs || (launchParams.isLaunched && launchParams.v0 >= 5)) return;
 
     const fetchPreview = async () => {

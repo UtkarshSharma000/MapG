@@ -495,9 +495,9 @@ int main(int argc, char* argv[]) {
                 double d = (p_targ - p_shut).norm();
                 if (d < minDist) minDist = d;
             }
-            // Roughly within 5 million km for a generic "close encounter" or capture
-            // It's a rough check for user feedback.
-            captured = (minDist <= 5000000.0 * 1000.0); // 5M km in meters
+            double soi = targetEl->a * std::pow(targetEl->mu / MU_SUN, 0.4);
+            // Relax SOI slightly for visual approach feedback, but not 5 million km
+            captured = (minDist <= std::max(soi, targetEl->radius_m * 20.0));
         } else {
             captured = (total_dv <= max_dv);
             remaining = max_dv - total_dv;
