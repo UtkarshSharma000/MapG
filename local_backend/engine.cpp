@@ -292,7 +292,7 @@ int main(int argc, char* argv[]) {
             return (r2 - f*r1) / g;
         };
 
-        // --- Find optimal transfer (Force departure at globalTime) ---
+        // --- Find optimal transfer (Search Departure Window + TOF) ---
         double minDV = 1e18;
         double bestTof = 0, bestDepTime = globalTime;
         Eigen::Vector3d bestV0;
@@ -300,23 +300,25 @@ int main(int argc, char* argv[]) {
         double minDays = 3000, maxDays = 15000; // For Neptune
         double coarseStep = 50.0;
 
-        // Search in a window starting from globalTime
-        double currentDepTime = globalTime;
-        for (double d = minDays; d <= maxDays; d += coarseStep) {
-            double tof = d * 86400.0;
-            Eigen::Vector3d r1 = propagateOrbit(*earthEl, currentDepTime);
-            Eigen::Vector3d r2 = propagateOrbit(*targetEl, currentDepTime + tof);
-            Eigen::Vector3d vEarth = getOrbitalVelocity(*earthEl, currentDepTime);
-            try {
-                Eigen::Vector3d vL = solveLambert(r1, r2, tof);
-                double dv = (vL - vEarth).norm();
-                if (dv < minDV) { 
-                    minDV = dv; 
-                    bestTof = tof; 
-                    bestV0 = vL; 
-                    bestDepTime = currentDepTime;
-                }
-            } catch (...) {}
+        // Search for the best launch day in a 400-day window
+        for (double depOffset = 0; depOffset <= 400.0; depOffset += 10.0) {
+            double currentDepTime = globalTime + (depOffset * 86400.0);
+            for (double d = minDays; d <= maxDays; d += coarseStep) {
+                double tof = d * 86400.0;
+                Eigen::Vector3d r1 = propagateOrbit(*earthEl, currentDepTime);
+                Eigen::Vector3d r2 = propagateOrbit(*targetEl, currentDepTime + tof);
+                Eigen::Vector3d vEarth = getOrbitalVelocity(*earthEl, currentDepTime);
+                try {
+                    Eigen::Vector3d vL = solveLambert(r1, r2, tof);
+                    double dv = (vL - vEarth).norm();
+                    if (dv < minDV) { 
+                        minDV = dv; 
+                        bestTof = tof; 
+                        bestV0 = vL; 
+                        bestDepTime = currentDepTime;
+                    }
+                } catch (...) {}
+            }
         }
 
         // --- RK4 integrate and sample 500 points ---
@@ -356,7 +358,7 @@ int main(int argc, char* argv[]) {
         double orbitPeriod = 2.0 * M_PI * std::sqrt(rp*rp*rp / muTarget) / 86400.0;
         
         double timeToWait = bestDepTime - globalTime;
-        bool isReadyToLaunch = (timeToWait <= 1.0);
+        bool isReadyToLaunch = (timeToWait <= 86400.0);
 
         std::cout << std::fixed << std::setprecision(3);
         std::cout << "{\"points\":[";
