@@ -15,6 +15,9 @@ import {
   getJ2000Time,
   J2000_UNIX,
   getOrbitalVelocity,
+  findOptimalTransfer,
+  simulateInterplanetaryRK4,
+  MU_SUN
 } from "./physics";
 import { PLANETS } from "./constants";
 import axios from "axios";
@@ -620,13 +623,23 @@ function GhostPath({
 
   const calculateTrajectoryRemote = async (data: any, signal?: AbortSignal) => {
     try {
-      const response = await axios.post("/api/calculate", data, { signal });
+      console.log("Sending trajectory request to /api/calculate", data);
+      const response = await axios.post("/api/calculate", data, { 
+        signal,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        // Force relative path to avoid host issues
+        baseURL: window.location.origin
+      });
+      console.log("Received trajectory response:", response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       if (axios.isCancel(error)) {
-        console.log("Calculation aborted");
+        console.log("Calculation aborted by request");
       } else {
-        console.error("Remote trajectory calculation failed:", error);
+        console.error("Remote trajectory calculation failed. Origin:", window.location.origin);
+        console.error("Error details:", error.message, error.response?.status, error.response?.data);
       }
       return null;
     }
@@ -646,10 +659,78 @@ function GhostPath({
     const time = globalTimeRef.current;
     
     // Delegate the heavy math (Lambert + RK4) to the backend worker threads
-    const result = await calculateTrajectoryRemote(
+    let result = await calculateTrajectoryRemote(
       { launchParams, globalTime: time }, 
       abortControllerRef.current?.signal
     );
+    
+    // Local Fallback if Remote Fails
+    if (!result && !abortControllerRef.current?.signal?.aborted) {
+      console.warn("API failed, falling back to local calculation...");
+      try {
+        const { targetPlanet: targetName, missionLegs, v0, pitch, yaw, launchPlanet: launchPlanetName = "Earth" } = launchParams;
+        const earth = PLANETS.find((p) => p.name === launchPlanetName);
+        if (!earth) throw new Error("Launch planet not found");
+
+        let simStartTime = time;
+        let startPos = propagateOrbit(earth.elements, time);
+        let vReq: [number, number, number] = [0, 0, 0];
+        let dvLabel = 0;
+        let simDuration = 0;
+
+        if (missionLegs && missionLegs.length > 0) {
+          let totalDays = 0;
+          for (const leg of missionLegs) totalDays += leg.tof_days || 0;
+          simDuration = Math.max(totalDays * 86400 * 1.5, 86400 * 100);
+
+          const p = (pitch * Math.PI) / 180;
+          const y = (yaw * Math.PI) / 180;
+          const vx_local = v0 * Math.sin(p);
+          const vy_local = v0 * Math.cos(p) * Math.cos(y);
+          const vz_local = v0 * Math.cos(p) * Math.sin(y);
+
+          const OBLIQUITY = (23.43929111 * Math.PI) / 180;
+          const earthVel = getOrbitalVelocity(earth.elements, time);
+          const cosE = Math.cos(OBLIQUITY);
+          const sinE = Math.sin(OBLIQUITY);
+          const v_inf_x = vx_local;
+          const v_inf_y = vy_local * cosE + vz_local * sinE;
+          const v_inf_z = -vy_local * sinE + vz_local * cosE;
+
+          vReq = [earthVel[0] + v_inf_x, earthVel[1] + v_inf_y, earthVel[2] + v_inf_z];
+          dvLabel = missionLegs.reduce((acc: number, l: any) => acc + (l.dv1_kms || 0), 0);
+        } else {
+          const target = PLANETS.find((p) => p.name === targetName);
+          if (!target) throw new Error("Target planet not found");
+          const transferR = findOptimalTransfer(earth.elements, target.elements, time, MU_SUN, false);
+          vReq = transferR.vReq as [number, number, number];
+          simStartTime = transferR.depTime;
+          startPos = propagateOrbit(earth.elements, transferR.depTime);
+          simDuration = transferR.tof * 1.5;
+          dvLabel = transferR.dvReq;
+        }
+
+        const maxDV = getFuelCapacity(targetName, dvLabel);
+        const simR = simulateInterplanetaryRK4(startPos, vReq, simStartTime, PLANETS, simDuration, 600, targetName || "", false, maxDV);
+        
+        result = {
+          points: simR.points,
+          arrivalTime: simR.arrivalTime,
+          missionStatus: simR.missionStatus,
+          captureAltitude: simR.captureAltitude,
+          orbitPeriod: simR.orbitPeriod,
+          isOvershot: simR.isOvershot,
+          remainingDeltaV: simR.remainingDeltaV,
+          usedDuration: simR.usedDuration,
+          simStartTime,
+          dvLabel,
+          vReq,
+          success: true
+        };
+      } catch (err) {
+        console.error("Local fallback failed:", err);
+      }
+    }
     
     if (!result) {
       if (!abortControllerRef.current?.signal.aborted) {
