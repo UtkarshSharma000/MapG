@@ -51,8 +51,8 @@ async function startServer() {
 
   // Calculate Interplanetary Trajectory via C++ Engine Subprocess
   app.post("/api/calculate", (req, res) => {
-    console.log("Spawning odyssey_engine calculate...");
-    const enginePath = path.join(process.cwd(), "local_backend/odyssey_engine");
+    console.log("Spawning odyssey_engine_interplanetary calculate...");
+    const enginePath = path.join(process.cwd(), "local_backend/odyssey_engine_interplanetary");
     
     // Check if engine exists, if not try building it
     if (!fs.existsSync(enginePath)) {

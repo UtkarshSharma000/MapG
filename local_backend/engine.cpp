@@ -165,6 +165,17 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        // --- Parse launchPlanet from JSON string ---
+        std::string launchPlanet = "Earth";
+        {
+            auto lp = input.find("\"launchPlanet\"");
+            if (lp != std::string::npos) {
+                auto s = input.find("\"", lp + 14); s++;
+                auto e = input.find("\"", s);
+                if (e != std::string::npos) launchPlanet = input.substr(s, e - s);
+            }
+        }
+
         // --- Parse globalTime from JSON string ---
         double globalTime = 0.0;
         {
@@ -243,13 +254,13 @@ int main(int argc, char* argv[]) {
             {"Neptune", 30.047*AU_M,0.0113, 1.77*M_PI/180,  131.7*M_PI/180, 273.1*M_PI/180,  256.0*M_PI/180, 60182.0*86400,   24622000, G_CONST*1.02413e26},
         };
 
-        KeplerEl* earthEl  = nullptr;
+        KeplerEl* originEl  = nullptr;
         KeplerEl* targetEl = nullptr;
         for (auto& p : planetTable) {
-            if (p.name == "Earth")       earthEl  = &p;
+            if (p.name == launchPlanet)  originEl  = &p;
             if (p.name == targetPlanet)  targetEl = &p;
         }
-        if (!earthEl || !targetEl) {
+        if (!originEl || !targetEl) {
             std::cout << "{\"error\":\"Planet not found\"}" << std::endl;
             return 1;
         }
@@ -297,20 +308,41 @@ int main(int argc, char* argv[]) {
         double bestTof = 0, bestDepTime = globalTime;
         Eigen::Vector3d bestV0;
         
-        double minDays = 3000, maxDays = 15000; // For Neptune
-        double coarseStep = 50.0;
+        double minDays = 100.0, maxDays = 400.0;
+        double coarseStep = 10.0;
+        
+        std::string targetLower = targetPlanet;
+        for (auto &c : targetLower) c = std::tolower(c);
+        std::string originLower = launchPlanet;
+        for (auto &c : originLower) c = std::tolower(c);
+
+        if (targetLower == "mercury" || originLower == "mercury") {
+            minDays = 50.0; maxDays = 200.0; coarseStep = 5.0;
+        } else if (targetLower == "venus" || originLower == "venus") {
+            minDays = 80.0; maxDays = 250.0; coarseStep = 5.0;
+        } else if (targetLower == "mars" || originLower == "mars") {
+            minDays = 150.0; maxDays = 500.0; coarseStep = 10.0;
+        } else if (targetLower == "jupiter" || originLower == "jupiter") {
+            minDays = 400.0; maxDays = 1200.0; coarseStep = 20.0;
+        } else if (targetLower == "saturn" || originLower == "saturn") {
+            minDays = 800.0; maxDays = 3000.0; coarseStep = 40.0;
+        } else if (targetLower == "uranus" || originLower == "uranus") {
+            minDays = 2000.0; maxDays = 8000.0; coarseStep = 100.0;
+        } else if (targetLower == "neptune" || originLower == "neptune") {
+            minDays = 3000.0; maxDays = 15000.0; coarseStep = 200.0;
+        }
 
         // Search for the best launch day in a 400-day window
         for (double depOffset = 0; depOffset <= 400.0; depOffset += 10.0) {
             double currentDepTime = globalTime + (depOffset * 86400.0);
             for (double d = minDays; d <= maxDays; d += coarseStep) {
                 double tof = d * 86400.0;
-                Eigen::Vector3d r1 = propagateOrbit(*earthEl, currentDepTime);
+                Eigen::Vector3d r1 = propagateOrbit(*originEl, currentDepTime);
                 Eigen::Vector3d r2 = propagateOrbit(*targetEl, currentDepTime + tof);
-                Eigen::Vector3d vEarth = getOrbitalVelocity(*earthEl, currentDepTime);
+                Eigen::Vector3d vOrigin = getOrbitalVelocity(*originEl, currentDepTime);
                 try {
                     Eigen::Vector3d vL = solveLambert(r1, r2, tof);
-                    double dv = (vL - vEarth).norm();
+                    double dv = (vL - vOrigin).norm();
                     if (dv < minDV) { 
                         minDV = dv; 
                         bestTof = tof; 
@@ -322,7 +354,7 @@ int main(int argc, char* argv[]) {
         }
 
         // --- RK4 integrate and sample 500 points ---
-        Eigen::Vector3d sc_pos = propagateOrbit(*earthEl, bestDepTime);
+        Eigen::Vector3d sc_pos = propagateOrbit(*originEl, bestDepTime);
         Eigen::Vector3d sc_vel = bestV0;
         const int N = 500;
         double dt_step = bestTof / N;
@@ -348,8 +380,8 @@ int main(int argc, char* argv[]) {
 
         // --- Capture check ---
         double max_dv = 100000.0; // unlimited budget
-        Eigen::Vector3d vEarthDep = getOrbitalVelocity(*earthEl, globalTime);
-        double total_dv = (bestV0 - vEarthDep).norm();
+        Eigen::Vector3d vOriginDep = getOrbitalVelocity(*originEl, bestDepTime);
+        double total_dv = (bestV0 - vOriginDep).norm();
         bool captured = (total_dv <= max_dv);
         double remaining = max_dv - total_dv;
         double capture_alt = targetEl->radius_m / 1000.0 * 0.3;
