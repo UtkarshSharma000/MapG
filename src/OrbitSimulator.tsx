@@ -743,7 +743,7 @@ function GhostPath({
           calculateInterplanetaryPath();
         }
       }
-    }, 1000);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [launchParams, calculateInterplanetaryPath]);
