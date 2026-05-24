@@ -101,7 +101,7 @@ try {
       simDuration,
       simDt,
       targetName || "",
-      false,
+      true, // Force two-body for worker to ensure maximum speed for preview
       maxDeltaV
     );
 

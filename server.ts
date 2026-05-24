@@ -22,14 +22,8 @@ async function startServer() {
     res.json({ status: "ok", mode: process.env.NODE_ENV || "development" });
   });
 
-  // Compile C++ Engine and Install Python Deps
-  console.log("Ensuring environment is ready...");
-  try {
-    execSync("bash local_backend/build.sh", { stdio: "inherit" });
-    execSync("python3 -m pip install -r local_backend/requirements.txt", { stdio: "inherit" });
-  } catch (error) {
-    console.error("Setup failed:", error);
-  }
+  // Compilation is handled by the dev/build scripts, no need to block startup here
+  console.log("Starting server...");
 
   let latestTelemetry: any = { status: "waiting_for_engine" };
 
