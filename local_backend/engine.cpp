@@ -367,7 +367,7 @@ int main(int argc, char* argv[]) {
             sc_vel += (dt_step/6.0)*(a1 + 2*a2 + 2*a3 + a4);
         }
 
-        double max_dv    = (tgt_sma > 4.0 * AU) ? 15000.0 : 3500.0;
+        double max_dv = 100000.0;
         bool   captured  = (total_dv <= max_dv);
         double remaining = max_dv - total_dv;
         double capture_alt = (tgt->radius / 1000.0) * 0.3;
