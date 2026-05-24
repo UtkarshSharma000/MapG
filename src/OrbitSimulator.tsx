@@ -482,14 +482,13 @@ function Planet({
       >
         {/*
           FIX: GhostPath for LEO (non-interplanetary) trajectories only.
-          Added !launchParams.missionLegs guard to prevent dual-mount with the
-          system-level GhostPath when missionLegs is active, which was causing
-          launchTimeRef to reset mid-flight.
+          Added guard to prevent dual-mount with the system-level GhostPath
         */}
         {data.name === "Earth" &&
           launchParams &&
           !launchParams.targetPlanet &&
-          !launchParams.missionLegs && (
+          !launchParams.missionLegs && 
+          (!launchParams.isLaunched || launchParams.v0 < 5) && (
             <GhostPath
               launchParams={launchParams}
               globalTimeRef={globalTimeRef}
@@ -651,7 +650,7 @@ function GhostPath({
 
   const calculateInterplanetaryPath = useCallback(async () => {
     if (!launchParams) return;
-    if (!launchParams.targetPlanet && !launchParams.missionLegs) return;
+    if (!launchParams.targetPlanet && !launchParams.missionLegs && !(launchParams.isLaunched && launchParams.v0 >= 5)) return;
 
     // Abort any pending calculation
     //if (abortControllerRef.current) {
@@ -749,7 +748,7 @@ function GhostPath({
           if (onStatusUpdate) onStatusUpdate("Standby");
         }
 
-        if (launchParams.targetPlanet || launchParams.missionLegs) {
+        if (launchParams.targetPlanet || launchParams.missionLegs || (launchParams.isLaunched && launchParams.v0 >= 5)) {
           calculateInterplanetaryPath();
         }
       }
@@ -760,7 +759,7 @@ function GhostPath({
 
   useEffect(() => {
     if (!launchParams) return;
-    if (launchParams.targetPlanet || launchParams.missionLegs) return;
+    if (launchParams.targetPlanet || launchParams.missionLegs || (launchParams.isLaunched && launchParams.v0 >= 5)) return;
 
     const fetchPreview = async () => {
       try {
@@ -1010,7 +1009,7 @@ function GhostPath({
           activeSpeedRef.current = -1; // Give control back to user slider
         }
 
-        if (targetPlanet) {
+        if (targetPlanet && !captureInfoRef.current.isOvershot) {
           const { pos, lookAtPos } = getParkingOrbitPosition(targetPlanet, globalTimeRef.current);
           shuttleRef.current.position.copy(pos);
           shuttleRef.current.lookAt(lookAtPos);
@@ -1146,7 +1145,7 @@ function GhostPath({
           activeSpeedRef.current = -1; // Give control back to the user slider
         }
 
-        if (targetPlanet) {
+        if (targetPlanet && !captureInfoRef.current.isOvershot) {
           const { pos, lookAtPos } = getParkingOrbitPosition(targetPlanet, globalTimeRef.current);
           shuttleRef.current.position.copy(pos);
           shuttleRef.current.lookAt(lookAtPos);
@@ -1522,12 +1521,11 @@ function SystemEngine({
       ))}
 
       {/*
-        System-level GhostPath handles all interplanetary and missionLegs cases.
-        The Earth-level GhostPath inside Planet handles LEO-only paths and is
-        gated to !targetPlanet && !missionLegs, so these never double-mount.
+        System-level GhostPath handles all interplanetary, missionLegs, and manual deep-space shots.
+        The Earth-level GhostPath inside Planet handles LEO-only paths.
       */}
       {launchParams &&
-        (launchParams.targetPlanet || launchParams.missionLegs) && (
+        (launchParams.targetPlanet || launchParams.missionLegs || (launchParams.isLaunched && launchParams.v0 >= 5)) && (
           <GhostPath
             launchParams={launchParams}
             globalTimeRef={globalTimeRef}

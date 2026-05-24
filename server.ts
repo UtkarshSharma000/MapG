@@ -87,7 +87,11 @@ async function startServer() {
     const flatInput = {
       launchPlanet: finalLaunchPlanet,
       targetPlanet: finalTargetPlanet || "Mars",
-      globalTime: finalGlobalTime
+      globalTime: finalGlobalTime,
+      v0: launchParams?.v0,
+      pitch: launchParams?.pitch,
+      yaw: launchParams?.yaw,
+      autoRoute: launchParams?.isAutoWarp
     };
 
     // Pipe flattened request JSON to engine stdin
