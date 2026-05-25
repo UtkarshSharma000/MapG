@@ -811,7 +811,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
     const timeMult = launchParams.timeMult || 1;
     const maxIdx = points.length - 1;
 
-    if (launchParams.targetPlanet || launchParams.missionLegs) {
+    if ((launchParams.targetPlanet && launchParams.targetPlanet !== "Earth") || launchParams.missionLegs) {
       const elapsed = globalTimeRef.current - launchTimeRef.current;
       const pct_sim = Math.max(0, Math.min(1.0, elapsed / simDurationRef.current));
       progressRef.current = pct_sim * maxIdx;
@@ -868,6 +868,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
     }
     
     let targetName = launchParams.targetPlanet;
+    if (targetName === "Earth") targetName = "";
     if (launchParams.missionLegs && launchParams.missionLegs.length > 0) {
       const legs = launchParams.missionLegs;
       const lastDestId = legs[legs.length - 1].destId;
@@ -879,7 +880,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
     const elapsed = globalTimeRef.current - (launchTimeRef.current || globalTimeRef.current);
     const pct_tof = elapsed / transferTimeRef.current;
 
-    if (pct_tof >= 1.0 && targetPlanet) {
+    if (pct_tof >= 1.0 && targetPlanet && targetPlanet.name !== "Earth") {
       const time = globalTimeRef.current;
       const [tpX, tpY, tpZ] = propagateOrbit(targetPlanet.elements, time);
       
