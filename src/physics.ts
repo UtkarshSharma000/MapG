@@ -376,7 +376,7 @@ export function simulateInterplanetaryRK4(
 
   let captured = false;
   let isOvershot = false;
-  let remainingDeltaV = 3500.0; // Deep-space Delta-V maneuvers budget (m/s)
+  let remainingDeltaV = 25000.0; // Deep-space Delta-V maneuvers budget (m/s)
   let missionStatus: string | undefined;
   let captureAltitude: number | undefined;
   let orbitPeriod: number | undefined;
