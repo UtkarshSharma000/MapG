@@ -743,7 +743,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
         calculateInterplanetaryPath();
         return;
       }
-    } else {
+    } else if (points.length > 0) {
       return;
     }
 
