@@ -76,6 +76,19 @@ export default function App() {
   // Track mission completions to trigger archiving in OrbitSimulator
   const [completedMissions, setCompletedMissions] = useState<number>(0);
   const [archivedMissions, setArchivedMissions] = useState<any[]>([]);
+  const [currentLaunchPoints, setCurrentLaunchPoints] = useState<THREE.Vector3[]>([]);
+  const [currentReturnPoints, setCurrentReturnPoints] = useState<THREE.Vector3[]>([]);
+
+  // Shortcut states
+  const [orbitPathsVisible, setOrbitPathsVisible] = useState(true);
+  const [planetaryLabelsVisible, setPlanetaryLabelsVisible] = useState(true);
+  const [followSpacecraft, setFollowSpacecraft] = useState(false);
+  const [cameraPresetToLoad, setCameraPresetToLoad] = useState<number | null>(null);
+  const [cameraPresetToSave, setCameraPresetToSave] = useState<number | null>(null);
+  const [resetCameraTrigger, setResetCameraTrigger] = useState(0);
+  const [showTelemetryPanel, setShowTelemetryPanel] = useState(true); 
+  const [showMissionPanel, setShowMissionPanel] = useState(true); 
+  const lastTimeMultRef = useRef(86400); // 1 Day/sec
 
 
 
@@ -134,6 +147,135 @@ export default function App() {
       returnWorkerRef.current?.terminate();
     };
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT') {
+        return;
+      }
+      
+      const key = e.key.toLowerCase();
+      
+      // Ctrl + 1-9 (Save presets)
+      if (e.ctrlKey && e.key >= '1' && e.key <= '9') {
+        e.preventDefault();
+        const digit = parseInt(e.key);
+        setCameraPresetToSave(digit);
+        setTimeout(() => setCameraPresetToSave(null), 100);
+        return;
+      }
+      
+      // 1-9 keys (focus planets and load presets)
+      if (!e.ctrlKey && !e.shiftKey && e.key >= '1' && e.key <= '9') {
+        const digit = parseInt(e.key);
+        if (digit === 1) {
+          const earth = PLANETS.find(p => p.name === "Earth");
+          if (earth) setSelectedTarget(earth);
+        } else if (digit === 2) {
+          const mars = PLANETS.find(p => p.name === "Mars");
+          if (mars) setSelectedTarget(mars);
+        } else if (digit === 3) {
+          const jupiter = PLANETS.find(p => p.name === "Jupiter");
+          if (jupiter) setSelectedTarget(jupiter);
+        }
+        
+        setCameraPresetToLoad(digit);
+        setTimeout(() => setCameraPresetToLoad(null), 100);
+        return;
+      }
+      
+      if (e.key === '0') {
+        setSelectedTarget(null);
+        return;
+      }
+      
+      // Shift + L
+      if (e.shiftKey && key === 'l') {
+        e.preventDefault();
+        handleLaunch();
+        return;
+      }
+      
+      // Shift + R
+      if (e.shiftKey && key === 'r') {
+        e.preventDefault();
+        planReturn();
+        return;
+      }
+      
+      switch (key) {
+        case 'f':
+          setFollowSpacecraft(prev => !prev);
+          break;
+        case 'r':
+          setResetCameraTrigger(prev => prev + 1);
+          break;
+        case ' ':
+          e.preventDefault();
+          if (timeMult > 0) {
+            lastTimeMultRef.current = timeMult;
+            setTimeMult(0);
+          } else {
+            setTimeMult(lastTimeMultRef.current || 86400);
+          }
+          break;
+        case '[':
+          {
+            const warpSpeeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10];
+            const currIdx = warpSpeeds.indexOf(timeMult);
+            if (currIdx > 0) {
+              setTimeMult(warpSpeeds[currIdx - 1]);
+            }
+          }
+          break;
+        case ']':
+          {
+            const warpSpeeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10];
+            const currIdx = warpSpeeds.indexOf(timeMult);
+            if (currIdx !== -1 && currIdx < warpSpeeds.length - 1) {
+              setTimeMult(warpSpeeds[currIdx + 1]);
+            } else if (currIdx === -1) {
+              setTimeMult(86400);
+            }
+          }
+          break;
+        case 'l':
+          if (!isLaunched) {
+            handleLaunch();
+          }
+          break;
+        case 't':
+          // Opens trajectory planner. On simple apps this is the panel
+          setShowMissionPanel(true);
+          break;
+        case 'm':
+          setShowMissionPanel(prev => !prev);
+          break;
+        case 'g':
+          setNbody(prev => !prev);
+          break;
+        case 'o':
+          setOrbitPathsVisible(prev => !prev);
+          break;
+        case 'p':
+          setPlanetaryLabelsVisible(prev => !prev);
+          break;
+        case 'escape':
+          setMapPlanet(null);
+          setIsArchiveOpen(false);
+          break;
+        case '`':
+        case '~':
+          setShowTelemetryPanel(prev => !prev);
+          break;
+        default:
+          break;
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [timeMult, isLaunched, selectedTarget]);
 
   const OBLIQUITY = 23.43929111 * (Math.PI / 180); // J2000 obliquity of ecliptic
 
@@ -200,6 +342,9 @@ export default function App() {
   };
 
   const planReturn = () => {
+    setIsLaunched(false);
+    setCurrentReturnPoints([]);
+
     // Current planet is the last destination in missionLegs or targetPlanet
     let currentDestId = 4; // Mars default
     if (missionLegs && missionLegs.length > 0) {
@@ -425,6 +570,19 @@ export default function App() {
         onStatusUpdate={setMissionStatus}
         completedMissions={completedMissions}
         archivedMissions={archivedMissions}
+        onPointsCalculated={(pts, isReturn) => {
+          if (isReturn) {
+            setCurrentReturnPoints(pts);
+          } else {
+            setCurrentLaunchPoints(pts);
+          }
+        }}
+        orbitPathsVisible={orbitPathsVisible}
+        planetaryLabelsVisible={planetaryLabelsVisible}
+        followSpacecraft={followSpacecraft}
+        cameraPresetToLoad={cameraPresetToLoad}
+        cameraPresetToSave={cameraPresetToSave}
+        resetCameraTrigger={resetCameraTrigger}
       />
 
       {/* Landing Page Content */}
@@ -637,7 +795,7 @@ export default function App() {
       <div
         className={`absolute inset-0 z-30 pointer-events-none flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-100" : "opacity-0"}`}
       >
-        {isSimulatorRunning && <TelemetryPanel />}
+        {isSimulatorRunning && showTelemetryPanel && <TelemetryPanel />}
         {isSimulatorRunning && (
           <LaunchHUD
             selectedTarget={selectedTarget}
@@ -651,6 +809,8 @@ export default function App() {
               setReturnWindow(null);
               setLaunchPlanet("Earth");
               teiAppliedRef.current = false;
+              setCurrentLaunchPoints([]);
+              setCurrentReturnPoints([]);
             }}
             isLaunched={isLaunched}
             missionStatus={missionStatus}
@@ -672,7 +832,9 @@ export default function App() {
                 launchPlanet: launchPlanet,
                 originalTargetPlanet: targetPlanet,
                 launchTime: currentLaunchTime,
-                teiApplied: teiAppliedRef.current
+                teiApplied: teiAppliedRef.current,
+                launchPoints: currentLaunchPoints,
+                returnPoints: currentReturnPoints,
               };
               setArchivedMissions(prev => [...prev, missionArchive]);
               setCompletedMissions(prev => prev + 1);
@@ -683,6 +845,8 @@ export default function App() {
               setLaunchPlanet("Earth");
               setMissionStatus("STANDBY");
               teiAppliedRef.current = false;
+              setCurrentLaunchPoints([]);
+              setCurrentReturnPoints([]);
             }}
           />
         )}
@@ -785,43 +949,45 @@ export default function App() {
           {/* Central Canvas Area (Interactive / Data Overlays) - Expanded Full Screen */}
           <main className="flex-1 p-8 relative flex flex-col justify-between pointer-events-none">
             {/* Top Right: Target Selection & Quick Stats */}
-            <div className="absolute top-28 right-8 z-50 flex flex-col gap-4 items-end pointer-events-auto">
-              <div className="p-6 rounded-xl w-80 text-white glass-panel border border-white/5 bg-background/80 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
-                {renderTargetStats()}
-              </div>
-
-              {selectedTarget && selectedTarget.name !== "Sun" && (
-                <div className="w-80">
-                  <TrajectoryOptimizer
-                    originId={getSimulatedOriginId()}
-                    destId={Number(Object.entries({1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune'}).find(([_, name]) => name === selectedTarget.name)?.[0] || 4)}
-                    globalTimeRef={globalTimeRef}
-                    onApply={handleApply}
-                  />
+            {showMissionPanel && (
+              <div className="absolute top-28 right-8 z-50 flex flex-col gap-4 items-end pointer-events-auto">
+                <div className="p-6 rounded-xl w-80 text-white glass-panel border border-white/5 bg-background/80 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+                  {renderTargetStats()}
                 </div>
-              )}
 
-              {/* Texture Preview Mini-panels */}
-              <div className="flex justify-end gap-3 px-2 w-80 flex-wrap mt-2">
-                {PLANETS.map((p) => (
-                  <div
-                    key={p.name}
-                    onClick={() =>
-                      setSelectedTarget(
-                        selectedTarget?.name === p.name ? null : p,
-                      )
-                    }
-                    className={`w-10 h-10 rounded-full border overflow-hidden cursor-pointer transition-all ${selectedTarget?.name === p.name ? "border-primary glow-orange opacity-100 scale-110" : "border-white/5 opacity-40 hover:opacity-100 hover:border-secondary/40"}`}
-                  >
-                    <img
-                      src={p.texture}
-                      alt={p.name}
-                      className="w-full h-full object-cover"
+                {selectedTarget && selectedTarget.name !== "Sun" && (
+                  <div className="w-80">
+                    <TrajectoryOptimizer
+                      originId={getSimulatedOriginId()}
+                      destId={Number(Object.entries({1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune'}).find(([_, name]) => name === selectedTarget.name)?.[0] || 4)}
+                      globalTimeRef={globalTimeRef}
+                      onApply={handleApply}
                     />
                   </div>
-                ))}
+                )}
+
+                {/* Texture Preview Mini-panels */}
+                <div className="flex justify-end gap-3 px-2 w-80 flex-wrap mt-2">
+                  {PLANETS.map((p) => (
+                    <div
+                      key={p.name}
+                      onClick={() =>
+                        setSelectedTarget(
+                          selectedTarget?.name === p.name ? null : p,
+                        )
+                      }
+                      className={`w-10 h-10 rounded-full border overflow-hidden cursor-pointer transition-all ${selectedTarget?.name === p.name ? "border-primary glow-orange opacity-100 scale-110" : "border-white/5 opacity-40 hover:opacity-100 hover:border-secondary/40"}`}
+                    >
+                      <img
+                        src={p.texture}
+                        alt={p.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Bottom Right: Time Controls */}
             <div className="absolute bottom-8 right-8 p-5 rounded-lg w-80 flex flex-col gap-4 pointer-events-auto border border-white/10 glass-panel shadow-[0_0_20px_rgba(0,0,0,0.5)] text-white">

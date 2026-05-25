@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from "react";
-import { Canvas, useFrame, useLoader } from "@react-three/fiber";
+import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import {
   OrbitControls,
   Stars,
@@ -541,11 +541,15 @@ function Planet({
   globalTimeRef,
   onDoubleClick,
   launchParams,
+  orbitPathsVisible = true,
+  planetaryLabelsVisible = true,
 }: {
   data: (typeof PLANETS)[0];
   globalTimeRef: React.MutableRefObject<number>;
   onDoubleClick?: (name: string) => void;
   launchParams?: any;
+  orbitPathsVisible?: boolean;
+  planetaryLabelsVisible?: boolean;
 }) {
   const ref = useRef<THREE.Group>(null);
 
@@ -581,13 +585,15 @@ function Planet({
   return (
     <group>
       {/* Orbit Line */}
-      <Line
-        points={orbitPoints}
-        color={data.color}
-        opacity={0.2}
-        transparent
-        lineWidth={1}
-      />
+      {orbitPathsVisible && (
+        <Line
+          points={orbitPoints}
+          color={data.color}
+          opacity={0.2}
+          transparent
+          lineWidth={1}
+        />
+      )}
 
       {/* Planet Model */}
       <group 
@@ -637,21 +643,35 @@ function Planet({
         ))}
 
         {/* Label */}
-        <Html
-          distanceFactor={100}
-          zIndexRange={[100, 0]}
-          className="pointer-events-none"
-        >
-          <div className="text-[10px] uppercase font-bold text-white/50 tracking-widest translate-x-3 translate-y-3 drop-shadow-md">
-            {data.name}
-          </div>
-        </Html>
+        {planetaryLabelsVisible && (
+          <Html
+            distanceFactor={100}
+            zIndexRange={[100, 0]}
+            className="pointer-events-none"
+          >
+            <div className="text-[10px] uppercase font-bold text-white/50 tracking-widest translate-x-3 translate-y-3 drop-shadow-md">
+              {data.name}
+            </div>
+          </Html>
+        )}
       </group>
     </group>
   );
 }
 
-function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick }: { launchParams: any, globalTimeRef: any, onStatusUpdate?: (s: string | null) => void, onDoubleClick?: (label: string, ref: any) => void }) {
+function GhostPath({ 
+  launchParams, 
+  globalTimeRef, 
+  onStatusUpdate, 
+  onDoubleClick, 
+  onPointsCalculated 
+}: { 
+  launchParams: any, 
+  globalTimeRef: any, 
+  onStatusUpdate?: (s: string | null) => void, 
+  onDoubleClick?: (label: string, ref: any) => void,
+  onPointsCalculated?: (pts: THREE.Vector3[], isReturn: boolean) => void 
+}) {
   const [points, setPoints] = useState<THREE.Vector3[]>([]);
   const shuttleRef = useRef<THREE.Group>(null);
   const progressRef = useRef(0);
@@ -710,6 +730,11 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
       setPoints(threePoints);
       setStatus(data.success ? "Intercept Locked" : "Transfer Optimized");
       
+      if (onPointsCalculated) {
+        const isReturn = (launchPlanet !== "Earth" || targetName === "Earth");
+        onPointsCalculated(threePoints, isReturn);
+      }
+      
       const [ix, iy, iz] = propagateOrbit(targetPlanet.elements, data.arrivalTime);
       setInterceptPoint(new THREE.Vector3(ix * POS_SCALE, iz * POS_SCALE, -iy * POS_SCALE));
     } catch (err) {
@@ -737,8 +762,16 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
         progressRef.current = 0;
         setReachedDestination(false);
         setStatus("Standby");
-        lastStatusRef.current = "Standby";
-        if (onStatusUpdate) onStatusUpdate("Standby");
+        
+        const isPlanningReturn = launchParams.launchPlanet && launchParams.launchPlanet !== "Earth" && launchParams.targetPlanet === "Earth";
+        if (isPlanningReturn) {
+          const orbitStatus = `${launchParams.launchPlanet.toUpperCase()}_ORBIT`;
+          lastStatusRef.current = orbitStatus;
+          if (onStatusUpdate) onStatusUpdate(orbitStatus);
+        } else {
+          lastStatusRef.current = "Standby";
+          if (onStatusUpdate) onStatusUpdate("Standby");
+        }
       }
       
       // Interplanetary mode (target select OR mission legs active)
@@ -956,7 +989,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
       )}
 
       {launchParams?.isLaunched && points.length > 0 && (
-        <group ref={shuttleRef} position={points[0]}>
+        <group ref={shuttleRef} position={points[0]} name="ODYSSEY_ACTIVE_SHUTTLE">
            <mesh 
              rotation={[Math.PI / 2, 0, 0]}
              onDoubleClick={(e) => {
@@ -1003,68 +1036,159 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
   );
 }
 
+function OrbitingShuttle({ 
+  planetName, 
+  globalTimeRef 
+}: { 
+  planetName: string, 
+  globalTimeRef: React.MutableRefObject<number> 
+}) {
+  const ref = useRef<THREE.Group>(null);
+  const planet = PLANETS.find(p => p.name.toUpperCase() === planetName.toUpperCase());
+
+  useFrame(() => {
+    if (!planet || !ref.current) return;
+    const time = globalTimeRef.current;
+    const [pX, pY, pZ] = propagateOrbit(planet.elements, time);
+    const orbitalRadius = 1.2;
+    const ang = (time / 86400) * 0.5;
+    const ox = Math.cos(ang) * orbitalRadius;
+    const oz = Math.sin(ang) * orbitalRadius;
+    
+    ref.current.position.set(
+      pX * POS_SCALE + ox,
+      pZ * POS_SCALE,
+      -pY * POS_SCALE + oz
+    );
+    
+    const nextAng = ang + 0.01;
+    const nox = Math.cos(nextAng) * orbitalRadius;
+    const noz = Math.sin(nextAng) * orbitalRadius;
+    const nextLocalPos = new THREE.Vector3(pX * POS_SCALE + nox, pZ * POS_SCALE, -pY * POS_SCALE + noz);
+    
+    ref.current.lookAt(nextLocalPos);
+  });
+
+  return (
+    <group ref={ref}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.08, 0.08, 0.5, 8]} />
+        <meshStandardMaterial color="#00ffcc" roughness={0.2} metalness={0.8} />
+      </mesh>
+      {/* Solar panels */}
+      <mesh position={[0, -0.25, 0]}>
+        <boxGeometry args={[0.8, 0.02, 0.2]} />
+        <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.25, 0]}>
+        <boxGeometry args={[0.8, 0.02, 0.2]} />
+        <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
+      </mesh>
+      <Html distanceFactor={20} position={[0, 0.5, 0]}>
+        <div className="bg-black/80 px-2 py-0.5 rounded border border-cyan-500/30 flex flex-col gap-0 shadow-lg min-w-[70px]">
+          <div className="text-[6px] text-zinc-400 font-mono tracking-tighter uppercase whitespace-nowrap">ODYSSEY ACTIVE</div>
+          <div className="text-[8px] text-cyan-400 font-mono font-bold tracking-tight uppercase whitespace-nowrap">{planetName.toUpperCase()} ORBIT</div>
+        </div>
+      </Html>
+    </group>
+  );
+}
+
 function ArchivedShuttle({ mission, globalTimeRef, onDoubleClick }: { mission: any, globalTimeRef: React.MutableRefObject<number>, onDoubleClick?: (label: string, ref: any) => void }) {
   const ref = useRef<THREE.Group>(null);
   const pName = mission.returnPlanet || mission.targetPlanet;
   const planet = PLANETS.find(p => p.name === pName) || PLANETS.find(p => p.name === "Earth");
 
+  // Replay combined coordinates
+  const launchPts = mission.launchPoints || [];
+  const returnPts = mission.returnPoints || [];
+  const combinedPts = useMemo(() => [...launchPts, ...returnPts], [launchPts, returnPts]);
+
   useFrame(() => {
-    if (!planet || !ref.current) return;
+    if (!ref.current) return;
     const time = globalTimeRef.current;
-    
-    // Get planet position
-    const [pX, pY, pZ] = propagateOrbit(planet.elements, time);
-    
-    // Make the shuttle orbit the planet
-    const orbitalRadius = 1.2; // Slightly offset from planet center (assuming planet size < 1)
-    const ang = (time / 86400) * 0.5 + mission.offset; // Slow rotation with collision-prevention phase offset
-    
-    const ox = Math.cos(ang) * orbitalRadius;
-    const oz = Math.sin(ang) * orbitalRadius;
-    
-    // Convert to Three.js coordinates
-    ref.current.position.set(
-      pX * POS_SCALE + ox,
-      pZ * POS_SCALE, // mapped to Y
-      -pY * POS_SCALE + oz
-    );
-    
-    // Look ahead
-    const nextAng = ang + 0.01;
-    const nox = Math.cos(nextAng) * orbitalRadius;
-    const noz = Math.sin(nextAng) * orbitalRadius;
-    const nextPos = new THREE.Vector3(pX * POS_SCALE + nox, pZ * POS_SCALE, -pY * POS_SCALE + noz);
-    
-    ref.current.lookAt(nextPos);
+
+    if (combinedPts.length > 0) {
+      const totalPoints = combinedPts.length;
+      const loopDuration = 15; // Complete flight path in 15 seconds
+      const elapsed = (time % loopDuration) / loopDuration;
+      const floatIdx = elapsed * (totalPoints - 1);
+      const idx = Math.floor(floatIdx);
+      const p1 = combinedPts[idx];
+      const p2 = combinedPts[idx + 1] || p1;
+      const t = floatIdx - idx;
+      
+      if (p1 && p2) {
+        ref.current.position.lerpVectors(p1, p2, t);
+        ref.current.lookAt(p2);
+      }
+    } else if (planet) {
+      // Fallback to orbiting planet
+      const [pX, pY, pZ] = propagateOrbit(planet.elements, time);
+      const orbitalRadius = 1.2;
+      const ang = (time / 86400) * 0.5 + mission.offset;
+      const ox = Math.cos(ang) * orbitalRadius;
+      const oz = Math.sin(ang) * orbitalRadius;
+      
+      ref.current.position.set(pX * POS_SCALE + ox, pZ * POS_SCALE, -pY * POS_SCALE + oz);
+      const nextAng = ang + 0.01;
+      const nox = Math.cos(nextAng) * orbitalRadius;
+      const noz = Math.sin(nextAng) * orbitalRadius;
+      const nextPos = new THREE.Vector3(pX * POS_SCALE + nox, pZ * POS_SCALE, -pY * POS_SCALE + noz);
+      ref.current.lookAt(nextPos);
+    }
   });
 
   return (
-    <group 
-      ref={ref}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        onDoubleClick?.(`ARCHIVE ${String(mission.id + 1).padStart(2, '0')}`, ref);
-      }}
-    >
-      <mesh position={[0, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.5, 8]} />
-        <meshStandardMaterial color="#88aacc" roughness={0.2} metalness={0.8} />
-      </mesh>
-      {/* Solar panels */}
-      <mesh position={[0, -0.25, 0]} rotation={[0, 0, 0]}>
-        <boxGeometry args={[0.8, 0.02, 0.2]} />
-        <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
-      </mesh>
-      <mesh position={[0, 0.25, 0]} rotation={[0, 0, 0]}>
-        <boxGeometry args={[0.8, 0.02, 0.2]} />
-        <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
-      </mesh>
-      <Html distanceFactor={20} position={[0, 0.5, 0]}>
-        <div className="bg-black/60 px-2 py-0.5 rounded border border-green-500/30 flex flex-col gap-0 shadow-lg min-w-[70px]">
-          <div className="text-[6px] text-zinc-400 font-mono tracking-tighter uppercase whitespace-nowrap">MISSION {mission.id + 1}</div>
-          <div className="text-[8px] text-green-400 font-mono font-bold tracking-tight uppercase whitespace-nowrap">ARCHIVED</div>
-        </div>
-      </Html>
+    <group>
+      {/* Historical Outbound Trajectory */}
+      {launchPts.length > 0 && (
+        <Line 
+          points={launchPts}
+          color="#00ff55"
+          opacity={0.12}
+          transparent
+          lineWidth={1.5}
+        />
+      )}
+      {/* Historical Return Trajectory */}
+      {returnPts.length > 0 && (
+        <Line 
+          points={returnPts}
+          color="#ff3366"
+          opacity={0.12}
+          transparent
+          lineWidth={1.5}
+        />
+      )}
+
+      <group 
+        ref={ref}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          onDoubleClick?.(`ARCHIVE ${String(mission.id + 1).padStart(2, '0')}`, ref);
+        }}
+      >
+        <mesh position={[0, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <cylinderGeometry args={[0.08, 0.08, 0.5, 8]} />
+          <meshStandardMaterial color="#88aacc" roughness={0.2} metalness={0.8} />
+        </mesh>
+        {/* Solar panels */}
+        <mesh position={[0, -0.25, 0]} rotation={[0, 0, 0]}>
+          <boxGeometry args={[0.8, 0.02, 0.2]} />
+          <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
+        </mesh>
+        <mesh position={[0, 0.25, 0]} rotation={[0, 0, 0]}>
+          <boxGeometry args={[0.8, 0.02, 0.2]} />
+          <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
+        </mesh>
+        <Html distanceFactor={20} position={[0, 0.5, 0]}>
+          <div className="bg-black/60 px-2 py-0.5 rounded border border-green-500/30 flex flex-col gap-0 shadow-lg min-w-[70px]">
+            <div className="text-[6px] text-zinc-400 font-mono tracking-tighter uppercase whitespace-nowrap">MISSION {mission.id + 1}</div>
+            <div className="text-[8px] text-green-400 font-mono font-bold tracking-tight uppercase whitespace-nowrap">ARCHIVED</div>
+          </div>
+        </Html>
+      </group>
     </group>
   );
 }
@@ -1077,7 +1201,14 @@ function SystemEngine({
   onPlanetDoubleClick,
   onStatusUpdate,
   completedMissions,
-  archivedMissions = []
+  archivedMissions = [],
+  orbitPathsVisible = true,
+  planetaryLabelsVisible = true,
+  followSpacecraft = false,
+  cameraPresetToLoad = null,
+  cameraPresetToSave = null,
+  resetCameraTrigger = 0,
+  onPointsCalculated
 }: {
   timeMult: number;
   selectedTarget: (typeof PLANETS)[0] | null;
@@ -1087,6 +1218,13 @@ function SystemEngine({
   onStatusUpdate?: (status: string | null) => void;
   completedMissions?: number;
   archivedMissions?: any[];
+  orbitPathsVisible?: boolean;
+  planetaryLabelsVisible?: boolean;
+  followSpacecraft?: boolean;
+  cameraPresetToLoad?: number | null;
+  cameraPresetToSave?: number | null;
+  resetCameraTrigger?: number;
+  onPointsCalculated?: (pts: THREE.Vector3[], isReturn: boolean) => void;
 }) {
   const controlsRef = useRef<any>(null);
   const currentTargetName = useRef(selectedTarget?.name || "Sun");
@@ -1102,6 +1240,9 @@ function SystemEngine({
     setIsLocked(true);
   };
 
+  const { camera, scene } = useThree();
+  const presetsRef = useRef<Record<number, { position: THREE.Vector3, target: THREE.Vector3 }>>({});
+
   useEffect(() => {
     // Sync to J2000 real time
     globalTimeRef.current = getJ2000Time(Date.now() / 1000);
@@ -1113,10 +1254,55 @@ function SystemEngine({
     setSpectatedLabel(null);
   }, [selectedTarget]);
 
+  // Save preset trigger
+  useEffect(() => {
+    if (cameraPresetToSave !== null && cameraPresetToSave !== undefined && controlsRef.current) {
+      presetsRef.current[cameraPresetToSave] = {
+        position: camera.position.clone(),
+        target: controlsRef.current.target.clone()
+      };
+    }
+  }, [cameraPresetToSave, camera]);
+
+  // Load preset trigger
+  useEffect(() => {
+    if (cameraPresetToLoad !== null && cameraPresetToLoad !== undefined && controlsRef.current) {
+      const saved = presetsRef.current[cameraPresetToLoad];
+      if (saved) {
+        camera.position.copy(saved.position);
+        controlsRef.current.target.copy(saved.target);
+        controlsRef.current.update();
+      }
+    }
+  }, [cameraPresetToLoad, camera]);
+
+  // Reset camera trigger
+  useEffect(() => {
+    if (resetCameraTrigger && resetCameraTrigger > 0 && controlsRef.current) {
+      camera.position.set(0, 150, 400);
+      controlsRef.current.target.set(0, 0, 0);
+      controlsRef.current.update();
+    }
+  }, [resetCameraTrigger, camera]);
+
   useFrame((state, delta) => {
     // Limit delta to prevent huge jumps from tab switching
     const safeDelta = Math.min(delta, 0.1);
     globalTimeRef.current += safeDelta * timeMult;
+
+    // Follow spacecraft tracking
+    if (followSpacecraft) {
+      const activeShuttle = scene.getObjectByName("ODYSSEY_ACTIVE_SHUTTLE");
+      if (activeShuttle) {
+        spectatingObjRef.current = activeShuttle;
+        if (spectatedLabel !== "ODYSSEY ACTIVE") {
+          setSpectatedLabel("ODYSSEY ACTIVE");
+        }
+        setIsLocked(true);
+      }
+    } else if (spectatedLabel === "ODYSSEY ACTIVE") {
+      setSpectatedLabel(null);
+    }
 
     if (controlsRef.current && isLocked) {
       let finalLerpedTarget: THREE.Vector3;
@@ -1161,6 +1347,9 @@ function SystemEngine({
       state.camera.position.add(displacement);
     }
   });
+
+  const showOrbitingShuttle = !launchParams?.isLaunched && launchParams?.missionStatus && launchParams.missionStatus.endsWith("_ORBIT") && launchParams.missionStatus !== "EARTH_ORBIT";
+  const orbPlanetName = showOrbitingShuttle ? launchParams.missionStatus.replace("_ORBIT", "") : "";
 
   return (
     <>
@@ -1218,15 +1407,33 @@ function SystemEngine({
       <KuiperBelt timeMult={timeMult} />
 
       {PLANETS.map((p) => (
-        <Planet key={p.name} data={p} globalTimeRef={globalTimeRef} onDoubleClick={onPlanetDoubleClick} launchParams={launchParams} />
+        <Planet 
+          key={p.name} 
+          data={p} 
+          globalTimeRef={globalTimeRef} 
+          onDoubleClick={onPlanetDoubleClick} 
+          launchParams={launchParams} 
+          orbitPathsVisible={orbitPathsVisible}
+          planetaryLabelsVisible={planetaryLabelsVisible}
+        />
       ))}
 
       {archivedMissions.map(m => (
         <ArchivedShuttle key={m.id} mission={m} globalTimeRef={globalTimeRef} onDoubleClick={handleShuttleDoubleClick} />
       ))}
 
+      {showOrbitingShuttle && orbPlanetName && (
+        <OrbitingShuttle planetName={orbPlanetName} globalTimeRef={globalTimeRef} />
+      )}
+
       {launchParams && ((launchParams.targetPlanet && launchParams.targetPlanet !== (launchParams.launchPlanet || "Earth")) || launchParams.missionLegs) && (
-        <GhostPath launchParams={launchParams} globalTimeRef={globalTimeRef} onStatusUpdate={onStatusUpdate} onDoubleClick={handleShuttleDoubleClick} />
+        <GhostPath 
+          launchParams={launchParams} 
+          globalTimeRef={globalTimeRef} 
+          onStatusUpdate={onStatusUpdate} 
+          onDoubleClick={handleShuttleDoubleClick} 
+          onPointsCalculated={onPointsCalculated}
+        />
       )}
 
       <OrbitControls
@@ -1258,7 +1465,14 @@ export default function OrbitSimulator({
   onPlanetDoubleClick,
   onStatusUpdate,
   completedMissions = 0,
-  archivedMissions = []
+  archivedMissions = [],
+  orbitPathsVisible = true,
+  planetaryLabelsVisible = true,
+  followSpacecraft = false,
+  cameraPresetToLoad = null,
+  cameraPresetToSave = null,
+  resetCameraTrigger = 0,
+  onPointsCalculated
 }: {
   isRunning?: boolean;
   timeMult?: number;
@@ -1269,6 +1483,13 @@ export default function OrbitSimulator({
   onStatusUpdate?: (status: string | null) => void;
   completedMissions?: number;
   archivedMissions?: any[];
+  orbitPathsVisible?: boolean;
+  planetaryLabelsVisible?: boolean;
+  followSpacecraft?: boolean;
+  cameraPresetToLoad?: number | null;
+  cameraPresetToSave?: number | null;
+  resetCameraTrigger?: number;
+  onPointsCalculated?: (pts: THREE.Vector3[], isReturn: boolean) => void;
 }) {
   const fallbackRef = useRef(0);
   const activeTimeRef = globalTimeRef || fallbackRef;
@@ -1295,6 +1516,13 @@ export default function OrbitSimulator({
           onStatusUpdate={onStatusUpdate}
           completedMissions={completedMissions}
           archivedMissions={archivedMissions}
+          orbitPathsVisible={orbitPathsVisible}
+          planetaryLabelsVisible={planetaryLabelsVisible}
+          followSpacecraft={followSpacecraft}
+          cameraPresetToLoad={cameraPresetToLoad}
+          cameraPresetToSave={cameraPresetToSave}
+          resetCameraTrigger={resetCameraTrigger}
+          onPointsCalculated={onPointsCalculated}
         />
 
         <Stars
