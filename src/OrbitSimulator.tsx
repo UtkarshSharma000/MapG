@@ -788,6 +788,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
       setReachedDestination((prev) => (prev !== false ? false : prev));
 
       // Constantly recalculate if not launched (interplanetary)
+      if (launchParams.isLaunched) return;
       if ((launchParams.targetPlanet && launchParams.targetPlanet !== "Earth") || launchParams.missionLegs) {
         lastCalcTime.current += delta;
         if (lastCalcTime.current > 1.0) { // Update frequency reduced to 1s
