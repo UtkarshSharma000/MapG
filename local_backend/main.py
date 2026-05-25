@@ -431,89 +431,354 @@ def deriv_heliocentric(pos, vel):
     return vel, (ax, ay, az)
 
 
+PLANET_ELEMENTS = {
+    "Mercury": {
+        "a": 0.387 * AU,
+        "e": 0.2056,
+        "i": (7.0 * math.pi) / 180.0,
+        "Omega": (48.33 * math.pi) / 180.0,
+        "w": (29.124 * math.pi) / 180.0,
+        "M0": (174.0 * math.pi) / 180.0,
+        "period": 88.0 * 24 * 3600,
+        "radius": 2439000.0,
+    },
+    "Venus": {
+        "a": 0.723 * AU,
+        "e": 0.0067,
+        "i": (3.39 * math.pi) / 180.0,
+        "Omega": (76.68 * math.pi) / 180.0,
+        "w": (54.88 * math.pi) / 180.0,
+        "M0": (50.0 * math.pi) / 180.0,
+        "period": 224.7 * 24 * 3600,
+        "radius": 6051000.0,
+    },
+    "Earth": {
+        "a": 1.0 * AU,
+        "e": 0.0167,
+        "i": (0.00005 * math.pi) / 180.0,
+        "Omega": (-11.26 * math.pi) / 180.0,
+        "w": (114.2 * math.pi) / 180.0,
+        "M0": (358.0 * math.pi) / 180.0,
+        "period": 365.25 * 24 * 3600,
+        "radius": 6371000.0,
+    },
+    "Mars": {
+        "a": 1.524 * AU,
+        "e": 0.0934,
+        "i": (1.85 * math.pi) / 180.0,
+        "Omega": (49.57 * math.pi) / 180.0,
+        "w": (286.5 * math.pi) / 180.0,
+        "M0": (19.0 * math.pi) / 180.0,
+        "period": 686.98 * 24 * 3600,
+        "radius": 3389000.0,
+    },
+    "Jupiter": {
+        "a": 5.204 * AU,
+        "e": 0.0489,
+        "i": (1.3 * math.pi) / 180.0,
+        "Omega": (100.4 * math.pi) / 180.0,
+        "w": (273.8 * math.pi) / 180.0,
+        "M0": (20.0 * math.pi) / 180.0,
+        "period": 4332.59 * 24 * 3600,
+        "radius": 69911000.0,
+    },
+    "Saturn": {
+        "a": 9.582 * AU,
+        "e": 0.0565,
+        "i": (2.48 * math.pi) / 180.0,
+        "Omega": (113.6 * math.pi) / 180.0,
+        "w": (339.3 * math.pi) / 180.0,
+        "M0": (317.0 * math.pi) / 180.0,
+        "period": 10759.0 * 24 * 3600,
+        "radius": 58232000.0,
+    },
+    "Uranus": {
+        "a": 19.201 * AU,
+        "e": 0.0457,
+        "i": (0.77 * math.pi) / 180.0,
+        "Omega": (74.0 * math.pi) / 180.0,
+        "w": (96.6 * math.pi) / 180.0,
+        "M0": (142.0 * math.pi) / 180.0,
+        "period": 30688.0 * 24 * 3600,
+        "radius": 25362000.0,
+    },
+    "Neptune": {
+        "a": 30.047 * AU,
+        "e": 0.0113,
+        "i": (1.77 * math.pi) / 180.0,
+        "Omega": (131.7 * math.pi) / 180.0,
+        "w": (273.1 * math.pi) / 180.0,
+        "M0": (256.0 * math.pi) / 180.0,
+        "period": 60182.0 * 24 * 3600,
+        "radius": 24622000.0,
+    },
+}
+
+def solve_kepler(M, e, tol=1e-6):
+    E = M
+    delta = 1.0
+    max_iter = 100
+    while abs(delta) > tol and max_iter > 0:
+        delta = (E - e * math.sin(E) - M) / (1.0 - e * math.cos(E))
+        E -= delta
+        max_iter -= 1
+    return E
+
+def propagate_orbit(elements, time_since_epoch):
+    a = elements["a"]
+    e = elements["e"]
+    i = elements["i"]
+    Omega = elements["Omega"]
+    w = elements["w"]
+    M0 = elements["M0"]
+    period = elements["period"]
+
+    n = (2.0 * math.pi) / period
+    M = M0 + n * time_since_epoch
+    M = M % (2.0 * math.pi)
+
+    E = solve_kepler(M, e)
+    nu = 2.0 * math.atan2(
+        math.sqrt(1.0 + e) * math.sin(E / 2.0),
+        math.sqrt(1.0 - e) * math.cos(E / 2.0)
+    )
+
+    r = a * (1.0 - e * math.cos(E))
+
+    x_orbit = r * math.cos(nu)
+    y_orbit = r * math.sin(nu)
+
+    cw = math.cos(w)
+    sw = math.sin(w)
+    c_Omega = math.cos(Omega)
+    s_Omega = math.sin(Omega)
+    ci = math.cos(i)
+    si = math.sin(i)
+
+    x = x_orbit * (cw * c_Omega - sw * ci * s_Omega) - y_orbit * (sw * c_Omega + cw * ci * s_Omega)
+    y = x_orbit * (cw * s_Omega + sw * ci * c_Omega) - y_orbit * (sw * s_Omega - cw * ci * c_Omega)
+    z = x_orbit * (sw * si) + y_orbit * (cw * si)
+
+    return (x, y, z)
+
+def get_orbital_velocity(elements, time_since_epoch):
+    dt = 1.0
+    p1 = propagate_orbit(elements, time_since_epoch - dt/2.0)
+    p2 = propagate_orbit(elements, time_since_epoch + dt/2.0)
+    return (
+        (p2[0] - p1[0]) / dt,
+        (p2[1] - p1[1]) / dt,
+        (p2[2] - p1[2]) / dt
+    )
+
+def C(z):
+    if z > 1e-6:
+        return (1.0 - math.cos(math.sqrt(z))) / z
+    if z < -1e-6:
+        return (math.cosh(math.sqrt(-z)) - 1.0) / (-z)
+    return 1.0/2.0 - z/24.0 + (z*z)/720.0
+
+def S(z):
+    if z > 1e-6:
+        sz = math.sqrt(z)
+        return (sz - math.sin(sz)) / (sz**3)
+    if z < -1e-6:
+        sz = math.sqrt(-z)
+        return (math.sinh(sz) - sz) / (sz**3)
+    return 1.0/6.0 - z/120.0 + (z*z)/5040.0
+
+def solve_lambert(r1, r2, tof, mu, prograde=True):
+    norm1 = math.sqrt(r1[0]**2 + r1[1]**2 + r1[2]**2)
+    norm2 = math.sqrt(r2[0]**2 + r2[1]**2 + r2[2]**2)
+
+    cos_dnu = (r1[0] * r2[0] + r1[1] * r2[1] + r1[2] * r2[2]) / (norm1 * norm2)
+    cr = (
+        r1[1] * r2[2] - r1[2] * r2[1],
+        r1[2] * r2[0] - r1[0] * r2[2],
+        r1[0] * r2[1] - r1[1] * r2[0],
+    )
+    dnu = math.acos(max(-1.0, min(1.0, cos_dnu)))
+
+    if prograde:
+        if cr[2] < 0:
+            dnu = 2.0 * math.pi - dnu
+    else:
+        if cr[2] >= 0:
+            dnu = 2.0 * math.pi - dnu
+
+    A = math.sin(dnu) * math.sqrt((norm1 * norm2) / (1.0 - math.cos(dnu)))
+
+    z_low = -4.0 * math.pi * math.pi
+    z_high = 4.0 * math.pi * math.pi
+    z = 0.0
+
+    y = 0.0
+    tol = 1e-4
+    for _ in range(100):
+        c_val = C(z)
+        s_val = S(z)
+
+        denom = math.sqrt(c_val)
+        y = norm1 + norm2 + A * (z * s_val - 1.0) / denom
+
+        if A > 0.0 and y < 0.0:
+            z_low = z
+            z = (z + z_high) / 2.0
+            continue
+
+        x = math.sqrt(y / c_val)
+        t_calc = (x**3 * s_val + A * math.sqrt(y)) / math.sqrt(mu)
+
+        if abs(t_calc - tof) < 0.01:
+            break
+
+        if t_calc < tof:
+            z_low = z
+        else:
+            z_high = z
+        z = (z_high + z_low) / 2.0
+        if abs(z_high - z_low) < tol:
+            break
+
+    f = 1.0 - y / norm1
+    g = A * math.sqrt(y / mu)
+
+    return (
+        (r2[0] - f * r1[0]) / g,
+        (r2[1] - f * r1[1]) / g,
+        (r2[2] - f * r1[2]) / g,
+    )
+
+def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_fast=False):
+    start_pos = propagate_orbit(earth_elements, current_time)
+    start_vel_base = get_orbital_velocity(earth_elements, current_time)
+
+    best_tof = 0.0
+    min_dv = float('inf')
+    best_v = (0.0, 0.0, 0.0)
+
+    a1 = earth_elements["a"] / AU
+    a2 = target_elements["a"] / AU
+
+    # Hohmann transfer approximate time in days
+    hohmann_days = 0.5 * 365.25 * math.pow((a1 + a2) / 2.0, 1.5)
+
+    min_days = max(10.0, hohmann_days * 0.2)
+    max_days = max(100.0, hohmann_days * 2.5)
+
+    if is_fast:
+        min_days = max(10.0, min_days * 0.4)
+        max_days = max_days * 0.6
+
+    # Pass 1: Coarse search
+    coarse_step = 55.0 if max_days > 5000 else (15.0 if max_days > 2000 else 5.0)
+    d = min_days
+    while d <= max_days:
+        tof_seconds = d * 24.0 * 3600.0
+        target_pos_future = propagate_orbit(target_elements, current_time + tof_seconds)
+
+        try:
+            v_lambert = solve_lambert(start_pos, target_pos_future, tof_seconds, mu)
+            dv = math.sqrt(
+                (v_lambert[0] - start_vel_base[0])**2 +
+                (v_lambert[1] - start_vel_base[1])**2 +
+                (v_lambert[2] - start_vel_base[2])**2
+            )
+
+            if dv < min_dv:
+                min_dv = dv
+                best_tof = tof_seconds
+                best_v = v_lambert
+        except Exception:
+            pass
+        d += coarse_step
+
+    # Pass 2: Refined search
+    if best_tof > 0.0:
+        central_day = best_tof / (24.0 * 3600.0)
+        d = max(min_days, central_day - 4.0)
+        max_d = min(max_days, central_day + 4.0)
+        while d <= max_d:
+            tof_seconds = d * 24.0 * 3600.0
+            target_pos_future = propagate_orbit(target_elements, current_time + tof_seconds)
+            try:
+                v_lambert = solve_lambert(start_pos, target_pos_future, tof_seconds, mu)
+                dv = math.sqrt(
+                    (v_lambert[0] - start_vel_base[0])**2 +
+                    (v_lambert[1] - start_vel_base[1])**2 +
+                    (v_lambert[2] - start_vel_base[2])**2
+                )
+                if dv < min_dv:
+                    min_dv = dv
+                    best_tof = tof_seconds
+                    best_v = v_lambert
+            except Exception:
+                pass
+            d += 0.5
+
+    return {"tof": best_tof, "vReq": best_v, "dvReq": min_dv}
+
+
 # Interplanetary trajectory calculator
 @app.post("/calculate")
 async def calculate_interplanetary(req: dict):
     targetPlanet = req.get("targetPlanet", "Mars")
     globalTime = req.get("globalTime", 0.0)
-    
-    tgt = table.get(targetPlanet, table["Mars"])
-    
-    earth_sma = AU
-    earth_angle = (2.0 * math.pi * globalTime) / (365.25 * 86400.0)
-    cos_earth = math.cos(earth_angle)
-    sin_earth = math.sin(earth_angle)
-    
-    earth_pos = (earth_sma * cos_earth, earth_sma * sin_earth, 0.0)
-    earth_vel = (-29780.0 * sin_earth, 29780.0 * cos_earth, 0.0)
-    
-    tgt_sma = tgt["sma"]
-    
-    # Hohmann Orbit transfer
-    a_transfer = (earth_sma + tgt_sma) / 2.0
-    tof = math.pi * math.sqrt((a_transfer * a_transfer * a_transfer) / MU_SUN)
-    
-    v_earth = math.sqrt(MU_SUN / earth_sma)
-    v_depart = math.sqrt(MU_SUN * (2.0 / earth_sma - 1.0 / a_transfer))
-    v_arrive = math.sqrt(MU_SUN * (2.0 / tgt_sma - 1.0 / a_transfer))
-    v_tgt_circ = math.sqrt(MU_SUN / tgt_sma)
-    
-    dv_depart = abs(v_depart - v_earth)
-    dv_arrive = abs(v_tgt_circ - v_arrive)
-    total_dv = dv_depart + dv_arrive
-    
-    ev_norm = math.sqrt(earth_vel[0]**2 + earth_vel[1]**2 + earth_vel[2]**2)
-    depart_dir = (earth_vel[0]/ev_norm, earth_vel[1]/ev_norm, earth_vel[2]/ev_norm)
-    if tgt_sma < earth_sma:
-        depart_dir = (-depart_dir[0], -depart_dir[1], -depart_dir[2])
-        
-    sc_pos = earth_pos
-    sc_vel = (
-        earth_vel[0] + depart_dir[0] * dv_depart,
-        earth_vel[1] + depart_dir[1] * dv_depart,
-        earth_vel[2] + depart_dir[2] * dv_depart
-    )
-    
+
+    earth_el = PLANET_ELEMENTS["Earth"]
+    target_el = PLANET_ELEMENTS.get(targetPlanet, PLANET_ELEMENTS["Mars"])
+
+    res_opt = find_optimal_transfer(earth_el, target_el, globalTime, MU_SUN)
+    tof = res_opt["tof"]
+    total_dv = res_opt["dvReq"]
+    sc_vel = list(res_opt["vReq"])
+
+    # Starting position is Earth position at launch time
+    sc_pos = list(propagate_orbit(earth_el, globalTime))
+
     N = 500
     dt_step = tof / N
     pts = []
-    
+
     for i in range(N):
-        pts.append([sc_pos[0]/1000.0, sc_pos[1]/1000.0, sc_pos[2]/1000.0])
-        
+        pts.append([sc_pos[0], sc_pos[1], sc_pos[2]]) # RAW METERS
+
         # RK4 step
         v1, a1 = deriv_heliocentric(sc_pos, sc_vel)
-        
+
         p2 = (sc_pos[0] + 0.5*dt_step*v1[0], sc_pos[1] + 0.5*dt_step*v1[1], sc_pos[2] + 0.5*dt_step*v1[2])
         v2_arg = (sc_vel[0] + 0.5*dt_step*a1[0], sc_vel[1] + 0.5*dt_step*a1[1], sc_vel[2] + 0.5*dt_step*a1[2])
         v2, a2 = deriv_heliocentric(p2, v2_arg)
-        
+
         p3 = (sc_pos[0] + 0.5*dt_step*v2[0], sc_pos[1] + 0.5*dt_step*v2[1], sc_pos[2] + 0.5*dt_step*v2[2])
         v3_arg = (sc_vel[0] + 0.5*dt_step*a2[0], sc_vel[1] + 0.5*dt_step*a2[1], sc_vel[2] + 0.5*dt_step*a2[2])
         v3, a3 = deriv_heliocentric(p3, v3_arg)
-        
+
         p4 = (sc_pos[0] + dt_step*v3[0], sc_pos[1] + dt_step*v3[1], sc_pos[2] + dt_step*v3[2])
         v4_arg = (sc_vel[0] + dt_step*a3[0], sc_vel[1] + dt_step*a3[1], sc_vel[2] + dt_step*a3[2])
         v4, a4 = deriv_heliocentric(p4, v4_arg)
-        
-        sc_pos = (
+
+        sc_pos = [
             sc_pos[0] + (dt_step/6.0) * (v1[0] + 2*v2[0] + 2*v3[0] + v4[0]),
             sc_pos[1] + (dt_step/6.0) * (v1[1] + 2*v2[1] + 2*v3[1] + v4[1]),
             sc_pos[2] + (dt_step/6.0) * (v1[2] + 2*v2[2] + 2*v3[2] + v4[2])
-        )
-        sc_vel = (
+        ]
+        sc_vel = [
             sc_vel[0] + (dt_step/6.0) * (a1[0] + 2*a2[0] + 2*a3[0] + a4[0]),
             sc_vel[1] + (dt_step/6.0) * (a1[1] + 2*a2[1] + 2*a3[1] + a4[1]),
             sc_vel[2] + (dt_step/6.0) * (a1[2] + 2*a2[2] + 2*a3[2] + a4[2])
-        )
-        
+        ]
+
+    tgt_sma = target_el["a"]
     max_dv = 15000.0 if tgt_sma > 4.0 * AU else 3500.0
     captured = total_dv <= max_dv
     remaining = max_dv - total_dv
-    capture_alt = (tgt["radius"] / 1000.0) * 0.3
-    
+    capture_alt = (target_el["radius"] / 1000.0) * 0.3
+
     orbit_period_days = 195.6
-    
+
+    v_depart_mag = math.sqrt(sc_vel[0]**2 + sc_vel[1]**2 + sc_vel[2]**2)
+
     return {
         "points": pts,
         "arrivalTime": globalTime + tof,
@@ -526,7 +791,7 @@ async def calculate_interplanetary(req: dict):
         "usedDuration": tof,
         "simStartTime": globalTime,
         "dvLabel": total_dv,
-        "vReq": v_depart / 1000.0
+        "vReq": v_depart_mag / 1000.0
     }
 
 
