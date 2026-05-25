@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { useTexture, OrbitControls } from "@react-three/drei";
+import * as THREE from 'three';
 import {
   Play,
   Activity,
@@ -13,6 +16,35 @@ import TrajectoryOptimizer, { OptimizeResult, scanPorkchop } from "./TrajectoryO
 import { TelemetryPanel } from "./components/TelemetryPanel";
 import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
+
+function InteractiveGlobe({ url, color }: { url: string, color: string }) {
+  const meshRef = React.useRef<THREE.Mesh>(null);
+  const tex = useTexture(url);
+  useFrame(() => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y += 0.005;
+    }
+  });
+
+  const [hovered, setHover] = useState(false);
+  
+  return (
+    <>
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[5, 3, 5]} intensity={1} />
+      <mesh 
+        ref={meshRef} 
+        onPointerOver={() => setHover(true)} 
+        onPointerOut={() => setHover(false)}
+        scale={hovered ? 1.05 : 1}
+      >
+        <sphereGeometry args={[1.5, 32, 32]} />
+        <meshStandardMaterial map={tex} color={hovered ? '#ffffff' : '#aaaaaa'} roughness={0.6} />
+      </mesh>
+      <OrbitControls enableZoom={false} enablePan={false} />
+    </>
+  );
+}
 
 export default function App() {
   const [isSimulatorRunning, setIsSimulatorRunning] = useState(false);
@@ -301,13 +333,11 @@ export default function App() {
           </span>
         </div>
         <div className="flex items-center gap-5 mb-8">
-          <div className="relative">
-            <img
-              src={selectedTarget.texture}
-              alt={selectedTarget.name}
-              className="w-16 h-16 rounded-full border border-white/10 object-cover"
-            />
-            <div className="absolute inset-0 rounded-full ring-2 ring-primary/20 animate-ping"></div>
+          <div className="relative w-20 h-20 rounded-full border border-white/10 overflow-hidden cursor-grab active:cursor-grabbing">
+            <Canvas camera={{ position: [0, 0, 3] }}>
+              <InteractiveGlobe url={selectedTarget.texture} color={selectedTarget.color} />
+            </Canvas>
+            <div className="absolute inset-0 rounded-full ring-2 ring-primary/20 pointer-events-none animate-ping"></div>
           </div>
           <div>
             <h2 className="font-display-lg text-4xl text-white uppercase">
@@ -318,9 +348,9 @@ export default function App() {
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-y-6">
-          <div>
-            <span className="font-label-caps text-[9px] text-white/30 block mb-1">VELOCITY (PERI)</span>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white/5 p-3 rounded-lg border border-white/5 hover:border-white/20 hover:-translate-y-1 hover:bg-white/10 transition-all cursor-pointer shadow-lg hover:shadow-primary/20">
+            <span className="font-label-caps text-[9px] text-white/40 block mb-1">VELOCITY (PERI)</span>
             <span className="font-data-lg text-xl text-white">
               {Math.ceil(
                 (Math.sqrt(
@@ -337,22 +367,22 @@ export default function App() {
             </span>
             <span className="text-[9px] text-white/20 ml-1">KM/S</span>
           </div>
-          <div>
-            <span className="font-label-caps text-[9px] text-white/30 block mb-1">SEMI-MAJOR</span>
+          <div className="bg-white/5 p-3 rounded-lg border border-white/5 hover:border-white/20 hover:-translate-y-1 hover:bg-white/10 transition-all cursor-pointer shadow-lg hover:shadow-cyan-500/20">
+            <span className="font-label-caps text-[9px] text-white/40 block mb-1">SEMI-MAJOR</span>
             <span className="font-data-lg text-xl text-white">
               {(selectedTarget.elements.a / 149597870700).toFixed(2)}
             </span>
             <span className="text-[9px] text-white/20 ml-1">AU</span>
           </div>
-          <div>
-            <span className="font-label-caps text-[9px] text-white/30 block mb-1">ORBIT PERIOD</span>
+          <div className="bg-white/5 p-3 rounded-lg border border-white/5 hover:border-white/20 hover:-translate-y-1 hover:bg-white/10 transition-all cursor-pointer shadow-lg hover:shadow-cyan-500/20">
+            <span className="font-label-caps text-[9px] text-white/40 block mb-1">ORBIT PERIOD</span>
             <span className="font-data-lg text-xl text-white">
               {(selectedTarget.elements.period / (24 * 3600)).toFixed(1)}
             </span>
             <span className="text-[9px] text-white/20 ml-1">DAYS</span>
           </div>
-          <div>
-            <span className="font-label-caps text-[9px] text-white/30 block mb-1">ECCENTRICITY</span>
+          <div className="bg-white/5 p-3 rounded-lg border border-white/5 hover:border-white/20 hover:-translate-y-1 hover:bg-white/10 transition-all cursor-pointer shadow-lg hover:shadow-primary/20">
+            <span className="font-label-caps text-[9px] text-white/40 block mb-1">ECCENTRICITY</span>
             <span className="font-data-lg text-xl text-primary">
               {selectedTarget.elements.e.toFixed(4)}
             </span>
@@ -657,10 +687,7 @@ export default function App() {
           <div className="flex items-center gap-10 pointer-events-auto">
             <h1 className="font-display-lg text-2xl tracking-tighter text-white">ODYSSEY <span className="text-secondary font-bold">2026</span></h1>
             <nav className="hidden md:flex gap-10">
-              <a className="font-label-caps text-[10px] tracking-[0.15em] text-white/60 hover:text-secondary transition-colors" href="#">TELEMETRY</a>
               <a className="font-label-caps text-[10px] tracking-[0.15em] text-secondary border-b border-secondary/50 pb-1" href="#">TRAJECTORY</a>
-              <a className="font-label-caps text-[10px] tracking-[0.15em] text-white/60 hover:text-secondary transition-colors" href="#">PAYLOAD</a>
-              <a className="font-label-caps text-[10px] tracking-[0.15em] text-white/60 hover:text-secondary transition-colors" href="#">COMMS</a>
             </nav>
           </div>
           
@@ -688,20 +715,20 @@ export default function App() {
           <div className="pointer-events-auto">
             <div className="glass-panel px-8 py-3 rounded-full flex items-center gap-6 border-white/10">
               <div className="relative flex items-center gap-3 pr-[20px] after:content-[''] after:absolute after:top-1/2 after:right-0 after:w-[10px] after:h-[1px] after:bg-white/10">
-                <span className="w-2 h-2 rounded-full bg-white/20"></span>
-                <span className="font-label-caps text-[9px] text-white/40">LAUNCH</span>
+                <span className={`w-2.5 h-2.5 rounded-full ${missionStatus === 'STANDBY' ? 'bg-primary glow-orange' : 'bg-white/20'}`}></span>
+                <span className={`font-label-caps text-[9px] ${missionStatus === 'STANDBY' ? 'text-primary' : 'text-white/40'}`}>LAUNCH</span>
               </div>
               <div className="relative flex items-center gap-3 pr-[20px] after:content-[''] after:absolute after:top-1/2 after:right-0 after:w-[10px] after:h-[1px] after:bg-white/10">
-                <span className="w-2 h-2 rounded-full bg-white/20"></span>
-                <span className="font-label-caps text-[9px] text-white/40">TRANSFER</span>
+                <span className={`w-2.5 h-2.5 rounded-full ${missionStatus === 'TRANSIT' ? 'bg-primary glow-orange' : 'bg-white/20'}`}></span>
+                <span className={`font-label-caps text-[9px] ${missionStatus === 'TRANSIT' ? 'text-primary' : 'text-white/40'}`}>TRANSFER</span>
               </div>
               <div className="relative flex items-center gap-3 pr-[20px] after:content-[''] after:absolute after:top-1/2 after:right-0 after:w-[10px] after:h-[1px] after:bg-white/10">
-                <span className="w-2.5 h-2.5 rounded-full bg-primary glow-orange"></span>
-                <span className="font-label-caps text-[9px] text-primary">INTERCEPT</span>
+                <span className={`w-2.5 h-2.5 rounded-full ${missionStatus?.includes('ORBIT') && missionStatus !== 'EARTH_ORBIT' ? 'bg-primary glow-orange' : 'bg-white/20'}`}></span>
+                <span className={`font-label-caps text-[9px] ${missionStatus?.includes('ORBIT') && missionStatus !== 'EARTH_ORBIT' ? 'text-primary' : 'text-white/40'}`}>INTERCEPT</span>
               </div>
               <div className="relative flex items-center gap-3">
-                <span className="w-2 h-2 rounded-full bg-white/10"></span>
-                <span className="font-label-caps text-[9px] text-white/20">RETURN</span>
+                <span className={`w-2.5 h-2.5 rounded-full ${missionStatus === 'EARTH_ORBIT' ? 'bg-primary glow-orange' : 'bg-white/20'}`}></span>
+                <span className={`font-label-caps text-[9px] ${missionStatus === 'EARTH_ORBIT' ? 'text-primary' : 'text-white/40'}`}>RETURN</span>
               </div>
             </div>
           </div>
