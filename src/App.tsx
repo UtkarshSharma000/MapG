@@ -37,7 +37,6 @@ function InteractiveGlobe({ url, color }: { url: string, color: string }) {
         ref={meshRef} 
         onPointerOver={() => setHover(true)} 
         onPointerOut={() => setHover(false)}
-        scale={hovered ? 1.05 : 1}
       >
         <sphereGeometry args={[1.5, 64, 64]} />
         <meshStandardMaterial map={tex} color={hovered ? '#ffffff' : '#f0f0f0'} roughness={0.7} emissive={new THREE.Color(color).multiplyScalar(0.1)} />
