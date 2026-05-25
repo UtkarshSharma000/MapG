@@ -651,7 +651,7 @@ function Planet({
   );
 }
 
-function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchParams: any, globalTimeRef: any, onStatusUpdate?: (s: string | null) => void }) {
+function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick }: { launchParams: any, globalTimeRef: any, onStatusUpdate?: (s: string | null) => void, onDoubleClick?: (label: string, ref: any) => void }) {
   const [points, setPoints] = useState<THREE.Vector3[]>([]);
   const shuttleRef = useRef<THREE.Group>(null);
   const progressRef = useRef(0);
@@ -997,7 +997,13 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
 
       {launchParams?.isLaunched && points.length > 0 && (
         <group ref={shuttleRef} position={points[0]}>
-           <mesh rotation={[Math.PI / 2, 0, 0]}>
+           <mesh 
+             rotation={[Math.PI / 2, 0, 0]}
+             onDoubleClick={(e) => {
+               e.stopPropagation();
+               onDoubleClick?.("ODYSSEY ACTIVE", shuttleRef);
+             }}
+           >
              <coneGeometry args={[0.1, 0.3, 16]} />
              <meshStandardMaterial color="#ffffff" emissive="#ff4444" emissiveIntensity={0.8} />
            </mesh>
@@ -1037,7 +1043,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
   );
 }
 
-function ArchivedShuttle({ mission, globalTimeRef }: { mission: any, globalTimeRef: React.MutableRefObject<number> }) {
+function ArchivedShuttle({ mission, globalTimeRef, onDoubleClick }: { mission: any, globalTimeRef: React.MutableRefObject<number>, onDoubleClick?: (label: string, ref: any) => void }) {
   const ref = useRef<THREE.Group>(null);
   const pName = mission.returnPlanet || mission.targetPlanet;
   const planet = PLANETS.find(p => p.name === pName) || PLANETS.find(p => p.name === "Earth");
@@ -1073,7 +1079,13 @@ function ArchivedShuttle({ mission, globalTimeRef }: { mission: any, globalTimeR
   });
 
   return (
-    <group ref={ref}>
+    <group 
+      ref={ref}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        onDoubleClick?.(`ARCHIVE ${String(mission.id + 1).padStart(2, '0')}`, ref);
+      }}
+    >
       <mesh position={[0, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
         <cylinderGeometry args={[0.08, 0.08, 0.5, 8]} />
         <meshStandardMaterial color="#88aacc" roughness={0.2} metalness={0.8} />
@@ -1121,6 +1133,15 @@ function SystemEngine({
   const [isLocked, setIsLocked] = useState(true);
   const [realTimeSeconds, setRealTimeSeconds] = useState(0);
 
+  const spectatingObjRef = useRef<THREE.Object3D | null>(null);
+  const [spectatedLabel, setSpectatedLabel] = useState<string | null>(null);
+
+  const handleShuttleDoubleClick = (label: string, ref: any) => {
+    spectatingObjRef.current = ref.current;
+    setSpectatedLabel(label);
+    setIsLocked(true);
+  };
+
   useEffect(() => {
     // Sync to J2000 real time
     globalTimeRef.current = getJ2000Time(Date.now() / 1000);
@@ -1129,6 +1150,7 @@ function SystemEngine({
   // Auto-lock when target changes
   useEffect(() => {
     setIsLocked(true);
+    setSpectatedLabel(null);
   }, [selectedTarget]);
 
   useFrame((state, delta) => {
@@ -1137,37 +1159,45 @@ function SystemEngine({
     globalTimeRef.current += safeDelta * timeMult;
 
     if (controlsRef.current && isLocked) {
-      let targetX = 0,
-        targetY = 0,
-        targetZ = 0;
-
-      if (selectedTarget) {
-        const [x, y, z] = propagateOrbit(
-          selectedTarget.elements,
-          globalTimeRef.current,
-        );
-        targetX = x * POS_SCALE;
-        targetY = z * POS_SCALE;
-        targetZ = -y * POS_SCALE;
-      }
-
-      const newTarget = new THREE.Vector3(targetX, targetY, targetZ);
-      const targetName = selectedTarget ? selectedTarget.name : "Sun";
-
-      if (currentTargetName.current !== targetName) {
-        currentTargetName.current = targetName;
-      }
-
-      // Smoothly interpolate the target
-      // This prevents harsh camera jumps and motion sickness
+      let finalLerpedTarget: THREE.Vector3;
       const currentTarget = controlsRef.current.target;
-      const lerpFactor = 1 - Math.exp(-safeDelta * 6); // Smooth framerate-independent lerp
-      const newLerpedTarget = currentTarget.clone().lerp(newTarget, lerpFactor);
 
-      const displacement = newLerpedTarget.clone().sub(currentTarget);
+      if (spectatedLabel && spectatingObjRef.current) {
+        const pos = new THREE.Vector3();
+        spectatingObjRef.current.getWorldPosition(pos);
+        
+        const lerpFactor = 1 - Math.exp(-safeDelta * 6);
+        finalLerpedTarget = currentTarget.clone().lerp(pos, lerpFactor);
+      } else {
+        let targetX = 0,
+          targetY = 0,
+          targetZ = 0;
+
+        if (selectedTarget) {
+          const [x, y, z] = propagateOrbit(
+            selectedTarget.elements,
+            globalTimeRef.current,
+          );
+          targetX = x * POS_SCALE;
+          targetY = z * POS_SCALE;
+          targetZ = -y * POS_SCALE;
+        }
+
+        const newTarget = new THREE.Vector3(targetX, targetY, targetZ);
+        const targetName = selectedTarget ? selectedTarget.name : "Sun";
+
+        if (currentTargetName.current !== targetName) {
+          currentTargetName.current = targetName;
+        }
+
+        const lerpFactor = 1 - Math.exp(-safeDelta * 6);
+        finalLerpedTarget = currentTarget.clone().lerp(newTarget, lerpFactor);
+      }
+
+      const displacement = finalLerpedTarget.clone().sub(currentTarget);
 
       // Update target and camera position to track smoothly
-      controlsRef.current.target.copy(newLerpedTarget);
+      controlsRef.current.target.copy(finalLerpedTarget);
       state.camera.position.add(displacement);
     }
   });
@@ -1200,13 +1230,13 @@ function SystemEngine({
               className="px-3 py-1 bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/55 text-cyan-400 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 group transition-all self-start glossy-button cursor-pointer"
             >
               <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse group-hover:scale-125"></div>
-              RE-LOCK CAMERA TO {selectedTarget ? selectedTarget.name.toUpperCase() : "SOL"}
+              RE-LOCK CAMERA TO {spectatedLabel ? spectatedLabel : (selectedTarget ? selectedTarget.name.toUpperCase() : "SOL")}
             </button>
           )}
           {isLocked && (
             <div className="px-3 py-1 bg-black/60 border border-white/10 text-white/50 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 self-start">
               <div className="w-1.5 h-1.5 rounded-full bg-white/30"></div>
-              CAMERA TRACKING {selectedTarget ? selectedTarget.name.toUpperCase() : "SOL"}
+              CAMERA TRACKING {spectatedLabel ? spectatedLabel : (selectedTarget ? selectedTarget.name.toUpperCase() : "SOL")}
               <span className="ml-2 text-[8px] opacity-30">(DRAG TO UNLOCK)</span>
             </div>
           )}
@@ -1232,11 +1262,11 @@ function SystemEngine({
       ))}
 
       {archivedMissions.map(m => (
-        <ArchivedShuttle key={m.id} mission={m} globalTimeRef={globalTimeRef} />
+        <ArchivedShuttle key={m.id} mission={m} globalTimeRef={globalTimeRef} onDoubleClick={handleShuttleDoubleClick} />
       ))}
 
       {launchParams && (launchParams.targetPlanet || launchParams.missionLegs) && (
-        <GhostPath launchParams={launchParams} globalTimeRef={globalTimeRef} onStatusUpdate={onStatusUpdate} />
+        <GhostPath launchParams={launchParams} globalTimeRef={globalTimeRef} onStatusUpdate={onStatusUpdate} onDoubleClick={handleShuttleDoubleClick} />
       )}
 
       <OrbitControls
