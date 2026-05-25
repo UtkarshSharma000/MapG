@@ -597,7 +597,7 @@ function Planet({
           if (onDoubleClick) onDoubleClick(data.name);
         }}
       >
-        {data.name === "Earth" && launchParams && (!launchParams.targetPlanet || launchParams.targetPlanet === "Earth") && (
+        {data.name === "Earth" && launchParams && launchParams.launchPlanet === "Earth" && (!launchParams.targetPlanet || launchParams.targetPlanet === "Earth") && (
           <GhostPath launchParams={launchParams} globalTimeRef={globalTimeRef} />
         )}
         <mesh>
@@ -678,6 +678,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
     
     const time = globalTimeRef.current;
     let targetName = launchParams.targetPlanet;
+    const launchPlanet = launchParams.launchPlanet || "Earth";
     
     if (launchParams.missionLegs && launchParams.missionLegs.length > 0) {
       const legs = launchParams.missionLegs;
@@ -691,7 +692,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
     if (!targetPlanet) return;
     
     try {
-      const payload = { targetPlanet: targetName, globalTime: time };
+      const payload = { launchPlanet, targetPlanet: targetName, globalTime: time };
       const response = await fetch('/api/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -725,6 +726,8 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
     lastMissionLegsRef.current = launchParams.missionLegs;
     lastTargetPlanetRef.current = launchParams.targetPlanet;
 
+    const isInterplanetary = (launchParams.targetPlanet && launchParams.targetPlanet !== (launchParams.launchPlanet || "Earth")) || !!launchParams.missionLegs;
+
     // Reset points ONLY if not launched OR if legs/target changed (e.g. planning return trip)
     if (!launchParams.isLaunched || legsChanged || targetChanged) {
       setPoints([]);
@@ -739,7 +742,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
       }
       
       // Interplanetary mode (target select OR mission legs active)
-      if ((launchParams.targetPlanet && launchParams.targetPlanet !== "Earth") || launchParams.missionLegs) {
+      if (isInterplanetary) {
         calculateInterplanetaryPath();
         return;
       }
@@ -789,7 +792,8 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
 
       // Constantly recalculate if not launched (interplanetary)
       if (launchParams.isLaunched) return;
-      if ((launchParams.targetPlanet && launchParams.targetPlanet !== "Earth") || launchParams.missionLegs) {
+      const isInterplanetary = (launchParams.targetPlanet && launchParams.targetPlanet !== (launchParams.launchPlanet || "Earth")) || !!launchParams.missionLegs;
+      if (isInterplanetary) {
         lastCalcTime.current += delta;
         if (lastCalcTime.current > 1.0) { // Update frequency reduced to 1s
            lastCalcTime.current = 0;
@@ -812,7 +816,8 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
     const timeMult = launchParams.timeMult || 1;
     const maxIdx = points.length - 1;
 
-    if ((launchParams.targetPlanet && launchParams.targetPlanet !== "Earth") || launchParams.missionLegs) {
+    const isInterplanetary = (launchParams.targetPlanet && launchParams.targetPlanet !== (launchParams.launchPlanet || "Earth")) || !!launchParams.missionLegs;
+    if (isInterplanetary) {
       const elapsed = globalTimeRef.current - launchTimeRef.current;
       const pct_sim = Math.max(0, Math.min(1.0, elapsed / simDurationRef.current));
       progressRef.current = pct_sim * maxIdx;
@@ -869,7 +874,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
     }
     
     let targetName = launchParams.targetPlanet;
-    if (targetName === "Earth") targetName = "";
+    if (targetName === "Earth" && launchParams.launchPlanet === "Earth") targetName = "";
     if (launchParams.missionLegs && launchParams.missionLegs.length > 0) {
       const legs = launchParams.missionLegs;
       const lastDestId = legs[legs.length - 1].destId;
@@ -881,7 +886,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
     const elapsed = globalTimeRef.current - (launchTimeRef.current || globalTimeRef.current);
     const pct_tof = elapsed / transferTimeRef.current;
 
-    if (pct_tof >= 1.0 && targetPlanet && targetPlanet.name !== "Earth") {
+    if (pct_tof >= 1.0 && targetPlanet && (targetPlanet.name !== "Earth" || launchParams.launchPlanet !== "Earth")) {
       const time = globalTimeRef.current;
       const [tpX, tpY, tpZ] = propagateOrbit(targetPlanet.elements, time);
       
@@ -1220,7 +1225,7 @@ function SystemEngine({
         <ArchivedShuttle key={m.id} mission={m} globalTimeRef={globalTimeRef} onDoubleClick={handleShuttleDoubleClick} />
       ))}
 
-      {launchParams && (launchParams.targetPlanet || launchParams.missionLegs) && launchParams.targetPlanet !== "Earth" && (
+      {launchParams && ((launchParams.targetPlanet && launchParams.targetPlanet !== (launchParams.launchPlanet || "Earth")) || launchParams.missionLegs) && (
         <GhostPath launchParams={launchParams} globalTimeRef={globalTimeRef} onStatusUpdate={onStatusUpdate} onDoubleClick={handleShuttleDoubleClick} />
       )}
 
