@@ -149,6 +149,40 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const planetIds: Record<string, number> = {
+      'Mercury': 1,
+      'Venus': 2,
+      'Earth': 3,
+      'Mars': 4,
+      'Jupiter': 5,
+      'Saturn': 6,
+      'Uranus': 7,
+      'Neptune': 8
+    };
+    if (selectedTarget && selectedTarget.name !== "Sun" && selectedTarget.name !== "Earth" && !isLaunched) {
+      const originId = 3; // Earth
+      const destId = planetIds[selectedTarget.name] || 4;
+      const t0_days = globalTimeRef.current / 86400;
+      
+      const res = scanPorkchop(originId, destId, t0_days);
+      if (res) {
+        const legs = [
+          {
+            originId,
+            destId,
+            type: 'transfer' as const,
+            tof_days: res.tof_days,
+            dv1_kms: res.dv1_kms,
+            dv2_kms: res.dv2_kms,
+            v1_ecl: res.v1_ecl
+          }
+        ];
+        handleApply({ ...res, legs });
+      }
+    }
+  }, [selectedTarget, isLaunched]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT') {
         return;
@@ -165,18 +199,12 @@ export default function App() {
         return;
       }
       
-      // 1-9 keys (focus planets and load presets)
+      // 1-9 keys (focus planets in order: 1=Mercury, 2=Venus, 3=Earth, 4=Mars, 5=Jupiter, 6=Saturn, 7=Uranus, 8=Neptune)
       if (!e.ctrlKey && !e.shiftKey && e.key >= '1' && e.key <= '9') {
         const digit = parseInt(e.key);
-        if (digit === 1) {
-          const earth = PLANETS.find(p => p.name === "Earth");
-          if (earth) setSelectedTarget(earth);
-        } else if (digit === 2) {
-          const mars = PLANETS.find(p => p.name === "Mars");
-          if (mars) setSelectedTarget(mars);
-        } else if (digit === 3) {
-          const jupiter = PLANETS.find(p => p.name === "Jupiter");
-          if (jupiter) setSelectedTarget(jupiter);
+        if (digit >= 1 && digit <= 8) {
+          const p = PLANETS[digit - 1];
+          if (p) setSelectedTarget(p);
         }
         
         setCameraPresetToLoad(digit);
@@ -948,42 +976,34 @@ export default function App() {
         <div className="flex-1 flex pt-16 relative z-10 w-full h-full pointer-events-none">
           {/* Central Canvas Area (Interactive / Data Overlays) - Expanded Full Screen */}
           <main className="flex-1 p-8 relative flex flex-col justify-between pointer-events-none">
-            {/* Top Right: Target Selection & Quick Stats */}
+            {/* Top Center: Sol and Planet focus selection bar */}
             {showMissionPanel && (
-              <div className="absolute top-28 right-8 z-50 flex flex-col gap-4 items-end pointer-events-auto">
-                <div className="p-6 rounded-xl w-80 text-white glass-panel border border-white/5 bg-background/80 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
-                  {renderTargetStats()}
-                </div>
-
-                {selectedTarget && selectedTarget.name !== "Sun" && (
-                  <div className="w-80">
-                    <TrajectoryOptimizer
-                      originId={getSimulatedOriginId()}
-                      destId={Number(Object.entries({1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune'}).find(([_, name]) => name === selectedTarget.name)?.[0] || 4)}
-                      globalTimeRef={globalTimeRef}
-                      onApply={handleApply}
-                    />
-                  </div>
-                )}
-
-                {/* Texture Preview Mini-panels */}
-                <div className="flex justify-end gap-3 px-2 w-80 flex-wrap mt-2">
+              <div className="absolute top-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-2.5 rounded-full border border-white/15 bg-background/90 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.6)] pointer-events-auto transition-all">
+                <button 
+                  onClick={() => setSelectedTarget(null)}
+                  className={`px-3 py-1 text-[10px] font-label-caps rounded-full border transition-all ${!selectedTarget ? 'border-primary bg-primary/20 text-primary glow-orange font-bold scale-105' : 'border-white/10 text-white/60 hover:text-white bg-white/5'}`}
+                  title="Center camera on Sun"
+                >
+                  SOL (SUN)
+                </button>
+                <div className="w-[1px] h-4 bg-white/20"></div>
+                <div className="flex gap-2">
                   {PLANETS.map((p) => (
-                    <div
+                    <button
                       key={p.name}
-                      onClick={() =>
-                        setSelectedTarget(
-                          selectedTarget?.name === p.name ? null : p,
-                        )
-                      }
-                      className={`w-10 h-10 rounded-full border overflow-hidden cursor-pointer transition-all ${selectedTarget?.name === p.name ? "border-primary glow-orange opacity-100 scale-110" : "border-white/5 opacity-40 hover:opacity-100 hover:border-secondary/40"}`}
+                      onClick={() => setSelectedTarget(p)}
+                      className={`w-8 h-8 rounded-full border overflow-hidden cursor-pointer transition-all flex items-center justify-center relative group ${selectedTarget?.name === p.name ? "border-secondary scale-110 shadow-[0_0_10px_rgba(0,240,255,0.4)]" : "border-white/10 opacity-60 hover:opacity-100 hover:border-white/30"}`}
+                      title={p.name}
                     >
                       <img
                         src={p.texture}
                         alt={p.name}
                         className="w-full h-full object-cover"
                       />
-                    </div>
+                      <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-black/80 text-[8px] font-mono border border-white/10 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                        {p.name.toUpperCase()}
+                      </span>
+                    </button>
                   ))}
                 </div>
               </div>
