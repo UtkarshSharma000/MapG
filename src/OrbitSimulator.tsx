@@ -759,15 +759,14 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
           params: { v0, pitch, yaw, nbody, startLat, startLon, targetLat, targetLon, targetPlanet }
         });
         if (res.data.path) {
-          const orbitPoints = res.data.path.map((p: number[]) => {
-            // Backend returns km. Earth radius is 6371.0. Scale identically exactly over the planet mesh!
-            // Z needs to be negative Y, because of Unity/Unreal/Three.js handedness differences in physics vs visuals
-            return new THREE.Vector3(
-              (p[0] / 6371.0) * PLANET_SIZE_SCALE * 1.0, 
-              (p[2] / 6371.0) * PLANET_SIZE_SCALE * 1.0, 
-              -(p[1] / 6371.0) * PLANET_SIZE_SCALE * 1.0
-            );
-          });
+          const visualRadius = Math.max(0.4, Math.log10(6371) * 0.4);
+          const orbitPoints = res.data.path.map((p: number[]) =>
+            new THREE.Vector3(
+              (p[0] / 6371.0) * visualRadius * 1.05,
+              (p[2] / 6371.0) * visualRadius * 1.05,
+              -(p[1] / 6371.0) * visualRadius * 1.05
+            )
+          );
           setPoints(orbitPoints);
         }
       } catch (err) {
