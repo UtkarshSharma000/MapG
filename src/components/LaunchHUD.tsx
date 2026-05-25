@@ -74,28 +74,28 @@ export function LaunchHUD({
 
   return (
     <Draggable nodeRef={nodeRef} handle=".vab-drag-handle">
-      <div ref={nodeRef} className="fixed left-8 bottom-24 w-80 bg-black/80 backdrop-blur-2xl border border-white/10 rounded-2xl p-5 text-white z-40 pointer-events-auto shadow-2xl flex flex-col glossy-panel">
+      <div ref={nodeRef} className="fixed left-8 bottom-8 w-80 glass-panel border-white/10 rounded-lg p-6 text-white z-40 pointer-events-auto shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col">
         
         {/* Panel Header */}
-        <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-white/10 pb-3 mb-4 select-none">
-          <h3 className="font-sans font-medium text-xs tracking-widest uppercase text-primary flex items-center gap-1.5">
+        <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-white/10 pb-3 mb-6 select-none">
+          <h3 className="font-label-caps text-[10px] tracking-[0.2em] text-primary flex items-center gap-1.5">
             LAUNCH CONTROL DECK
           </h3>
-          <Move className="w-3.5 h-3.5 text-white/40 cursor-grab" />
+          <Move className="w-3.5 h-3.5 text-white/40 cursor-grab hover:text-white" />
         </div>
         
-        <div className="space-y-4">
+        <div className="space-y-6">
           
           {/* Planet Navigation Lock Controller */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-mono text-white/50 uppercase tracking-wider">
+          <div className="flex flex-col gap-2">
+            <label className="text-[9px] font-label-caps text-white/40 uppercase tracking-[0.2em]">
               Navigation Target
             </label>
             <div className="flex gap-2">
               <select 
                 value={tempSelectedPlanet} 
                 onChange={(e) => setTempSelectedPlanet(e.target.value)}
-                className="flex-1 bg-[#050505] border border-white/10 rounded-lg p-2 text-xs font-mono text-white focus:border-cyan-400 outline-none cursor-pointer hover:border-white/20 transition-colors"
+                className="flex-1 bg-black/40 border border-white/10 rounded p-2 text-xs font-data-lg text-white focus:border-secondary outline-none cursor-pointer hover:border-white/20 transition-colors"
                 disabled={isLaunched}
               >
                 <option value="Sun">Central Sol (Sun)</option>
@@ -109,7 +109,7 @@ export function LaunchHUD({
               <button
                 onClick={handleLockTarget}
                 title="Telemetry Lock on selected planet camera"
-                className="px-3.5 bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/40 hover:border-cyan-400 text-cyan-400 rounded-lg text-xs transition-colors flex items-center justify-center cursor-pointer"
+                className="px-4 bg-secondary/10 hover:bg-secondary/25 border border-secondary/40 hover:border-secondary text-secondary rounded transition-colors flex items-center justify-center cursor-pointer"
                 disabled={isLaunched}
               >
                 <Compass className="w-4 h-4 animate-spin-slow" />
@@ -118,62 +118,60 @@ export function LaunchHUD({
             
             <button
               onClick={handleLockTarget}
-              className="w-full py-1.5 mt-1 bg-cyan-500/5 hover:bg-cyan-500/15 border border-cyan-500/20 hover:border-cyan-500/40 text-[9px] font-mono tracking-widest text-cyan-400 rounded-lg transition-all cursor-pointer uppercase flex items-center justify-center gap-1.5"
+              className="w-full py-2 mt-1 bg-secondary/5 hover:bg-secondary/15 border border-secondary/20 hover:border-secondary/40 text-[9px] font-label-caps tracking-[0.2em] text-secondary rounded transition-all cursor-pointer uppercase flex items-center justify-center gap-2"
               disabled={isLaunched}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-              Lock Onto Planet Directly
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse glow-cyan"></span>
+              Synchronize Target
             </button>
           </div>
 
-          <div className="h-px bg-white/10 w-full my-1"></div>
-
           {/* Primary Ignition Trigger Button */}
           <button 
-            className={`w-full py-2.5 rounded-lg border font-semibold tracking-widest text-xs transition-all glossy-button cursor-pointer ${isLaunched ? 'text-red-400 hover:text-red-300 border-red-500/40 bg-red-500/10 hover:bg-red-500/20' : (isCalculatingLaunchPhase ? 'text-orange-400 border-orange-500/40 bg-orange-500/10' : 'text-cyan-400 hover:text-cyan-300 border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/25')}`}
+            className={`w-full py-3 rounded border font-label-caps tracking-[0.2em] text-[10px] transition-all cursor-pointer ${isLaunched ? 'text-error hover:text-red-300 border-error/40 bg-error/10 hover:bg-error/20' : (isCalculatingLaunchPhase ? 'text-primary border-primary/40 bg-primary/10' : 'text-secondary hover:text-white border-secondary/40 bg-secondary/10 hover:bg-secondary/25 glow-cyan')}`}
             onClick={isLaunched ? handleReset : onLaunch}
             disabled={isCalculatingLaunchPhase}
           >
-             {isLaunched ? 'ABORT TRACKING' : isCalculatingLaunchPhase ? 'CPP ENGINE: RESOLVING CONFLICTS...' : 'INITIATE ENGINE IGNITION'}
+             {isLaunched ? 'ABORT TRACKING' : isCalculatingLaunchPhase ? 'RESOLVING CONFLICTS...' : 'INITIATE IGNITION'}
           </button>
 
           {/* Mission Archive Controls */}
           {isLaunched && missionStatus === 'EARTH_ORBIT' && onConcludeMission && (
-            <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
+            <div className="pt-4 border-t border-white/10 flex flex-col gap-2">
               <button 
                 onClick={onConcludeMission}
-                className="w-full py-2 bg-green-500/15 border border-green-500/40 hover:bg-green-500/25 text-green-400 hover:text-green-300 rounded-lg font-mono tracking-widest text-[9px] uppercase transition-all glossy-button cursor-pointer font-bold"
+                className="w-full py-3 bg-tertiary-container/20 border border-tertiary/40 hover:bg-tertiary-container/30 text-tertiary hover:text-white rounded font-label-caps tracking-[0.2em] text-[9px] uppercase transition-all cursor-pointer"
               >
-                ✓ SUCCESS: CONCLUDE MISSION & ARCHIVE LOGS
+                SUCCESS: ARCHIVE LOGS
               </button>
             </div>
           )}
 
           {/* Planetary Return Planner UI and Actions */}
           {missionStatus && missionStatus.includes('ORBIT') && missionStatus !== 'EARTH_ORBIT' && (
-            <div className="pt-3 border-t border-white/10 flex flex-col gap-2">
+            <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
               <button 
                 onClick={onPlanReturn}
-                className="w-full py-2 bg-orange-500/10 border border-orange-500/40 hover:bg-orange-500/25 text-orange-400 hover:text-orange-300 rounded-lg font-mono tracking-widest text-[9px] uppercase transition-all glossy-button cursor-pointer"
+                className="w-full py-2.5 bg-primary/10 border border-primary/40 hover:bg-primary/20 text-primary hover:text-white rounded font-label-caps tracking-[0.2em] text-[9px] uppercase transition-all cursor-pointer glow-orange"
               >
-                Plan return window → Earth
+                Plan Earth Return
               </button>
               
               {returnWindow && (
-                <div className="bg-black/60 p-3 rounded-lg border border-white/10 flex flex-col gap-2 transition-all duration-300">
-                  <div className="flex justify-between border-b border-white/5 pb-1 text-[9px] font-mono text-white/50 uppercase tracking-tighter">
+                <div className="bg-black/40 p-4 rounded border border-white/10 flex flex-col gap-3 transition-all duration-300">
+                  <div className="flex justify-between border-b border-white/5 pb-2 text-[9px] font-label-caps text-white/50 uppercase tracking-[0.2em]">
                     <span>Optimal Window:</span> 
-                    <span className="text-white font-bold">{returnWindow.tof_days} Days TOF</span>
+                    <span className="text-white">{returnWindow.tof_days} Days</span>
                   </div>
-                  <div className="flex justify-between pb-1.5 text-[9px] font-mono text-white/50 uppercase tracking-tighter">
+                  <div className="flex justify-between pb-2 text-[9px] font-label-caps text-white/50 uppercase tracking-[0.2em]">
                     <span>Burn Required:</span> 
-                    <span className="text-white font-bold">{returnWindow.dv1_kms.toFixed(2)} KM/S</span>
+                    <span className="text-white">{returnWindow.dv1_kms.toFixed(2)} KM/S</span>
                   </div>
                   <button 
                     onClick={onApplyReturn}
-                    className="w-full py-1.5 bg-cyan-500/20 border border-cyan-500/50 hover:bg-cyan-500/35 text-cyan-400 rounded-lg font-mono text-[9px] uppercase tracking-widest glossy-button cursor-pointer"
+                    className="w-full py-2 bg-secondary/20 border border-secondary/50 hover:bg-secondary/30 text-secondary rounded font-label-caps text-[9px] uppercase tracking-[0.2em] cursor-pointer glow-cyan"
                   >
-                    Confirm & Execute TEI
+                    Execute TEI
                   </button>
                 </div>
               )}

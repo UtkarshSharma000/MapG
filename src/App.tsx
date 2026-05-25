@@ -245,67 +245,45 @@ export default function App() {
     if (!selectedTarget) {
       return (
         <>
-          <div className="flex justify-between items-center mb-4">
-            <span className="font-label-caps text-[10px] tracking-[0.15em] text-outline">
+          <div className="flex justify-between items-center mb-6">
+            <span className="font-label-caps text-[9px] text-white/40 tracking-[0.2em]">
               PRIMARY TARGET
             </span>
-            <span className="px-2 py-0.5 bg-tertiary-container/20 text-tertiary border border-tertiary/30 rounded text-[10px] font-label-caps tracking-[0.15em] glow-tertiary">
+            <span className="px-2 py-0.5 border border-secondary/40 text-secondary text-[8px] rounded glow-cyan tracking-[0.2em]">
               SYSTEM CENTER
             </span>
           </div>
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-full border border-outline-variant bg-[#ffcc00] shadow-[0_0_20px_rgba(255,204,0,0.5)]"></div>
+          <div className="flex items-center gap-5 mb-8">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full border border-white/10 bg-[#ffcc00] shadow-[0_0_20px_rgba(255,204,0,0.5)]"></div>
+              <div className="absolute inset-0 rounded-full ring-2 ring-secondary/20 animate-ping"></div>
+            </div>
             <div>
-              <h2 className="font-display-lg text-[32px] tracking-tighter text-on-surface uppercase font-bold">
-                SOL
-              </h2>
-              <p className="font-label-caps text-[10px] tracking-[0.15em] text-tertiary">
+              <h2 className="font-display-lg text-4xl text-white">SOL</h2>
+              <p className="font-label-caps text-[9px] text-secondary/80 mt-1 tracking-[0.2em]">
                 RADIUS: 696,340 KM
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-y-6">
             <div>
-              <span className="font-label-caps text-[10px] tracking-[0.15em] text-outline block mb-1">
-                TYPE
-              </span>
-              <span className="font-data-lg text-[20px] text-on-surface">
-                G2V
-              </span>
+              <span className="font-label-caps text-[9px] text-white/30 block mb-1">TYPE</span>
+              <span className="font-data-lg text-xl text-white">G2V</span>
             </div>
             <div>
-              <span className="font-label-caps text-[10px] tracking-[0.15em] text-outline block mb-1">
-                MASS
-              </span>
-              <span
-                className="font-data-lg text-[20px] text-on-surface text-secondary truncate"
-                title="1.989 × 10^30"
-              >
-                1.989e30
-              </span>
-              <span className="text-xs text-outline-variant ml-1 font-mono">
-                kg
-              </span>
+              <span className="font-label-caps text-[9px] text-white/30 block mb-1">MASS</span>
+              <span className="font-data-lg text-xl text-white">1.989</span>
+              <span className="text-[9px] text-white/20 ml-1">x10³⁰ KG</span>
             </div>
             <div>
-              <span className="font-label-caps text-[10px] tracking-[0.15em] text-outline block mb-1">
-                TEMP (SURF)
-              </span>
-              <span className="font-data-lg text-[20px] text-primary">
-                5,505
-              </span>
-              <span className="text-xs text-outline-variant ml-1 font-mono">
-                °C
-              </span>
+              <span className="font-label-caps text-[9px] text-white/30 block mb-1">TEMP (SURF)</span>
+              <span className="font-data-lg text-xl text-secondary">5,505</span>
+              <span className="text-[9px] text-white/20 ml-1">°C</span>
             </div>
             <div>
-              <span className="font-label-caps text-[10px] tracking-[0.15em] text-outline block mb-1">
-                AGE
-              </span>
-              <span className="font-data-lg text-[20px] text-primary">4.6</span>
-              <span className="text-xs text-outline-variant ml-1 font-mono">
-                B yr
-              </span>
+              <span className="font-label-caps text-[9px] text-white/30 block mb-1">AGE</span>
+              <span className="font-data-lg text-xl text-white">4.6</span>
+              <span className="text-[9px] text-white/20 ml-1">B YR</span>
             </div>
           </div>
         </>
@@ -314,35 +292,36 @@ export default function App() {
 
     return (
       <>
-        <div className="flex justify-between items-center mb-4">
-          <span className="font-label-caps text-[10px] tracking-[0.15em] text-outline">
+        <div className="flex justify-between items-center mb-6">
+          <span className="font-label-caps text-[9px] text-white/40 tracking-[0.2em]">
             PRIMARY TARGET
           </span>
-          <span className="px-2 py-0.5 bg-primary-container/20 text-primary border border-primary/30 rounded text-[10px] font-label-caps tracking-[0.15em] glow-primary">
+          <span className="px-2 py-0.5 border border-primary/40 text-primary text-[8px] rounded glow-orange tracking-[0.2em]">
             LOCKED
           </span>
         </div>
-        <div className="flex items-center gap-4 mb-6">
-          <img
-            src={selectedTarget.texture}
-            alt={selectedTarget.name}
-            className="w-16 h-16 rounded-full border border-outline-variant object-cover glow-primary"
-          />
+        <div className="flex items-center gap-5 mb-8">
+          <div className="relative">
+            <img
+              src={selectedTarget.texture}
+              alt={selectedTarget.name}
+              className="w-16 h-16 rounded-full border border-white/10 object-cover"
+            />
+            <div className="absolute inset-0 rounded-full ring-2 ring-primary/20 animate-ping"></div>
+          </div>
           <div>
-            <h2 className="font-display-lg text-[32px] tracking-tighter text-on-surface uppercase font-bold">
+            <h2 className="font-display-lg text-4xl text-white uppercase">
               {selectedTarget.name}
             </h2>
-            <p className="font-label-caps text-[10px] tracking-[0.15em] text-tertiary">
+            <p className="font-label-caps text-[9px] text-primary/80 mt-1 tracking-[0.2em]">
               RADIUS: {selectedTarget.radius} KM
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-y-6">
           <div>
-            <span className="font-label-caps text-[10px] tracking-[0.15em] text-outline block mb-1">
-              VELOCITY (PERI)
-            </span>
-            <span className="font-data-lg text-[20px] text-on-surface">
+            <span className="font-label-caps text-[9px] text-white/30 block mb-1">VELOCITY (PERI)</span>
+            <span className="font-data-lg text-xl text-white">
               {Math.ceil(
                 (Math.sqrt(
                   6.6743e-11 *
@@ -356,42 +335,28 @@ export default function App() {
                   10,
               ) / 10}
             </span>
-            <span className="text-xs text-outline-variant ml-1 font-mono">
-              km/s
-            </span>
+            <span className="text-[9px] text-white/20 ml-1">KM/S</span>
           </div>
           <div>
-            <span className="font-label-caps text-[10px] tracking-[0.15em] text-outline block mb-1">
-              SEMI-MAJOR
-            </span>
-            <span className="font-data-lg text-[20px] text-on-surface">
+            <span className="font-label-caps text-[9px] text-white/30 block mb-1">SEMI-MAJOR</span>
+            <span className="font-data-lg text-xl text-white">
               {(selectedTarget.elements.a / 149597870700).toFixed(2)}
             </span>
-            <span className="text-xs text-outline-variant ml-1 font-mono">
-              AU
-            </span>
+            <span className="text-[9px] text-white/20 ml-1">AU</span>
           </div>
           <div>
-            <span className="font-label-caps text-[10px] tracking-[0.15em] text-outline block mb-1">
-              ORBIT PERIOD
-            </span>
-            <span className="font-data-lg text-[20px] text-on-surface">
+            <span className="font-label-caps text-[9px] text-white/30 block mb-1">ORBIT PERIOD</span>
+            <span className="font-data-lg text-xl text-white">
               {(selectedTarget.elements.period / (24 * 3600)).toFixed(1)}
             </span>
-            <span className="text-xs text-outline-variant ml-1 font-mono">
-              days
-            </span>
+            <span className="text-[9px] text-white/20 ml-1">DAYS</span>
           </div>
           <div>
-            <span className="font-label-caps text-[10px] tracking-[0.15em] text-outline block mb-1">
-              ECCENTRICITY
-            </span>
-            <span className="font-data-lg text-[20px] text-primary">
+            <span className="font-label-caps text-[9px] text-white/30 block mb-1">ECCENTRICITY</span>
+            <span className="font-data-lg text-xl text-primary">
               {selectedTarget.elements.e.toFixed(4)}
             </span>
-            <span className="text-xs text-outline-variant ml-1 font-mono">
-              e
-            </span>
+            <span className="text-[9px] text-white/20 ml-1">E</span>
           </div>
         </div>
       </>
@@ -414,157 +379,211 @@ export default function App() {
 
       {/* Landing Page Content */}
       <div
-        className={`absolute inset-0 z-20 flex flex-col bg-[#050505] transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
+        className={`absolute inset-0 z-20 flex flex-col bg-background transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
+        style={{ backgroundColor: '#050505' }}
       >
         {/* TopNavBar */}
-        <header className="fixed top-0 w-full z-50 flex justify-between items-center px-12 h-20 bg-black/80 backdrop-blur-2xl border-b border-white/10">
+        <header className="fixed top-0 w-full z-50 flex justify-between items-center px-8 md:px-[32px] h-20 bg-background/80 backdrop-blur-xl border-b border-outline-variant/30">
           <div className="flex items-center gap-2">
-            <h1 className="font-sans font-bold text-xl tracking-widest text-[#ffb59d]">ODYSSEY 2026</h1>
+            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
+            <h1 className="font-display-lg text-headline-md font-bold tracking-tighter text-primary">ODYSSEY 2026</h1>
           </div>
+          <nav className="hidden md:flex gap-8">
+            <a className="font-label-caps text-label-caps text-primary font-bold border-b-2 border-primary pb-1 hover:text-tertiary transition-colors duration-300" href="#">Mission</a>
+            <a className="font-label-caps text-label-caps text-on-surface-variant font-medium hover:text-tertiary transition-colors duration-300" href="#">Technology</a>
+            <a className="font-label-caps text-label-caps text-on-surface-variant font-medium hover:text-tertiary transition-colors duration-300" href="#">Fleet</a>
+            <a className="font-label-caps text-label-caps text-on-surface-variant font-medium hover:text-tertiary transition-colors duration-300" href="#">News</a>
+          </nav>
           <button 
             onClick={() => setIsSimulatorRunning(true)}
-            className="px-6 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 font-mono text-[10px] tracking-widest glossy-button cursor-pointer rounded-lg uppercase transition-all flex items-center gap-2"
+            className="px-6 py-2 bg-primary-container text-on-primary-container font-label-caps text-label-caps tracking-widest hover:scale-95 transition-transform duration-200 cursor-pointer rounded"
           >
-            <Play size={14} />
             LAUNCH TERMINAL
           </button>
         </header>
 
         <main className="pt-20">
           {/* Hero Section */}
-          <section className="relative min-h-[90vh] flex items-center px-12 overflow-hidden">
+          <section className="relative min-h-[90vh] flex items-center px-8 md:px-[32px] overflow-hidden">
             <div className="absolute inset-0 z-0">
               <img alt="Atmospheric planetary background" className="w-full h-full object-cover opacity-20 mix-blend-screen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBACplwpq98Rkmgv4zvxb0eAEhIsizmNlJTC2jsQBeMtvZnFYMnCJHR6TAhNJ9sfdEr6k_qaF1jw4HuGWKSNZ1nLjHMBWSml5Pfcat6Fvkkaqj3c3JB-Lku9XZXTymKJOzxULcF7cBYsQhH_FC0LOHV6VFeXFn-5Omy3eEJ1a4hAJ5Txfm3dfZA-dKXoSqeNxCa2_yE5V8DhGfuqoeckWsY-xTNWEWCVaobE57lK5IlDNUKTEQ53H_Qy75i26W4xFsKIJcbnR1z87NM" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent"></div>
             </div>
             <div className="relative z-10 max-w-4xl">
-              <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 glossy-panel border-cyan-500/30 rounded-lg">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                <span className="font-mono text-[10px] text-cyan-400 tracking-widest">SYSTEMS NOMINAL // ORBITAL SECTOR 7</span>
+              <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 glass-panel border border-primary/30 rounded">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                <span className="font-label-caps text-[10px] text-primary tracking-widest">SYSTEMS NOMINAL // ORBITAL SECTOR 7</span>
               </div>
-              <h2 className="font-sans font-light text-6xl md:text-8xl mb-8 leading-none tracking-tighter text-white">
-                MISSION:<br /><span className="text-[#ffb59d] font-bold">ODYSSEY</span>
+              <h2 className="font-display-lg text-5xl md:text-[64px] font-bold mb-6 leading-none tracking-tighter">
+                MISSION:<br/><span className="text-primary text-6xl md:text-[80px]">ODYSSEY 2026</span>
               </h2>
-              <p className="font-sans text-xl md:text-2xl text-white/50 mb-12 max-w-2xl font-light">
+              <p className="font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 max-w-2xl font-light">
                 Pioneering the Next Frontier of Satellite Logistics and Orbital Infrastructure.
               </p>
               <div className="flex flex-wrap gap-4">
                 <button 
                   onClick={() => setIsSimulatorRunning(true)}
-                  className="px-10 py-5 bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-400 font-mono text-sm tracking-widest glossy-button cursor-pointer rounded-xl uppercase transition-all shadow-[0_0_30px_rgba(34,211,238,0.15)] flex items-center gap-3"
+                  className="px-10 py-4 bg-primary-container text-on-primary-container font-label-caps text-label-caps tracking-widest glow-orange hover:scale-105 active:scale-95 transition-all cursor-pointer rounded flex items-center gap-2"
                 >
-                  INITIALIZE FLIGHT DECK <ArrowRight size={18} />
+                  <Play size={16} /> LAUNCH TERMINAL
                 </button>
+                <button className="px-10 py-4 glass-panel border border-tertiary/40 text-tertiary font-label-caps text-label-caps tracking-widest glow-blue hover:scale-105 active:scale-95 transition-all rounded cursor-pointer">
+                  VIEW ROADMAP
+                </button>
+              </div>
+            </div>
+            {/* Side Floating Visual */}
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 aspect-square hidden xl:block pointer-events-none">
+              <div className="relative w-full h-full">
+                <img alt="Mars decorative element" className="w-full h-full object-contain opacity-40 animate-[spin_120s_linear_infinite]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzD6b_ke7zhqRDJVdHBQX-iXLpaxJIz4vQ4uyrJNv7AogmDUAr5AoWfhVZO26D6YVLlscwk4aOPdPDuhQN4pIdXaTazSOrk5Qfa12o8J32s120W2jYx9-1cudP-CfJai50OuBGCDninDwD-TvW8FPaAbZCIcEHOXBKm-BFFYRIOhK5RgeT2Y_kq5ZJ93AZGld76HzxNVspmEHN56OYwwxqKCY7-D3xhGN7uusHIm0H-z7aFERW-MfahQRPBboJ3mCEtxX4BID1X5ZX" />
+                <div className="absolute inset-0 bg-gradient-to-l from-[#050505]/80 to-transparent"></div>
               </div>
             </div>
           </section>
 
           {/* Stats HUD */}
-          <section className="px-12 py-12 relative z-10">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glossy-panel p-8 rounded-3xl flex flex-col gap-2 group hover:bg-white/[0.03] transition-colors border border-white/5">
-                <span className="font-mono text-[10px] tracking-widest text-[#ffb59d] relative z-10 mb-2">CURRENT ALTITUDE</span>
+          <section className="px-8 md:px-[32px] py-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-[16px]">
+              <div className="glossy-panel p-[32px] rounded-3xl flex flex-col gap-2 group hover:bg-white/[0.03] transition-colors border border-white/10">
+                <span className="font-label-caps text-[10px] tracking-widest text-tertiary relative z-10">CURRENT ALTITUDE</span>
                 <div className="flex items-baseline gap-2 relative z-10">
-                  <span className="font-mono text-5xl font-bold group-hover:text-cyan-400 transition-colors text-white">102.4</span>
-                  <span className="font-mono text-xl text-white/50">KM</span>
+                  <span className="font-data-lg text-4xl md:text-5xl leading-none group-hover:text-primary transition-colors font-bold">102.4</span>
+                  <span className="font-label-caps text-xl text-on-surface-variant font-bold">KM</span>
                 </div>
-                <div className="h-px w-full bg-gradient-to-r from-transparent via-[#ffb59d]/50 to-transparent mt-4 opacity-50"></div>
+                <div className="h-px bg-gradient-to-r from-transparent via-primary to-transparent w-full opacity-20 mt-2 relative z-10"></div>
               </div>
-              <div className="glossy-panel p-8 rounded-3xl flex flex-col gap-2 group hover:bg-white/[0.03] transition-colors border border-white/5">
-                <span className="font-mono text-[10px] tracking-widest text-[#ffb59d] relative z-10 mb-2">RELATIVE VELOCITY</span>
+              <div className="glossy-panel p-[32px] rounded-3xl flex flex-col gap-2 group hover:bg-white/[0.03] transition-colors border border-white/10">
+                <span className="font-label-caps text-[10px] tracking-widest text-tertiary relative z-10">RELATIVE VELOCITY</span>
                 <div className="flex items-baseline gap-2 relative z-10">
-                  <span className="font-mono text-5xl font-bold group-hover:text-cyan-400 transition-colors text-white">7.8</span>
-                  <span className="font-mono text-xl text-white/50">KM/S</span>
+                  <span className="font-data-lg text-4xl md:text-5xl leading-none group-hover:text-primary transition-colors font-bold">7.8</span>
+                  <span className="font-label-caps text-xl text-on-surface-variant font-bold">KM/S</span>
                 </div>
-                <div className="h-px w-full bg-gradient-to-r from-transparent via-[#ffb59d]/50 to-transparent mt-4 opacity-50"></div>
+                <div className="h-px bg-gradient-to-r from-transparent via-primary to-transparent w-full opacity-20 mt-2 relative z-10"></div>
               </div>
-              <div className="glossy-panel p-8 rounded-3xl flex flex-col gap-2 group hover:bg-white/[0.03] transition-colors border border-white/5">
-                <span className="font-mono text-[10px] tracking-widest text-[#ffb59d] relative z-10 mb-2">SIGNAL STRENGTH</span>
+              <div className="glossy-panel p-[32px] rounded-3xl flex flex-col gap-2 group hover:bg-white/[0.03] transition-colors border border-white/10">
+                <span className="font-label-caps text-[10px] tracking-widest text-tertiary relative z-10">SIGNAL STRENGTH</span>
                 <div className="flex items-baseline gap-2 relative z-10">
-                  <span className="font-mono text-5xl font-bold group-hover:text-cyan-400 transition-colors text-white">98</span>
-                  <span className="font-mono text-xl text-white/50">%</span>
+                  <span className="font-data-lg text-4xl md:text-5xl leading-none group-hover:text-primary transition-colors font-bold">98</span>
+                  <span className="font-label-caps text-xl text-on-surface-variant font-bold">%</span>
                 </div>
-                <div className="h-px w-full bg-gradient-to-r from-transparent via-[#ffb59d]/50 to-transparent mt-4 opacity-50"></div>
+                <div className="h-px bg-gradient-to-r from-transparent via-primary to-transparent w-full opacity-20 mt-2 relative z-10"></div>
               </div>
             </div>
           </section>
 
           {/* Roadmap Section */}
-          <section className="px-12 py-20 relative z-10">
-            <div className="flex justify-between items-end mb-12 border-b border-white/10 pb-8">
+          <section className="px-8 md:px-[32px] py-20">
+            <div className="flex justify-between items-end mb-12">
               <div>
-                <span className="font-mono text-[10px] text-cyan-400 tracking-widest uppercase">MISSION PARAMETERS</span>
-                <h3 className="font-sans font-medium text-3xl mt-2 text-white tracking-widest">OPERATIONAL ROADMAP</h3>
+                <span className="font-label-caps text-[10px] text-primary tracking-widest">MISSION PARAMETERS</span>
+                <h3 className="font-display-lg text-2xl md:text-3xl font-bold mt-2 tracking-wide">OPERATIONAL ROADMAP</h3>
               </div>
-              <div className="hidden md:block font-mono text-sm tracking-widest text-[#ffb59d]">Q3-Q4 DEPLOYMENT</div>
+              <div className="hidden md:block font-data-lg text-tertiary font-bold tracking-wider text-sm">Q3-Q4 DEPLOYMENT</div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Card 1 */}
-              <div className="glossy-panel rounded-3xl group overflow-hidden border border-white/10">
-                <div className="h-56 overflow-hidden relative border-b border-white/10">
-                  <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700 group-hover:scale-105" alt="Phobos base construction" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBACplwpq98Rkmgv4zvxb0eAEhIsizmNlJTC2jsQBeMtvZnFYMnCJHR6TAhNJ9sfdEr6k_qaF1jw4HuGWKSNZ1nLjHMBWSml5Pfcat6Fvkkaqj3c3JB-Lku9XZXTymKJOzxULcF7cBYsQhH_FC0LOHV6VFeXFn-5Omy3eEJ1a4hAJ5Txfm3dfZA-dKXoSqeNxCa2_yE5V8DhGfuqoeckWsY-xTNWEWCVaobE57lK5IlDNUKTEQ53H_Qy75i26W4xFsKIJcbnR1z87NM" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
-                  <div className="absolute top-4 left-4 px-3 py-1.5 glossy-panel border border-cyan-500/20 rounded-lg">
-                    <span className="font-mono text-[9px] tracking-widest text-cyan-400">PHASE 01</span>
+              <div className="glossy-panel rounded-3xl hover:scale-[1.02] transition-transform duration-300 group overflow-hidden border border-white/5">
+                <div className="h-48 overflow-hidden relative border-b border-white/5">
+                  <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700" alt="Phobos base construction" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBACplwpq98Rkmgv4zvxb0eAEhIsizmNlJTC2jsQBeMtvZnFYMnCJHR6TAhNJ9sfdEr6k_qaF1jw4HuGWKSNZ1nLjHMBWSml5Pfcat6Fvkkaqj3c3JB-Lku9XZXTymKJOzxULcF7cBYsQhH_FC0LOHV6VFeXFn-5Omy3eEJ1a4hAJ5Txfm3dfZA-dKXoSqeNxCa2_yE5V8DhGfuqoeckWsY-xTNWEWCVaobE57lK5IlDNUKTEQ53H_Qy75i26W4xFsKIJcbnR1z87NM" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1d100c] to-transparent bg-opacity-80"></div>
+                  <div className="absolute top-4 left-4 px-2 py-1 glass-panel border border-primary/20 rounded">
+                    <span className="font-label-caps text-[8px] text-primary tracking-widest">PHASE 01</span>
                   </div>
                 </div>
-                <div className="p-8 relative z-10">
-                  <h4 className="font-sans font-medium text-xl mb-3 text-white tracking-wide">Phobos Base Construction</h4>
-                  <p className="text-white/50 text-sm mb-8 font-light leading-relaxed">Establishing the first permanent logistics hub on the Martian moon Phobos to support long-term orbital research.</p>
+                <div className="p-[32px] bg-[#1d100c]/40 relative z-10">
+                  <h4 className="font-headline-md text-xl md:text-2xl font-semibold mb-2">Phobos Base Construction</h4>
+                  <p className="text-on-surface-variant text-sm mb-6 font-light leading-relaxed">Establishing the first permanent logistics hub on the Martian moon Phobos to support long-term orbital research.</p>
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] text-[#ffb59d] tracking-widest flex items-center gap-2">
+                    <span className="font-label-caps text-[10px] text-tertiary flex items-center gap-1 tracking-widest">
                        JAN 2026
                     </span>
+                    <ArrowRight className="text-primary group-hover:translate-x-2 transition-transform" size={16} />
                   </div>
                 </div>
               </div>
               
               {/* Card 2 */}
-              <div className="glossy-panel rounded-3xl group overflow-hidden border border-white/10">
-                <div className="h-56 overflow-hidden relative border-b border-white/10">
-                  <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700 group-hover:scale-105" alt="Deep space communication relay" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD85HKMyPKmqVyjZ1ilQ9QXGQMuS_ihKntU1-cksmQgiMG7tlG2su3VaQRse6aSrS9PWS31_QDT8avN5E0wJKFXZBnguJQDCR4YAcYcsEouhLHetCjKMIrpnDUdr63QTSrDuZsJ2FHKipCigBpLuHIXXvyqXzJKe8ZxwEkmGg9b6s5Y1GyPW8cvEo7PPvnhYIZpyKJB3h28puIrnHiWeYMkQdPTuHVRlXSsqwf2cdidzDAoagCjT5zucA-7JkJmaFpbW5kbRmgGLzwn" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
-                  <div className="absolute top-4 left-4 px-3 py-1.5 glossy-panel border border-cyan-500/20 rounded-lg">
-                    <span className="font-mono text-[9px] tracking-widest text-cyan-400">PHASE 02</span>
+              <div className="glossy-panel rounded-3xl hover:scale-[1.02] transition-transform duration-300 group overflow-hidden border border-white/5">
+                <div className="h-48 overflow-hidden relative border-b border-white/5">
+                  <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700" alt="Deep space communication relay" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD85HKMyPKmqVyjZ1ilQ9QXGQMuS_ihKntU1-cksmQgiMG7tlG2su3VaQRse6aSrS9PWS31_QDT8avN5E0wJKFXZBnguJQDCR4YAcYcsEouhLHetCjKMIrpnDUdr63QTSrDuZsJ2FHKipCigBpLuHIXXvyqXzJKe8ZxwEkmGg9b6s5Y1GyPW8cvEo7PPvnhYIZpyKJB3h28puIrnHiWeYMkQdPTuHVRlXSsqwf2cdidzDAoagCjT5zucA-7JkJmaFpbW5kbRmgGLzwn" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1d100c] to-transparent bg-opacity-80"></div>
+                  <div className="absolute top-4 left-4 px-2 py-1 glass-panel border border-primary/20 rounded">
+                    <span className="font-label-caps text-[8px] text-primary tracking-widest">PHASE 02</span>
                   </div>
                 </div>
-                <div className="p-8 relative z-10">
-                  <h4 className="font-sans font-medium text-xl mb-3 text-white tracking-wide">Deep Space Comm-Relay</h4>
-                  <p className="text-white/50 text-sm mb-8 font-light leading-relaxed">Deploying a constellation of high-throughput relays to ensure 24/7 link connectivity across the inner solar system.</p>
+                <div className="p-[32px] bg-[#1d100c]/40 relative z-10">
+                  <h4 className="font-headline-md text-xl md:text-2xl font-semibold mb-2">Deep Space Comm-Relay</h4>
+                  <p className="text-on-surface-variant text-sm mb-6 font-light leading-relaxed">Deploying a constellation of high-throughput relays to ensure 24/7 link connectivity across the inner solar system.</p>
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] text-[#ffb59d] tracking-widest flex items-center gap-2">
+                    <span className="font-label-caps text-[10px] text-tertiary flex items-center gap-1 tracking-widest">
                        MAY 2026
                     </span>
+                    <ArrowRight className="text-primary group-hover:translate-x-2 transition-transform" size={16} />
                   </div>
                 </div>
               </div>
               
               {/* Card 3 */}
-              <div className="glossy-panel rounded-3xl group overflow-hidden border border-white/10">
-                <div className="h-56 overflow-hidden relative border-b border-white/10">
-                  <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700 group-hover:scale-105" alt="Titan Atmosphere Entry" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzD6b_ke7zhqRDJVdHBQX-iXLpaxJIz4vQ4uyrJNv7AogmDUAr5AoWfhVZO26D6YVLlscwk4aOPdPDuhQN4pIdXaTazSOrk5Qfa12o8J32s120W2jYx9-1cudP-CfJai50OuBGCDninDwD-TvW8FPaAbZCIcEHOXBKm-BFFYRIOhK5RgeT2Y_kq5ZJ93AZGld76HzxNVspmEHN56OYwwxqKCY7-D3xhGN7uusHIm0H-z7aFERW-MfahQRPBboJ3mCEtxX4BID1X5ZX" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
-                  <div className="absolute top-4 left-4 px-3 py-1.5 glossy-panel border border-cyan-500/20 rounded-lg">
-                    <span className="font-mono text-[9px] tracking-widest text-cyan-400">PHASE 03</span>
+              <div className="glossy-panel rounded-3xl hover:scale-[1.02] transition-transform duration-300 group overflow-hidden border border-white/5">
+                <div className="h-48 overflow-hidden relative border-b border-white/5">
+                  <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700" alt="Titan Atmosphere Entry" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzD6b_ke7zhqRDJVdHBQX-iXLpaxJIz4vQ4uyrJNv7AogmDUAr5AoWfhVZO26D6YVLlscwk4aOPdPDuhQN4pIdXaTazSOrk5Qfa12o8J32s120W2jYx9-1cudP-CfJai50OuBGCDninDwD-TvW8FPilot" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1d100c] to-transparent bg-opacity-80"></div>
+                  <div className="absolute top-4 left-4 px-2 py-1 glass-panel border border-primary/20 rounded">
+                    <span className="font-label-caps text-[8px] text-primary tracking-widest">PHASE 03</span>
                   </div>
                 </div>
-                <div className="p-8 relative z-10">
-                  <h4 className="font-sans font-medium text-xl mb-3 text-white tracking-wide">Titan Atmosphere Entry</h4>
-                  <p className="text-white/50 text-sm mb-8 font-light leading-relaxed">Automated descent and atmospheric analysis of Saturn's largest moon to survey for future methane harvesting sites.</p>
+                <div className="p-[32px] bg-[#1d100c]/40 relative z-10">
+                  <h4 className="font-headline-md text-xl md:text-2xl font-semibold mb-2">Titan Atmosphere Entry</h4>
+                  <p className="text-on-surface-variant text-sm mb-6 font-light leading-relaxed">Automated descent and atmospheric analysis of Saturn's largest moon to survey for future methane harvesting sites.</p>
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] text-[#ffb59d] tracking-widest flex items-center gap-2">
+                    <span className="font-label-caps text-[10px] text-tertiary flex items-center gap-1 tracking-widest">
                        SEP 2026
                     </span>
+                    <ArrowRight className="text-primary group-hover:translate-x-2 transition-transform" size={16} />
                   </div>
                 </div>
               </div>
             </div>
           </section>
 
+          {/* CTA Section */}
+          <section className="px-8 md:px-[32px] py-24 relative overflow-hidden">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-primary/5 rounded-full pointer-events-none"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-primary/10 rounded-full pointer-events-none"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-primary/20 rounded-full pointer-events-none"></div>
+            <div className="max-w-4xl mx-auto text-center relative z-10 glass-panel p-12 border border-primary/10 rounded-3xl">
+              <h3 className="font-display-lg text-4xl md:text-5xl font-bold mb-4 relative z-10 tracking-tighter">READY FOR DEPLOYMENT?</h3>
+              <p className="text-on-surface-variant font-light mb-10 max-w-xl mx-auto relative z-10">Access real-time telemetry data, satellite control systems, and mission logs via the secure terminal interface.</p>
+              <div className="flex flex-col md:flex-row justify-center gap-4 relative z-10">
+                <button 
+                  onClick={() => setIsSimulatorRunning(true)}
+                  className="px-12 py-4 bg-primary text-on-primary font-label-caps tracking-widest glow-orange hover:scale-105 active:scale-95 transition-all rounded font-bold cursor-pointer"
+                >
+                  INITIALIZE CONNECTION
+                </button>
+                <button className="px-12 py-4 glass-panel border border-outline text-on-surface-variant font-label-caps tracking-widest hover:scale-105 active:scale-95 transition-all rounded font-bold cursor-pointer">
+                  SYSTEM STATUS
+                </button>
+              </div>
+            </div>
+          </section>
+
           {/* Footer */}
-          <footer className="w-full py-8 px-12 flex justify-center items-center mt-20 border-t border-white/10 bg-black/60">
-            <p className="font-mono text-[10px] text-white/30 tracking-[0.2em] uppercase">© 2026 MISSION ODYSSEY. ALL SYSTEMS OPERATIONAL.</p>
+          <footer className="w-full py-[32px] px-8 md:px-[32px] flex flex-col md:flex-row justify-between items-center gap-[16px] bg-[#170b08]/90 backdrop-blur-md border-t border-outline-variant/20">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>target</span>
+              <span className="font-display-lg text-lg text-primary tracking-tighter font-bold">ODYSSEY 2026</span>
+            </div>
+            <div className="flex gap-8">
+              <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="#">Privacy Policy</a>
+              <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="#">Terms of Service</a>
+              <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="#">Orbital Legal</a>
+              <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="#">Social Feeds</a>
+            </div>
+            <div className="text-right">
+              <p className="font-label-caps text-[10px] text-tertiary tracking-widest">© 2026 MISSION ODYSSEY. ALL SYSTEMS OPERATIONAL.</p>
+            </div>
           </footer>
         </main>
       </div>
@@ -634,79 +653,110 @@ export default function App() {
         </div>
 
         {/* TopAppBar */}
-        <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-16 bg-black/85 backdrop-blur-2xl border-b border-white/10 pointer-events-auto">
-          <div className="flex items-center gap-4">
-            <h1 className="font-sans font-medium text-sm tracking-widest text-[#ffb59d]">
-              ODYSSEY <span className="text-white/30 font-light mx-1">//</span> KINETICS ENGINE
-            </h1>
+        <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+          <div className="flex items-center gap-10 pointer-events-auto">
+            <h1 className="font-display-lg text-2xl tracking-tighter text-white">ODYSSEY <span className="text-secondary font-bold">2026</span></h1>
+            <nav className="hidden md:flex gap-10">
+              <a className="font-label-caps text-[10px] tracking-[0.15em] text-white/60 hover:text-secondary transition-colors" href="#">TELEMETRY</a>
+              <a className="font-label-caps text-[10px] tracking-[0.15em] text-secondary border-b border-secondary/50 pb-1" href="#">TRAJECTORY</a>
+              <a className="font-label-caps text-[10px] tracking-[0.15em] text-white/60 hover:text-secondary transition-colors" href="#">PAYLOAD</a>
+              <a className="font-label-caps text-[10px] tracking-[0.15em] text-white/60 hover:text-secondary transition-colors" href="#">COMMS</a>
+            </nav>
           </div>
           
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]"></span>
-              <span className="font-mono text-[10px] tracking-widest text-cyan-400 font-semibold uppercase">
-                FLIGHT STATUS: {missionStatus ? missionStatus.replace('_', ' ').toUpperCase() : 'STANDBY'}
+          <div className="flex items-center gap-6 pointer-events-auto">
+            <div className="flex flex-col items-end mr-4">
+              <span className="font-label-caps text-[9px] text-secondary tracking-[0.2em]">NETWORK STATUS</span>
+              <span className="text-white font-data-lg text-sm flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse glow-cyan"></span>
+                {missionStatus ? missionStatus.replace('_', ' ').toUpperCase() : 'STANDBY'}
               </span>
             </div>
             
             <button
               onClick={() => setIsSimulatorRunning(false)}
-              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/35 text-red-400 hover:text-red-300 rounded-lg font-mono text-[9px] uppercase tracking-widest flex items-center gap-2 glossy-button duration-200 cursor-pointer"
+              className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:text-red-400 hover:border-red-400/30 transition-all cursor-pointer"
+              title="Exit Flight Deck"
             >
-              <LogOut size={12} className="rotate-180" /> 
-              Exit Flight Deck
+              <LogOut size={16} className="rotate-180" /> 
             </button>
           </div>
         </header>
+
+        {/* HUD Overlays (Timeline/Mission Progress) */}
+        <div className="absolute inset-x-0 top-20 z-40 pointer-events-none flex justify-center">
+          <div className="pointer-events-auto">
+            <div className="glass-panel px-8 py-3 rounded-full flex items-center gap-6 border-white/10">
+              <div className="relative flex items-center gap-3 pr-[20px] after:content-[''] after:absolute after:top-1/2 after:right-0 after:w-[10px] after:h-[1px] after:bg-white/10">
+                <span className="w-2 h-2 rounded-full bg-white/20"></span>
+                <span className="font-label-caps text-[9px] text-white/40">LAUNCH</span>
+              </div>
+              <div className="relative flex items-center gap-3 pr-[20px] after:content-[''] after:absolute after:top-1/2 after:right-0 after:w-[10px] after:h-[1px] after:bg-white/10">
+                <span className="w-2 h-2 rounded-full bg-white/20"></span>
+                <span className="font-label-caps text-[9px] text-white/40">TRANSFER</span>
+              </div>
+              <div className="relative flex items-center gap-3 pr-[20px] after:content-[''] after:absolute after:top-1/2 after:right-0 after:w-[10px] after:h-[1px] after:bg-white/10">
+                <span className="w-2.5 h-2.5 rounded-full bg-primary glow-orange"></span>
+                <span className="font-label-caps text-[9px] text-primary">INTERCEPT</span>
+              </div>
+              <div className="relative flex items-center gap-3">
+                <span className="w-2 h-2 rounded-full bg-white/10"></span>
+                <span className="font-label-caps text-[9px] text-white/20">RETURN</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Main Content Area */}
         <div className="flex-1 flex pt-16 relative z-10 w-full h-full pointer-events-none">
           {/* Central Canvas Area (Interactive / Data Overlays) - Expanded Full Screen */}
           <main className="flex-1 p-8 relative flex flex-col justify-between pointer-events-none">
             {/* Top Right: Target Selection & Quick Stats */}
-            <div className="absolute top-24 right-8 flex flex-col gap-4 items-end pointer-events-auto">
-              <div className="p-5 rounded-2xl w-80 text-white border border-white/10 glossy-panel">
+            <div className="absolute top-36 right-8 flex flex-col gap-4 items-end pointer-events-auto">
+              <div className="p-6 rounded-lg w-80 text-white glass-panel border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
                 {renderTargetStats()}
               </div>
 
               {selectedTarget && selectedTarget.name !== "Sun" && (
-                <TrajectoryOptimizer
-                  originId={getSimulatedOriginId()}
-                  destId={Number(Object.entries({1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune'}).find(([_, name]) => name === selectedTarget.name)?.[0] || 4)}
-                  globalTimeRef={globalTimeRef}
-                  onApply={handleApply}
-                />
+                <div className="w-80">
+                  <TrajectoryOptimizer
+                    originId={getSimulatedOriginId()}
+                    destId={Number(Object.entries({1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune'}).find(([_, name]) => name === selectedTarget.name)?.[0] || 4)}
+                    globalTimeRef={globalTimeRef}
+                    onApply={handleApply}
+                  />
+                </div>
               )}
 
               {/* Texture Preview Mini-panels */}
-              <div className="flex gap-2 max-w-80 flex-wrap justify-end">
+              <div className="flex justify-end gap-3 px-2 w-80 flex-wrap mt-2">
                 {PLANETS.map((p) => (
-                  <button
+                  <div
                     key={p.name}
                     onClick={() =>
                       setSelectedTarget(
                         selectedTarget?.name === p.name ? null : p,
                       )
                     }
-                    className={`w-10 h-10 rounded border overflow-hidden cursor-pointer transition-all ${selectedTarget?.name === p.name ? "border-primary glow-primary opacity-100 scale-110" : "border-outline-variant/50 opacity-50 hover:opacity-100"}`}
+                    className={`w-10 h-10 rounded-full border overflow-hidden cursor-pointer transition-all ${selectedTarget?.name === p.name ? "border-primary glow-orange opacity-100 scale-110" : "border-white/5 opacity-40 hover:opacity-100 hover:border-secondary/40"}`}
                   >
                     <img
                       src={p.texture}
                       alt={p.name}
                       className="w-full h-full object-cover"
                     />
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
 
             {/* Bottom Right: Time Controls */}
-            <div className="absolute bottom-24 right-8 p-5 rounded-2xl w-80 flex flex-col gap-4 pointer-events-auto border border-white/10 glossy-panel text-white">
+            <div className="absolute bottom-8 right-8 p-5 rounded-lg w-80 flex flex-col gap-4 pointer-events-auto border border-white/10 glass-panel shadow-[0_0_20px_rgba(0,0,0,0.5)] text-white">
               <div className="flex justify-between items-center">
-                <span className="font-mono text-[10px] tracking-widest text-cyan-400 font-semibold uppercase">
+                <span className="font-label-caps text-[9px] tracking-[0.2em] text-white/40">
                   TIME DILATION
                 </span>
-                <span className="font-mono text-xs text-white font-bold bg-white/10 px-2 py-0.5 rounded">
+                <span className="font-data-lg text-lg text-secondary">
                   {timeMult === 1
                     ? "REALTIME"
                     : `x${timeMult.toLocaleString()}`}
@@ -740,10 +790,10 @@ export default function App() {
                   else if (val === 4) setTimeMult(86400 * 365.25 * 10);
                   else setTimeMult(86400 * 365.25 * 100);
                 }}
-                className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-secondary glow-cyan"
               />
 
-              <div className="flex justify-between text-white/40 font-mono text-[7.5px] tracking-wider">
+              <div className="flex justify-between text-white/20 font-label-caps text-[8px] tracking-[0.15em]">
                 <span>1S</span>
                 <span>DAY</span>
                 <span>MON</span>
