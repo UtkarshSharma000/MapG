@@ -597,7 +597,7 @@ function Planet({
           if (onDoubleClick) onDoubleClick(data.name);
         }}
       >
-        {data.name === "Earth" && launchParams && !launchParams.targetPlanet && (
+        {data.name === "Earth" && launchParams && (!launchParams.targetPlanet || launchParams.targetPlanet === "Earth") && (
           <GhostPath launchParams={launchParams} globalTimeRef={globalTimeRef} />
         )}
         <mesh>
@@ -1218,7 +1218,7 @@ function SystemEngine({
         <ArchivedShuttle key={m.id} mission={m} globalTimeRef={globalTimeRef} onDoubleClick={handleShuttleDoubleClick} />
       ))}
 
-      {launchParams && (launchParams.targetPlanet || launchParams.missionLegs) && (
+      {launchParams && (launchParams.targetPlanet || launchParams.missionLegs) && launchParams.targetPlanet !== "Earth" && (
         <GhostPath launchParams={launchParams} globalTimeRef={globalTimeRef} onStatusUpdate={onStatusUpdate} onDoubleClick={handleShuttleDoubleClick} />
       )}
 
