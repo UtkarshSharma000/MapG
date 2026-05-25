@@ -739,7 +739,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
       }
       
       // Interplanetary mode (target select OR mission legs active)
-      if (launchParams.targetPlanet || launchParams.missionLegs) {
+      if ((launchParams.targetPlanet && launchParams.targetPlanet !== "Earth") || launchParams.missionLegs) {
         calculateInterplanetaryPath();
         return;
       }
@@ -788,7 +788,7 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
       setReachedDestination((prev) => (prev !== false ? false : prev));
 
       // Constantly recalculate if not launched (interplanetary)
-      if (launchParams.targetPlanet || launchParams.missionLegs) {
+      if ((launchParams.targetPlanet && launchParams.targetPlanet !== "Earth") || launchParams.missionLegs) {
         lastCalcTime.current += delta;
         if (lastCalcTime.current > 1.0) { // Update frequency reduced to 1s
            lastCalcTime.current = 0;
