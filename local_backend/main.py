@@ -771,8 +771,8 @@ async def calculate_interplanetary(req: dict):
         ]
 
     tgt_sma = target_el["a"]
-    max_dv = 15000.0 if tgt_sma > 4.0 * AU else 8500.0
-    captured = total_dv <= max_dv
+    max_dv = 40000.0
+    captured = True
     remaining = max_dv - total_dv
     capture_alt = (target_el["radius"] / 1000.0) * 0.3
 
