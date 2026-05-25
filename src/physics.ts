@@ -213,35 +213,14 @@ export function findOptimalTransfer(
   let minDV = Infinity;
   let bestV: Vector3 = [0,0,0];
 
-  let minDays = 100;
-  let maxDays = 800;
+  const a1 = earthElements.a / AU;
+  const a2 = targetElements.a / AU;
+  
+  // Hohmann transfer approximate time in days
+  const hohmannDays = 0.5 * 365.25 * Math.pow((a1 + a2) / 2, 1.5);
 
-  const aAU = targetElements.a / AU;
-  if (aAU < 0.5) { // Mercury
-    minDays = 35;
-    maxDays = 180;
-  } else if (aAU < 0.8) { // Venus
-    minDays = 50;
-    maxDays = 260;
-  } else if (aAU < 1.3) { // Earth / Moon
-    minDays = 10;
-    maxDays = 120;
-  } else if (aAU < 1.7) { // Mars
-    minDays = 120;
-    maxDays = 450;
-  } else if (aAU < 6.0) { // Jupiter
-    minDays = 450;
-    maxDays = 1200;
-  } else if (aAU < 11.0) { // Saturn
-    minDays = 800;
-    maxDays = 2200;
-  } else if (aAU < 22.0) { // Uranus
-    minDays = 2000;
-    maxDays = 9000;
-  } else { // Neptune / Outer Solar System (30 AU)
-    minDays = 3000;
-    maxDays = 15000;
-  }
+  let minDays = Math.max(10, hohmannDays * 0.2);
+  let maxDays = Math.max(100, hohmannDays * 2.5);
 
   if (isFast) {
     minDays = Math.max(10, minDays * 0.4);
@@ -274,7 +253,7 @@ export function findOptimalTransfer(
   // Pass 2: Refined search
   if (bestTOF > 0) {
     const centralDay = bestTOF / (24 * 3600);
-    for (let d = centralDay - 4; d <= centralDay + 4; d += 0.5) {
+    for (let d = Math.max(minDays, centralDay - 4); d <= Math.min(maxDays, centralDay + 4); d += 0.5) {
       const tofSeconds = d * 24 * 3600;
       const targetPosFuture = propagateOrbit(targetElements, currentTime + tofSeconds);
       try {
@@ -310,19 +289,27 @@ export function simulateInterplanetaryRK4(
   let vel = [...startVel] as Vector3;
   let t = startTime;
 
-  // 1. Limit departure speed relative to launch planet (Earth) to 25.0 km/s (25000 m/s)
-  const earthPlanet = planetsData.find(p => p.name === "Earth") || planetsData[2];
-  const startVelBase = getOrbitalVelocity(earthPlanet.elements, startTime);
-  const dVx = vel[0] - startVelBase[0];
-  const dVy = vel[1] - startVelBase[1];
-  const dVz = vel[2] - startVelBase[2];
-  const actualDvLaunch = Math.sqrt(dVx*dVx + dVy*dVy + dVz*dVz);
-  const MAX_LAUNCH_DV = 25000.0; // 25 km/s
-  if (actualDvLaunch > MAX_LAUNCH_DV) {
-    const scale = MAX_LAUNCH_DV / actualDvLaunch;
-    vel[0] = startVelBase[0] + dVx * scale;
-    vel[1] = startVelBase[1] + dVy * scale;
-    vel[2] = startVelBase[2] + dVz * scale;
+  const launchPlanet = planetsData.find(p => {
+    const ppos = propagateOrbit(p.elements, startTime);
+    const d2 = Math.pow(ppos[0]-startPos[0],2) + Math.pow(ppos[1]-startPos[1],2) + Math.pow(ppos[2]-startPos[2],2);
+    // Expand to 200 million km just to be safe if transferring from eccentric orbits
+    return Math.sqrt(d2) < 2e8;
+  });
+
+  // 1. Limit departure speed relative to launch planet to 25.0 km/s (25000 m/s)
+  if (launchPlanet) {
+    const startVelBase = getOrbitalVelocity(launchPlanet.elements, startTime);
+    const dVx = vel[0] - startVelBase[0];
+    const dVy = vel[1] - startVelBase[1];
+    const dVz = vel[2] - startVelBase[2];
+    const actualDvLaunch = Math.sqrt(dVx*dVx + dVy*dVy + dVz*dVz);
+    const MAX_LAUNCH_DV = 25000.0; // 25 km/s
+    if (actualDvLaunch > MAX_LAUNCH_DV) {
+      const scale = MAX_LAUNCH_DV / actualDvLaunch;
+      vel[0] = startVelBase[0] + dVx * scale;
+      vel[1] = startVelBase[1] + dVy * scale;
+      vel[2] = startVelBase[2] + dVz * scale;
+    }
   }
 
   const points: Vector3[] = [[...pos]];
@@ -344,12 +331,6 @@ export function simulateInterplanetaryRK4(
       adjustedDuration = estTOF * 1.8;
     }
   }
-  
-  const launchPlanet = planetsData.find(p => {
-    const ppos = propagateOrbit(p.elements, startTime);
-    const d2 = Math.pow(ppos[0]-startPos[0],2) + Math.pow(ppos[1]-startPos[1],2) + Math.pow(ppos[2]-startPos[2],2);
-    return Math.sqrt(d2) < 2e9; // Within 2 million km at launch translates to launch planet
-  });
 
   // Optimize: Perturbations only matter from launch planet & target planet during a direct trajectory
   const activePerturbers: typeof planetsData = [];
