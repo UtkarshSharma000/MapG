@@ -31,16 +31,16 @@ function InteractiveGlobe({ url, color }: { url: string, color: string }) {
   
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 3, 5]} intensity={1} />
+      <ambientLight intensity={1.5} />
+      <directionalLight position={[5, 3, 5]} intensity={2.5} />
       <mesh 
         ref={meshRef} 
         onPointerOver={() => setHover(true)} 
         onPointerOut={() => setHover(false)}
         scale={hovered ? 1.05 : 1}
       >
-        <sphereGeometry args={[1.5, 32, 32]} />
-        <meshStandardMaterial map={tex} color={hovered ? '#ffffff' : '#aaaaaa'} roughness={0.6} />
+        <sphereGeometry args={[1.5, 64, 64]} />
+        <meshStandardMaterial map={tex} color={hovered ? '#ffffff' : '#f0f0f0'} roughness={0.7} emissive={new THREE.Color(color).multiplyScalar(0.1)} />
       </mesh>
       <OrbitControls enableZoom={false} enablePan={false} />
     </>
@@ -64,6 +64,8 @@ export default function App() {
   const [mapPlanet, setMapPlanet] = useState<string | null>(null);
   const [launchLocation, setLaunchLocation] = useState<{lat: number, lon: number} | null>(null);
   const [targetLocation, setTargetLocation] = useState<{lat: number, lon: number} | null>(null);
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+  const [currentLaunchTime, setCurrentLaunchTime] = useState<number>(0);
   const [isLaunched, setIsLaunched] = useState(false);
   const [missionStatus, setMissionStatus] = useState<string>("STANDBY");
 
@@ -194,6 +196,7 @@ export default function App() {
 
   const handleLaunch = () => {
     teiAppliedRef.current = false;
+    setCurrentLaunchTime(globalTimeRef.current);
     setIsLaunched(true);
   };
 
@@ -394,6 +397,23 @@ export default function App() {
     );
   };
 
+  const handleReplay = (archive: any) => {
+    globalTimeRef.current = archive.launchTime;
+    setCurrentLaunchTime(archive.launchTime);
+    setMissionLegs(archive.missionLegs || null);
+    setLaunchPlanet(archive.launchPlanet || "Earth");
+    setTargetPlanet(archive.originalTargetPlanet || null);
+    
+    // Set UI state
+    const planetMap = PLANETS.find(p => p.name === archive.originalTargetPlanet) || PLANETS.find(p => p.name === archive.targetPlanet);
+    if (planetMap) setSelectedTarget(planetMap);
+    
+    teiAppliedRef.current = archive.teiApplied || false;
+    setIsLaunched(true);
+    setMissionStatus("STANDBY");
+    setIsArchiveOpen(false);
+  };
+
   return (
     <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-[#03060f]">
       <OrbitSimulator
@@ -465,11 +485,11 @@ export default function App() {
             </div>
             {/* Side Floating Visual */}
             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 aspect-square hidden xl:block">
-              <div className="relative w-full h-full cursor-grab active:cursor-grabbing opacity-60 hover:opacity-100 transition-opacity duration-500">
+              <div className="relative w-full h-full cursor-grab active:cursor-grabbing opacity-90 transition-opacity duration-500">
                 <Canvas camera={{ position: [0, 0, 3] }}>
                   <InteractiveGlobe url="/textures/2k_mars.jpg" color="#c1440e" />
                 </Canvas>
-                <div className="absolute inset-0 bg-gradient-to-l from-[#050505]/80 to-transparent pointer-events-none"></div>
+                <div className="absolute inset-0 bg-gradient-to-l from-[#050505]/60 to-transparent pointer-events-none"></div>
               </div>
             </div>
           </section>
@@ -644,10 +664,15 @@ export default function App() {
               // End the current mission and archive it, allowing a new launch
               const missionArchive = {
                 id: completedMissions,
-                targetPlanet: targetPlanet,
+                targetPlanet: selectedTarget?.name || targetPlanet,
                 returnPlanet: missionStatus === "EARTH_ORBIT" ? "Earth" : undefined,
                 orbitType: missionStatus,
-                offset: completedMissions * (Math.PI / 4) // Phase offset to prevent collisions
+                offset: completedMissions * (Math.PI / 4), // Phase offset to prevent collisions
+                missionLegs: missionLegs,
+                launchPlanet: launchPlanet,
+                originalTargetPlanet: targetPlanet,
+                launchTime: currentLaunchTime,
+                teiApplied: teiAppliedRef.current
               };
               setArchivedMissions(prev => [...prev, missionArchive]);
               setCompletedMissions(prev => prev + 1);
@@ -671,6 +696,53 @@ export default function App() {
             targetLocation={targetLocation}
           />
         )}
+        {isArchiveOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md pointer-events-auto">
+            <div className="glass-panel p-8 rounded-2xl w-full max-w-3xl border border-white/10 shadow-2xl shadow-primary/20 flex flex-col max-h-[80vh]">
+              <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/10">
+                <h2 className="font-display-lg text-3xl text-white tracking-widest">MISSION ARCHIVE</h2>
+                <button 
+                  onClick={() => setIsArchiveOpen(false)}
+                  className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors border border-white/10"
+                >
+                  <span className="material-symbols-outlined text-white/70">close</span>
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+                {archivedMissions.length === 0 ? (
+                  <div className="text-center py-12 text-white/40 font-label-caps tracking-widest">
+                    NO MISSIONS ARCHIVED YET
+                  </div>
+                ) : (
+                  archivedMissions.map((m, idx) => (
+                    <div key={m.id} className="p-5 rounded-xl border border-white/10 bg-[#1d1d1d]/40 flex justify-between items-center group hover:border-primary/40 transition-colors">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="px-2 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-label-caps tracking-widest border border-primary/20">
+                            MISSION {String(m.id + 1).padStart(2, '0')}
+                          </span>
+                          <span className="font-label-caps text-xs text-secondary tracking-widest">
+                            {m.orbitType ? m.orbitType.replace("_", " ") : "TRANSFER"}
+                          </span>
+                        </div>
+                        <div className="font-headline-md text-xl text-white mt-1">
+                          {m.launchPlanet} → {m.targetPlanet || "Deep Space"}
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => handleReplay(m)}
+                        className="px-6 py-2 rounded border border-white/20 bg-white/5 hover:bg-primary/20 hover:border-primary/50 hover:text-primary transition-all font-label-caps tracking-widest text-[#aaaaaa] text-xs flex items-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">replay</span>
+                        REPLAY
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         {/* Orbit Lines HUD Simulation */}
         <div className="absolute inset-0 z-0 pointer-events-none opacity-20">
           <div className="orbit-path w-[800px] h-[800px]"></div>
@@ -683,7 +755,8 @@ export default function App() {
           <div className="flex items-center gap-10 pointer-events-auto">
             <h1 className="font-display-lg text-2xl tracking-tighter text-white">ODYSSEY <span className="text-secondary font-bold">2026</span></h1>
             <nav className="hidden md:flex gap-10">
-              <a className="font-label-caps text-[10px] tracking-[0.15em] text-secondary border-b border-secondary/50 pb-1" href="#">TRAJECTORY</a>
+              <a className="font-label-caps text-[10px] tracking-[0.15em] text-secondary border-b border-secondary/50 pb-1 cursor-pointer">TRAJECTORY</a>
+              <a onClick={() => setIsArchiveOpen(true)} className="font-label-caps text-[10px] tracking-[0.15em] text-white/60 hover:text-secondary transition-colors cursor-pointer">MISSION ARCHIVE</a>
             </nav>
           </div>
           
@@ -711,7 +784,7 @@ export default function App() {
           {/* Central Canvas Area (Interactive / Data Overlays) - Expanded Full Screen */}
           <main className="flex-1 p-8 relative flex flex-col justify-between pointer-events-none">
             {/* Top Right: Target Selection & Quick Stats */}
-            <div className="absolute top-24 right-8 flex flex-col gap-4 items-end pointer-events-auto">
+            <div className="absolute top-28 right-8 z-50 flex flex-col gap-4 items-end pointer-events-auto">
               <div className="p-6 rounded-xl w-80 text-white glass-panel border border-white/5 bg-background/80 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
                 {renderTargetStats()}
               </div>

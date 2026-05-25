@@ -1039,7 +1039,8 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate }: { launchPara
 
 function ArchivedShuttle({ mission, globalTimeRef }: { mission: any, globalTimeRef: React.MutableRefObject<number> }) {
   const ref = useRef<THREE.Group>(null);
-  const planet = PLANETS.find(p => p.name === mission.targetPlanet) || PLANETS.find(p => p.name === "Earth");
+  const pName = mission.returnPlanet || mission.targetPlanet;
+  const planet = PLANETS.find(p => p.name === pName) || PLANETS.find(p => p.name === "Earth");
 
   useFrame(() => {
     if (!planet || !ref.current) return;
