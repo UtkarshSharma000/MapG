@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useTexture, OrbitControls } from "@react-three/drei";
 import * as THREE from 'three';
+import { motion } from "motion/react";
 import {
   Play,
   Activity,
@@ -463,10 +464,12 @@ export default function App() {
               </div>
             </div>
             {/* Side Floating Visual */}
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 aspect-square hidden xl:block pointer-events-none">
-              <div className="relative w-full h-full">
-                <img alt="Mars decorative element" className="w-full h-full object-contain opacity-40 animate-[spin_120s_linear_infinite]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzD6b_ke7zhqRDJVdHBQX-iXLpaxJIz4vQ4uyrJNv7AogmDUAr5AoWfhVZO26D6YVLlscwk4aOPdPDuhQN4pIdXaTazSOrk5Qfa12o8J32s120W2jYx9-1cudP-CfJai50OuBGCDninDwD-TvW8FPaAbZCIcEHOXBKm-BFFYRIOhK5RgeT2Y_kq5ZJ93AZGld76HzxNVspmEHN56OYwwxqKCY7-D3xhGN7uusHIm0H-z7aFERW-MfahQRPBboJ3mCEtxX4BID1X5ZX" />
-                <div className="absolute inset-0 bg-gradient-to-l from-[#050505]/80 to-transparent"></div>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 aspect-square hidden xl:block">
+              <div className="relative w-full h-full cursor-grab active:cursor-grabbing opacity-60 hover:opacity-100 transition-opacity duration-500">
+                <Canvas camera={{ position: [0, 0, 3] }}>
+                  <InteractiveGlobe url="/textures/2k_mars.jpg" color="#c1440e" />
+                </Canvas>
+                <div className="absolute inset-0 bg-gradient-to-l from-[#050505]/80 to-transparent pointer-events-none"></div>
               </div>
             </div>
           </section>
@@ -511,70 +514,63 @@ export default function App() {
               <div className="hidden md:block font-data-lg text-tertiary font-bold tracking-wider text-sm">Q3-Q4 DEPLOYMENT</div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Card 1 */}
-              <div className="glossy-panel rounded-3xl hover:scale-[1.02] transition-transform duration-300 group overflow-hidden border border-white/5">
-                <div className="h-48 overflow-hidden relative border-b border-white/5">
-                  <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700" alt="Phobos base construction" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBACplwpq98Rkmgv4zvxb0eAEhIsizmNlJTC2jsQBeMtvZnFYMnCJHR6TAhNJ9sfdEr6k_qaF1jw4HuGWKSNZ1nLjHMBWSml5Pfcat6Fvkkaqj3c3JB-Lku9XZXTymKJOzxULcF7cBYsQhH_FC0LOHV6VFeXFn-5Omy3eEJ1a4hAJ5Txfm3dfZA-dKXoSqeNxCa2_yE5V8DhGfuqoeckWsY-xTNWEWCVaobE57lK5IlDNUKTEQ53H_Qy75i26W4xFsKIJcbnR1z87NM" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#1d100c] to-transparent bg-opacity-80"></div>
-                  <div className="absolute top-4 left-4 px-2 py-1 glass-panel border border-primary/20 rounded">
-                    <span className="font-label-caps text-[8px] text-primary tracking-widest">PHASE 01</span>
+            <motion.div 
+              className="flex gap-8 cursor-grab active:cursor-grabbing pb-10"
+              drag="x"
+              dragConstraints={{ left: -1200, right: 0 }}
+              initial={{ x: 0 }}
+            >
+              {[
+                {
+                  id: "01",
+                  title: "Phobos Base Construction",
+                  desc: "Establishing the first permanent logistics hub on the Martian moon Phobos to support long-term orbital research.",
+                  date: "JAN 2026",
+                  img: "https://lh3.googleusercontent.com/aida-public/AB6AXuBACplwpq98Rkmgv4zvxb0eAEhIsizmNlJTC2jsQBeMtvZnFYMnCJHR6TAhNJ9sfdEr6k_qaF1jw4HuGWKSNZ1nLjHMBWSml5Pfcat6Fvkkaqj3c3JB-Lku9XZXTymKJOzxULcF7cBYsQhH_FC0LOHV6VFeXFn-5Omy3eEJ1a4hAJ5Txfm3dfZA-dKXoSqeNxCa2_yE5V8DhGfuqoeckWsY-xTNWEWCVaobE57lK5IlDNUKTEQ53H_Qy75i26W4xFsKIJcbnR1z87NM"
+                },
+                {
+                  id: "02",
+                  title: "Deep Space Comm-Relay",
+                  desc: "Deploying a constellation of high-throughput relays to ensure 24/7 link connectivity across the inner solar system.",
+                  date: "MAY 2026",
+                  img: "https://lh3.googleusercontent.com/aida-public/AB6AXuD85HKMyPKmqVyjZ1ilQ9QXGQMuS_ihKntU1-cksmQgiMG7tlG2su3VaQRse6aSrS9PWS31_QDT8avN5E0wJKFXZBnguJQDCR4YAcYcsEouhLHetCjKMIrpnDUdr63QTSrDuZsJ2FHKipCigBpLuHIXXvyqXzJKe8ZxwEkmGg9b6s5Y1GyPW8cvEo7PPvnhYIZpyKJB3h28puIrnHiWeYMkQdPTuHVRlXSsqwf2cdidzDAoagCjT5zucA-7JkJmaFpbW5kbRmgGLzwn"
+                },
+                {
+                  id: "03",
+                  title: "Titan Atmosphere Entry",
+                  desc: "Automated descent and atmospheric analysis of Saturn's largest moon to survey for future methane harvesting sites.",
+                  date: "SEP 2026",
+                  img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAzD6b_ke7zhqRDJVdHBQX-iXLpaxJIz4vQ4uyrJNv7AogmDUAr5AoWfhVZO26D6YVLlscwk4aOPdPDuhQN4pIdXaTazSOrk5Qfa12o8J32s120W2jYx9-1cudP-CfJai50OuBGCDninDwD-TvW8FPilot" // Fixed trailing info
+                },
+                {
+                  id: "04",
+                  title: "Europa Ice Penetrator",
+                  desc: "Deploying a subsurface probe to analyze the chemical composition of Europa's subsurface ocean.",
+                  date: "FEB 2027",
+                  img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAzD6b_ke7zhqRDJVdHBQX-iXLpaxJIz4vQ4uyrJNv7AogmDUAr5AoWfhVZO26D6YVLlscwk4aOPdPDuhQN4pIdXaTazSOrk5Qfa12o8J32s120W2jYx9-1cudP-CfJai50OuBGCDninDwD-TvW8FPilot" // using similar placeholder or missing
+                }
+              ].map((card) => (
+                <div key={card.id} className="min-w-[320px] w-[320px] aspect-[1/1.58] glossy-panel rounded-3xl hover:scale-[1.02] transition-transform duration-300 group overflow-hidden border border-white/5 flex flex-col flex-shrink-0">
+                  <div className="flex-1 overflow-hidden relative border-b border-white/5">
+                    <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700" alt={card.title} src={card.img} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#1d100c] to-transparent bg-opacity-80"></div>
+                    <div className="absolute top-6 left-6 px-3 py-1.5 glass-panel border border-primary/20 rounded">
+                      <span className="font-label-caps text-[10px] text-primary tracking-widest">PHASE {card.id}</span>
+                    </div>
+                  </div>
+                  <div className="p-8 bg-[#1d100c]/40 relative z-10 flex flex-col h-[200px]">
+                    <h4 className="font-headline-md text-xl md:text-2xl font-semibold mb-3">{card.title}</h4>
+                    <p className="text-on-surface-variant text-sm mb-auto font-light leading-relaxed line-clamp-3">{card.desc}</p>
+                    <div className="flex items-center justify-between mt-6">
+                      <span className="font-label-caps text-[10px] text-tertiary flex items-center gap-1 tracking-widest">
+                         {card.date}
+                      </span>
+                      <ArrowRight className="text-primary group-hover:translate-x-2 transition-transform" size={16} />
+                    </div>
                   </div>
                 </div>
-                <div className="p-[32px] bg-[#1d100c]/40 relative z-10">
-                  <h4 className="font-headline-md text-xl md:text-2xl font-semibold mb-2">Phobos Base Construction</h4>
-                  <p className="text-on-surface-variant text-sm mb-6 font-light leading-relaxed">Establishing the first permanent logistics hub on the Martian moon Phobos to support long-term orbital research.</p>
-                  <div className="flex items-center justify-between">
-                    <span className="font-label-caps text-[10px] text-tertiary flex items-center gap-1 tracking-widest">
-                       JAN 2026
-                    </span>
-                    <ArrowRight className="text-primary group-hover:translate-x-2 transition-transform" size={16} />
-                  </div>
-                </div>
-              </div>
-              
-              {/* Card 2 */}
-              <div className="glossy-panel rounded-3xl hover:scale-[1.02] transition-transform duration-300 group overflow-hidden border border-white/5">
-                <div className="h-48 overflow-hidden relative border-b border-white/5">
-                  <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700" alt="Deep space communication relay" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD85HKMyPKmqVyjZ1ilQ9QXGQMuS_ihKntU1-cksmQgiMG7tlG2su3VaQRse6aSrS9PWS31_QDT8avN5E0wJKFXZBnguJQDCR4YAcYcsEouhLHetCjKMIrpnDUdr63QTSrDuZsJ2FHKipCigBpLuHIXXvyqXzJKe8ZxwEkmGg9b6s5Y1GyPW8cvEo7PPvnhYIZpyKJB3h28puIrnHiWeYMkQdPTuHVRlXSsqwf2cdidzDAoagCjT5zucA-7JkJmaFpbW5kbRmgGLzwn" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#1d100c] to-transparent bg-opacity-80"></div>
-                  <div className="absolute top-4 left-4 px-2 py-1 glass-panel border border-primary/20 rounded">
-                    <span className="font-label-caps text-[8px] text-primary tracking-widest">PHASE 02</span>
-                  </div>
-                </div>
-                <div className="p-[32px] bg-[#1d100c]/40 relative z-10">
-                  <h4 className="font-headline-md text-xl md:text-2xl font-semibold mb-2">Deep Space Comm-Relay</h4>
-                  <p className="text-on-surface-variant text-sm mb-6 font-light leading-relaxed">Deploying a constellation of high-throughput relays to ensure 24/7 link connectivity across the inner solar system.</p>
-                  <div className="flex items-center justify-between">
-                    <span className="font-label-caps text-[10px] text-tertiary flex items-center gap-1 tracking-widest">
-                       MAY 2026
-                    </span>
-                    <ArrowRight className="text-primary group-hover:translate-x-2 transition-transform" size={16} />
-                  </div>
-                </div>
-              </div>
-              
-              {/* Card 3 */}
-              <div className="glossy-panel rounded-3xl hover:scale-[1.02] transition-transform duration-300 group overflow-hidden border border-white/5">
-                <div className="h-48 overflow-hidden relative border-b border-white/5">
-                  <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700" alt="Titan Atmosphere Entry" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzD6b_ke7zhqRDJVdHBQX-iXLpaxJIz4vQ4uyrJNv7AogmDUAr5AoWfhVZO26D6YVLlscwk4aOPdPDuhQN4pIdXaTazSOrk5Qfa12o8J32s120W2jYx9-1cudP-CfJai50OuBGCDninDwD-TvW8FPilot" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#1d100c] to-transparent bg-opacity-80"></div>
-                  <div className="absolute top-4 left-4 px-2 py-1 glass-panel border border-primary/20 rounded">
-                    <span className="font-label-caps text-[8px] text-primary tracking-widest">PHASE 03</span>
-                  </div>
-                </div>
-                <div className="p-[32px] bg-[#1d100c]/40 relative z-10">
-                  <h4 className="font-headline-md text-xl md:text-2xl font-semibold mb-2">Titan Atmosphere Entry</h4>
-                  <p className="text-on-surface-variant text-sm mb-6 font-light leading-relaxed">Automated descent and atmospheric analysis of Saturn's largest moon to survey for future methane harvesting sites.</p>
-                  <div className="flex items-center justify-between">
-                    <span className="font-label-caps text-[10px] text-tertiary flex items-center gap-1 tracking-widest">
-                       SEP 2026
-                    </span>
-                    <ArrowRight className="text-primary group-hover:translate-x-2 transition-transform" size={16} />
-                  </div>
-                </div>
-              </div>
-            </div>
+              ))}
+            </motion.div>
           </section>
 
           {/* CTA Section */}
@@ -710,37 +706,13 @@ export default function App() {
           </div>
         </header>
 
-        {/* HUD Overlays (Timeline/Mission Progress) */}
-        <div className="absolute inset-x-0 top-20 z-40 pointer-events-none flex justify-center">
-          <div className="pointer-events-auto">
-            <div className="glass-panel px-8 py-3 rounded-full flex items-center gap-6 border-white/10">
-              <div className="relative flex items-center gap-3 pr-[20px] after:content-[''] after:absolute after:top-1/2 after:right-0 after:w-[10px] after:h-[1px] after:bg-white/10">
-                <span className={`w-2.5 h-2.5 rounded-full ${missionStatus === 'STANDBY' ? 'bg-primary glow-orange' : 'bg-white/20'}`}></span>
-                <span className={`font-label-caps text-[9px] ${missionStatus === 'STANDBY' ? 'text-primary' : 'text-white/40'}`}>LAUNCH</span>
-              </div>
-              <div className="relative flex items-center gap-3 pr-[20px] after:content-[''] after:absolute after:top-1/2 after:right-0 after:w-[10px] after:h-[1px] after:bg-white/10">
-                <span className={`w-2.5 h-2.5 rounded-full ${missionStatus === 'TRANSIT' ? 'bg-primary glow-orange' : 'bg-white/20'}`}></span>
-                <span className={`font-label-caps text-[9px] ${missionStatus === 'TRANSIT' ? 'text-primary' : 'text-white/40'}`}>TRANSFER</span>
-              </div>
-              <div className="relative flex items-center gap-3 pr-[20px] after:content-[''] after:absolute after:top-1/2 after:right-0 after:w-[10px] after:h-[1px] after:bg-white/10">
-                <span className={`w-2.5 h-2.5 rounded-full ${missionStatus?.includes('ORBIT') && missionStatus !== 'EARTH_ORBIT' ? 'bg-primary glow-orange' : 'bg-white/20'}`}></span>
-                <span className={`font-label-caps text-[9px] ${missionStatus?.includes('ORBIT') && missionStatus !== 'EARTH_ORBIT' ? 'text-primary' : 'text-white/40'}`}>INTERCEPT</span>
-              </div>
-              <div className="relative flex items-center gap-3">
-                <span className={`w-2.5 h-2.5 rounded-full ${missionStatus === 'EARTH_ORBIT' ? 'bg-primary glow-orange' : 'bg-white/20'}`}></span>
-                <span className={`font-label-caps text-[9px] ${missionStatus === 'EARTH_ORBIT' ? 'text-primary' : 'text-white/40'}`}>RETURN</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Main Content Area */}
         <div className="flex-1 flex pt-16 relative z-10 w-full h-full pointer-events-none">
           {/* Central Canvas Area (Interactive / Data Overlays) - Expanded Full Screen */}
           <main className="flex-1 p-8 relative flex flex-col justify-between pointer-events-none">
             {/* Top Right: Target Selection & Quick Stats */}
-            <div className="absolute top-36 right-8 flex flex-col gap-4 items-end pointer-events-auto">
-              <div className="p-6 rounded-lg w-80 text-white glass-panel border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+            <div className="absolute top-24 right-8 flex flex-col gap-4 items-end pointer-events-auto">
+              <div className="p-6 rounded-xl w-80 text-white glass-panel border border-white/5 bg-background/80 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
                 {renderTargetStats()}
               </div>
 
