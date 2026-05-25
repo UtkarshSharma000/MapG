@@ -42,6 +42,83 @@ async function startServer() {
     }
   });
 
+  // Start the persistent Odyssey C++ Engine
+  let engineProcess = spawn("./local_backend/odyssey_engine", ["calculate"]);
+  
+  interface PendingRequest {
+    resolve: (value: any) => void;
+    reject: (reason: any) => void;
+  }
+  const pendingRequests: PendingRequest[] = [];
+  let stdoutBuffer = "";
+
+  function setupEngineHandlers() {
+    engineProcess.stdout.on("data", (data) => {
+      stdoutBuffer += data.toString();
+      let newlineIdx;
+      while ((newlineIdx = stdoutBuffer.indexOf("\n")) !== -1) {
+        const line = stdoutBuffer.substring(0, newlineIdx).trim();
+        stdoutBuffer = stdoutBuffer.substring(newlineIdx + 1);
+        if (line) {
+          const nextReq = pendingRequests.shift();
+          if (nextReq) {
+            try {
+              const parsed = JSON.parse(line);
+              nextReq.resolve(parsed);
+            } catch (e) {
+              console.error("Failed to parse engine output JSON:", e, "Line was:", line);
+              nextReq.reject(new Error("Engine returned invalid JSON"));
+            }
+          }
+        }
+      }
+    });
+
+    engineProcess.stderr.on("data", (data) => {
+      console.error("Odyssey Engine Stderr:", data.toString());
+    });
+
+    engineProcess.on("close", (code) => {
+      console.warn(`Odyssey Engine closed with code ${code}`);
+      const remaining = [...pendingRequests];
+      pendingRequests.length = 0;
+      for (const req of remaining) {
+        req.reject(new Error("Engine process closed unexpectedly"));
+      }
+    });
+  }
+
+  setupEngineHandlers();
+
+  function ensureEngineAlive() {
+    const isClosed = engineProcess.killed || (engineProcess as any).exitCode !== null;
+    if (isClosed) {
+      console.log("Re-spawning Odyssey C++ engine...");
+      engineProcess = spawn("./local_backend/odyssey_engine", ["calculate"]);
+      stdoutBuffer = "";
+      setupEngineHandlers();
+    }
+  }
+
+  app.post("/api/calculate", express.json(), async (req, res) => {
+    try {
+      ensureEngineAlive();
+      const payload = JSON.stringify(req.body);
+      
+      const promise = new Promise((resolve, reject) => {
+        pendingRequests.push({ resolve, reject });
+      });
+
+      engineProcess.stdin.write(payload + "\n");
+      
+      const result = await promise;
+      res.json(result);
+    } catch (error: any) {
+      console.error("Failed to calculate:", error);
+      res.status(500).json({ error: error.message || "Failed to run calculate" });
+    }
+  });
+
   // Start the Python FastAPI Bridge
   console.log("Starting Python FastAPI bridge...");
   const pythonProcess = spawn("python3", ["-m", "uvicorn", "main:app", "--port", "8000"], {

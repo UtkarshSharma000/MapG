@@ -672,94 +672,48 @@ function GhostPath({ launchParams, globalTimeRef, onStatusUpdate, onDoubleClick 
   const lastTargetPlanetRef = useRef<string | null>(null);
   const lastMissionLegsRef = useRef<any>(null);
 
-  const calculateInterplanetaryPath = useCallback(() => {
+  const calculateInterplanetaryPath = useCallback(async () => {
     if (!launchParams) return;
     if (!launchParams.targetPlanet && !launchParams.missionLegs) return;
     
     const time = globalTimeRef.current;
     let targetName = launchParams.targetPlanet;
-    let simDuration = 0;
     
-    const earth = PLANETS.find(p => p.name === (launchParams.launchPlanet || "Earth"));
-    if (!earth) return;
-
-    const startPos = propagateOrbit(earth.elements, time);
-    let vReq: [number, number, number] = [0, 0, 0];
-    let dvLabel = 0;
-
     if (launchParams.missionLegs && launchParams.missionLegs.length > 0) {
       const legs = launchParams.missionLegs;
       const lastDestId = legs[legs.length - 1].destId;
       const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune' } as Record<number, string>;
       targetName = planetMap[lastDestId];
-      
-      let totalDays = 0;
-      for (const leg of legs) totalDays += (leg.tof_days || 0);
-      simDuration = Math.max(totalDays * 86400 * 1.5, 86400 * 100);
-
-      // Convert Pitch, Yaw, V0 from launchParams back directly into J2000 heliocentric
-      const p = launchParams.pitch * Math.PI / 180;
-      const y = launchParams.yaw * Math.PI / 180;
-      const v0 = launchParams.v0;
-      
-      const vx_local = v0 * Math.sin(p);
-      const vy_local = v0 * Math.cos(p) * Math.cos(y);
-      const vz_local = v0 * Math.cos(p) * Math.sin(y);
-      
-      const OBLIQUITY = 23.43929111 * (Math.PI / 180);
-      const cosE = Math.cos(OBLIQUITY), sinE = Math.sin(OBLIQUITY);
-      
-      const v_inf_x = vx_local;
-      const v_inf_y = vy_local * cosE + vz_local * sinE;
-      const v_inf_z = -vy_local * sinE + vz_local * cosE;
-      
-      // Get base orbital velocity of Earth at time t0
-      const earthVel = getOrbitalVelocity(earth.elements, time);
-      vReq = [earthVel[0] + v_inf_x, earthVel[1] + v_inf_y, earthVel[2] + v_inf_z];
-      dvLabel = legs.reduce((acc: number, l: any) => acc + (l.dv1_kms || 0), 0);
-    } else if (launchParams.targetPlanet) {
-      const target = PLANETS.find(p => p.name === launchParams.targetPlanet);
-      if (!target) return;
-      const { tof, vReq: v, dvReq } = findOptimalTransfer(
-        earth.elements,
-        target.elements,
-        time,
-        MU_SUN,
-        false
-      );
-      vReq = v as [number, number, number];
-      simDuration = tof * 1.5;
-      dvLabel = dvReq;
     }
-
+    
     if (!targetName) return;
     const targetPlanet = PLANETS.find(p => p.name === targetName);
     if (!targetPlanet) return;
     
-    requiredDVRef.current = dvLabel;
-    const simDt = 600; // Better step for trajectory prediction
-    
-    const { points: rawPoints, arrivalTime, success, missionStatus, captureAltitude, orbitPeriod, isOvershot, remainingDeltaV, usedDuration } = simulateInterplanetaryRK4(
-      startPos as [number, number, number],
-      vReq,
-      time,
-      PLANETS,
-      simDuration,
-      simDt,
-      targetName,
-      false // twoBodyOnly disabled so spacecraft is affected by planet gravity
-    );
-    
-    transferTimeRef.current = arrivalTime - time;
-    simDurationRef.current = usedDuration || simDuration;
-    captureInfoRef.current = { status: missionStatus, altitude: captureAltitude, period: orbitPeriod, isOvershot, remainingDeltaV };
-    
-    const threePoints = rawPoints.map(p => new THREE.Vector3(p[0] * POS_SCALE, p[2] * POS_SCALE, -p[1] * POS_SCALE));
-    setPoints(threePoints);
-    setStatus(success ? "Intercept Locked" : "Transfer Optimized");
-
-    const [ix, iy, iz] = propagateOrbit(targetPlanet.elements, arrivalTime);
-    setInterceptPoint(new THREE.Vector3(ix * POS_SCALE, iz * POS_SCALE, -iy * POS_SCALE));
+    try {
+      const payload = { targetPlanet: targetName, globalTime: time };
+      const response = await fetch('/api/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      
+      requiredDVRef.current = data.dvLabel;
+      transferTimeRef.current = data.arrivalTime - time;
+      simDurationRef.current = data.usedDuration || (data.arrivalTime - time);
+      captureInfoRef.current = { status: data.missionStatus, altitude: data.captureAltitude, period: data.orbitPeriod, isOvershot: data.isOvershot, remainingDeltaV: data.remainingDeltaV };
+      
+      const threePoints = data.points.map((p: any) => new THREE.Vector3(p[0] * POS_SCALE, p[2] * POS_SCALE, -p[1] * POS_SCALE));
+      setPoints(threePoints);
+      setStatus(data.success ? "Intercept Locked" : "Transfer Optimized");
+      
+      const [ix, iy, iz] = propagateOrbit(targetPlanet.elements, data.arrivalTime);
+      setInterceptPoint(new THREE.Vector3(ix * POS_SCALE, iz * POS_SCALE, -iy * POS_SCALE));
+    } catch (err) {
+      console.error("Backend calculation failed:", err);
+    }
   }, [launchParams]);
 
   useEffect(() => {
