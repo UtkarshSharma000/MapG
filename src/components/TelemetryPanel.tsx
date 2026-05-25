@@ -14,65 +14,60 @@ export function TelemetryPanel() {
   }, []);
 
   return (
-    <div className="fixed top-36 left-8 p-5 rounded-2xl border border-white/10 bg-black/80 backdrop-blur-2xl text-white w-72 pointer-events-auto z-40 shadow-2xl glossy-panel">
-      <h3 className="font-sans font-medium text-xs tracking-widest uppercase mb-4 flex items-center justify-between border-b border-white/10 pb-2 text-primary">
-        LIVE DIAGNOSTIC TELEMETRY
-        <div className="flex items-center gap-2">
-          {telemetry?.time ? (
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]"></span>
-          ) : (
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_#ef4444]"></span>
-          )}
+    <div className="fixed top-36 left-8 p-6 rounded-lg border border-white/10 glass-panel shadow-[0_0_40px_rgba(0,0,0,0.5)] text-white w-72 pointer-events-auto z-40 flex flex-col">
+      <div className="mb-6">
+        <div className="font-label-caps text-[9px] text-white/40 tracking-[0.2em] mb-1">CRAFT IDENTIFIER</div>
+        <div className="font-headline-md text-white text-xl">SATELLITE-01</div>
+        <div className="flex items-center gap-2 mt-2">
+          <span className="px-1.5 py-0.5 rounded-sm bg-secondary/10 text-secondary text-[8px] font-bold border border-secondary/20 uppercase">
+            {telemetry?.time ? "TELEMETRY LINKED" : "ACQUIRING..."}
+          </span>
+          <span className={`w-1.5 h-1.5 rounded-full ${telemetry?.time ? 'bg-secondary glow-cyan animate-pulse' : 'bg-red-500 animate-pulse'}`}></span>
         </div>
-      </h3>
+      </div>
 
       {!telemetry?.time ? (
-        <div className="text-xs font-mono text-white/40">
+        <div className="text-xs font-label-caps tracking-widest text-white/40 mt-4">
           Syncing with spacecraft transponder...
         </div>
       ) : (
-        <div className="space-y-4 font-mono text-[11px]">
+        <div className="space-y-6 flex-1">
           <div>
-            <div className="text-white/40 text-[9px] tracking-widest uppercase mb-1.5 font-sans">
-              HELIOCENTRIC STATE VECTOR [R]
+            <label className="font-label-caps text-[9px] text-white/30 block mb-2 tracking-[0.2em]">HELIOCENTRIC [R]</label>
+            <div className="flex justify-between items-baseline border-b border-white/5 pb-1">
+              <span className="font-label-caps text-[9px] text-white/30">X</span>
+              <span className="font-data-lg text-lg text-white">{telemetry.x.toFixed(2)}</span>
             </div>
-            <div className="grid grid-cols-3 gap-2 bg-black/40 p-2 rounded-lg border border-white/5">
-              <div><span className="text-white/30">X:</span> {telemetry.x.toFixed(2)}</div>
-              <div><span className="text-white/30">Y:</span> {telemetry.y.toFixed(2)}</div>
-              <div><span className="text-white/30">Z:</span> {telemetry.z.toFixed(2)}</div>
+            <div className="flex justify-between items-baseline border-b border-white/5 py-1">
+              <span className="font-label-caps text-[9px] text-white/30">Y</span>
+              <span className="font-data-lg text-lg text-white">{telemetry.y.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-baseline py-1">
+              <span className="font-label-caps text-[9px] text-white/30">Z</span>
+              <span className="font-data-lg text-lg text-white">{telemetry.z.toFixed(2)}</span>
             </div>
           </div>
+          
           <div>
-            <div className="text-white/40 text-[9px] tracking-widest uppercase mb-1.5 font-sans">
-              VELOCITY STATE VECTOR [V]
+            <label className="font-label-caps text-[9px] text-white/30 block mb-2 tracking-[0.2em]">VELOCITY [V]</label>
+            <div className="flex justify-between items-baseline border-b border-white/5 pb-1">
+              <span className="font-label-caps text-[9px] text-white/30">Vx</span>
+              <span className="font-data-lg text-lg text-white">{telemetry.vx.toFixed(4)}</span>
             </div>
-            <div className="grid grid-cols-3 gap-2 bg-black/40 p-2 rounded-lg border border-white/5">
-              <div><span className="text-white/30">Vx:</span> {telemetry.vx.toFixed(4)}</div>
-              <div><span className="text-white/30">Vy:</span> {telemetry.vy.toFixed(4)}</div>
-              <div><span className="text-white/30">Vz:</span> {telemetry.vz.toFixed(4)}</div>
+            <div className="flex justify-between items-baseline border-b border-white/5 py-1">
+              <span className="font-label-caps text-[9px] text-white/30">Vy</span>
+              <span className="font-data-lg text-lg text-white">{telemetry.vy.toFixed(4)}</span>
+            </div>
+            <div className="flex justify-between items-baseline py-1">
+              <span className="font-label-caps text-[9px] text-white/30">Vz</span>
+              <span className="font-data-lg text-lg text-white">{telemetry.vz.toFixed(4)}</span>
             </div>
           </div>
-          <div className="pt-3 border-t border-white/10">
-            <div className="text-white/40 text-[9px] tracking-widest uppercase mb-2 font-sans">
-              GROUND STATION TRANSCEIVER (DELHI)
-            </div>
-            <div className="flex justify-between py-1 px-1 bg-black/20 rounded">
-              <span className="text-white/50">Current Range:</span>
-              <span className="text-cyan-400 font-bold">
-                {telemetry.delhi_range_km.toLocaleString('en-US', { maximumFractionDigits: 1 })} km
-              </span>
-            </div>
-            <div className="flex justify-between py-1 px-1 mt-1 bg-black/20 rounded">
-              <span className="text-white/50">Horizon Elev:</span>
-              <span
-                className={
-                  telemetry.delhi_elevation_deg > 0
-                    ? "text-cyan-400 font-bold"
-                    : "text-red-400 font-bold"
-                }
-              >
-                {telemetry.delhi_elevation_deg.toFixed(2)}°
-              </span>
+
+          <div>
+            <label className="font-label-caps text-[9px] text-white/30 block mb-2 tracking-[0.2em]">SIGNAL LOAD</label>
+            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-1">
+              <div className="h-full bg-secondary glow-cyan" style={{ width: `${Math.max(20, Math.min(100, (telemetry.delhi_elevation_deg / 90) * 100))}%` }}></div>
             </div>
           </div>
         </div>
