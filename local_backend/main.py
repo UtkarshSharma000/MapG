@@ -722,19 +722,20 @@ def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_
 # Interplanetary trajectory calculator
 @app.post("/calculate")
 async def calculate_interplanetary(req: dict):
+    launchPlanet = req.get("launchPlanet", "Earth")
     targetPlanet = req.get("targetPlanet", "Mars")
     globalTime = req.get("globalTime", 0.0)
 
-    earth_el = PLANET_ELEMENTS["Earth"]
+    start_el = PLANET_ELEMENTS.get(launchPlanet, PLANET_ELEMENTS["Earth"])
     target_el = PLANET_ELEMENTS.get(targetPlanet, PLANET_ELEMENTS["Mars"])
 
-    res_opt = find_optimal_transfer(earth_el, target_el, globalTime, MU_SUN)
+    res_opt = find_optimal_transfer(start_el, target_el, globalTime, MU_SUN)
     tof = res_opt["tof"]
     total_dv = res_opt["dvReq"]
     sc_vel = list(res_opt["vReq"])
 
-    # Starting position is Earth position at launch time
-    sc_pos = list(propagate_orbit(earth_el, globalTime))
+    # Starting position is start_el position at launch time
+    sc_pos = list(propagate_orbit(start_el, globalTime))
 
     N = 500
     dt_step = tof / N
@@ -783,7 +784,7 @@ async def calculate_interplanetary(req: dict):
         "points": pts,
         "arrivalTime": globalTime + tof,
         "success": captured,
-        "missionStatus": "ORBIT CAPTURE" if captured else "OVERSHOT",
+        "missionStatus": f"{targetPlanet.upper()}_ORBIT" if captured else "OVERSHOT - INSUFFICIENT FUEL",
         "captureAltitude": capture_alt,
         "orbitPeriod": orbit_period_days,
         "isOvershot": not captured,

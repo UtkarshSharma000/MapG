@@ -649,6 +649,7 @@ export default function App() {
               setMissionLegs(null);
               setTargetPlanet(null);
               setReturnWindow(null);
+              setLaunchPlanet("Earth");
               teiAppliedRef.current = false;
             }}
             isLaunched={isLaunched}
@@ -679,6 +680,7 @@ export default function App() {
               setMissionLegs(null);
               setTargetPlanet(null);
               setReturnWindow(null);
+              setLaunchPlanet("Earth");
               setMissionStatus("STANDBY");
               teiAppliedRef.current = false;
             }}
