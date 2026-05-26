@@ -1,5 +1,5 @@
 <p align="center">
- <img width="100" alt="transparent-image" src="https://github.com/user-attachments/assets/c3eb2d4e-4b8a-4708-8fc1-65d3149611f5" />
+ <img width="180" alt="transparent-image" src="https://github.com/user-attachments/assets/16c20926-5542-429b-84f6-c51561d8f15d" />
 </p>
 
 <h1 align="center">Project Greninja (MapG)</h1>
@@ -49,14 +49,16 @@ $$R_v = k \cdot V_s$$
 ## Getting Started
 
 ### Prerequisites
+
 * Ensure **Node.js** is installed on your local machine environment.
 
 ### Installation and Local Setup
 
 1. **Clone the repository**
-   ```bash
-   git clone [https://github.com/UtkarshSharma000/ADHD.git](https://github.com/UtkarshSharma000/ADHD.git)
-   cd MapG
+
+```bash
+git clone [https://github.com/UtkarshSharma000/ADHD.git](https://github.com/UtkarshSharma000/ADHD.git)
+cd MapG
 Install dependencies
 
 Bash
@@ -65,7 +67,9 @@ Launch the development workspace
 
 Bash
 npm run dev
-Note: If you are running the engine on a remote cloud virtual machine, verify your vite.config.ts configuration is set to expose the custom host network.
+[!IMPORTANT]
+
+If you are running the engine on a remote cloud virtual machine, verify your vite.config.ts configuration is set to expose the custom host network.
 
 Repository Structure
 Plaintext
