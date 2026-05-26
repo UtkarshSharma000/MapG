@@ -1,71 +1,80 @@
 <p align="center">
- <img width="200" alt="transparent-image" src="https://github.com/user-attachments/assets/7f1b978c-7e6d-4bd8-85c3-dee52664299e" />
+ <img width="100" alt="transparent-image" src="https://github.com/user-attachments/assets/c3eb2d4e-4b8a-4708-8fc1-65d3149611f5" />
 </p>
 
-# Project Greninja (MapG)
+<h1 align="center">Project Greninja (MapG)</h1>
 
-An interactive orbital mechanics and trajectory simulator built with React, TypeScript, and Vite. The engine simulates celestial paths, planetary rotation, and porkchop plotting utilizing custom physics engines.
+<p align="center">
+  <strong>A high-performance, interactive orbital mechanics and trajectory simulator.</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Frontend-React-007acc?style=for-the-badge&logo=react&logoColor=white" alt="React"/>
+  <img src="https://img.shields.io/badge/Language-TypeScript-007acc?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/>
+  <img src="https://img.shields.io/badge/Build_Tool-Vite-007acc?style=for-the-badge&logo=vite&logoColor=white" alt="Vite"/>
+  <img src="https://img.shields.io/badge/Styling-Tailwind_CSS-007acc?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind"/>
+  <img src="https://img.shields.io/badge/Backend-Python-007acc?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
+</p>
 
 ---
 
-## Features
+> [!NOTE]
+> The MapG core engine simulates complex celestial paths, planetary rotation, and automated porkchop plotting utilizing custom-built visual rendering physics.
 
-* **Interactive Orbit Simulator:** Visualizes planetary trajectories and satellite orbits in real-time.
-* **Automated Porkchop Plotting:** Integrated porkchop plots to calculate optimal interplanetary launch windows and delta-v requirements.
-* **Custom Physics Engine (greninja_engine):** Built from scratch to handle rotational velocity tracking and vector positioning.
-* **Launch HUD:** Real-time dashboard overlay to monitor telemetry, velocities, and orbital states during simulation.
+## Core Features
+
+* **Interactive Orbit Simulator** Visualizes precise planetary trajectories and satellite orbits in a real-time, canvas-based environment.
+  
+* **Automated Porkchop Plotting** Integrated porkchop plots map out delta-v requirements and pinpoint optimal interplanetary launch windows.
+  
+* **Custom Physics Engine (`greninja_engine`)** Built entirely from the ground up to handle rotational velocity tracking, coordinate translation, and discrete vector positioning.
+  
+* **Launch HUD** A real-time, sleek dashboard telemetry overlay designed to monitor instantaneous velocities, orbital states, and system metrics during simulation.
 
 ---
 
-## The Physics Engine (greninja_engine)
+## The Physics Engine (`greninja_engine`)
 
-The core engine maps out planetary behavior using custom direct-proportionality scaling equations for fixed circular tracks. 
+The core engine maps out planetary behavior using custom direct-proportionality scaling equations optimized for fixed circular tracks. 
 
-Instead of traditional textbook derivations, the engine handles rotational tracking speeds ($R_v$) relative to linear velocities ($V_s$) using a strict custom scaling constant $k$, where:
+Instead of relying on heavy traditional textbook derivations, the system calculates rotational tracking speeds ($R_v$) relative to linear velocities ($V_s$) using a strict custom scaling constant $k$, where:
 
 $$R_v = k \cdot V_s$$
 
-Where the proportionality constant $k$ effectively scales as $\frac{1}{\text{radius}}$ to balance visual tracking across massive scales—from Low Earth Orbit up to full solar system paths.
-
----
-
-## Tech Stack
-
-* **Frontend:** React, TypeScript, Vite
-* **Styling:** Tailwind CSS
-* **Backend/Simulation Scripts:** Python (Local backend engine tracking paths)
+> [!TIP]
+> The scaling factor $k$ automatically scales as $\frac{1}{\text{radius}}$. This balances the visual tracking display seamlessly across vastly different cosmic scales—ranging from Low Earth Orbit up to full solar system paths.
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-Ensure Node.js is installed on your system.
+* Ensure **Node.js** is installed on your local machine environment.
 
 ### Installation and Local Setup
 
-1. **Clone the repository:**
+1. **Clone the repository**
    ```bash
    git clone [https://github.com/UtkarshSharma000/ADHD.git](https://github.com/UtkarshSharma000/ADHD.git)
    cd MapG
-Install dependencies:
+Install dependencies
 
 Bash
 npm install
-Run the development server:
+Launch the development workspace
 
 Bash
 npm run dev
-The application will be live locally. If developing on a remote VM, ensure the vite.config.ts file is configured to expose the custom host network.
+Note: If you are running the engine on a remote cloud virtual machine, verify your vite.config.ts configuration is set to expose the custom host network.
 
 Repository Structure
 Plaintext
-├── local_backend/          # Python automation and odyssey core files
-├── public/                 # Static assets (logos, icons)
-├── src/                    # React application source code
-│   ├── components/         # UI Elements (LaunchHUD, layouts)
-│   ├── App.tsx             # Main application entry point
-│   ├── index.css           # Core styles and Tailwind configurations
-│   └── OrbitSimulator.tsx  # Core rendering component for orbits
-├── vite.config.ts          # Vite server and HMR configuration
-└── README.md               # Project documentation
+├── local_backend/          # Python automation and odyssey core engine files
+├── public/                 # Static asset delivery (logos, icons, manifests)
+├── src/                    # React application codebase
+│   ├── components/         # Modular UI architecture (LaunchHUD, panel components)
+│   ├── App.tsx             # Root application controller
+│   ├── index.css           # Global style layout and Tailwind injections
+│   └── OrbitSimulator.tsx  # Canvas rendering pipeline for celestial tracking
+├── vite.config.ts          # Vite bundler and HMR server optimization
+└── README.md               # System architectural documentation
