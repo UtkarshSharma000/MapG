@@ -150,7 +150,7 @@ export function LaunchHUD({
             <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
               <button 
                 onClick={onPlanReturn}
-                className="w-full py-2.5 bg-primary/10 border border-primary/40 hover:bg-primary/20 text-primary hover:text-white rounded font-label-caps tracking-[0.2em] text-[9px] uppercase transition-all cursor-pointer glow-orange"
+                className="w-full py-2.5 bg-primary/10 border border-primary/40 hover:bg-primary/20 text-primary hover:text-white rounded font-label-caps tracking-[0.2em] text-[9px] uppercase transition-all cursor-pointer glow-primary"
               >
                 Plan Earth Return
               </button>
