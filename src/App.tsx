@@ -504,7 +504,7 @@ export default function App() {
           <span className="font-label-caps text-[9px] text-white/40 tracking-[0.2em]">
             PRIMARY TARGET
           </span>
-          <span className="px-2 py-0.5 border border-primary/40 text-primary text-[8px] rounded glow-orange tracking-[0.2em]">
+          <span className="px-2 py-0.5 border border-primary/40 text-primary text-[8px] rounded glow-primary tracking-[0.2em]">
             LOCKED
           </span>
         </div>
@@ -620,9 +620,9 @@ export default function App() {
       >
         {/* TopNavBar */}
         <header className="fixed top-0 w-full z-50 flex justify-between items-center px-8 md:px-[32px] h-20 bg-background/80 backdrop-blur-xl border-b border-outline-variant/30">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
-            <h1 className="font-display-lg text-headline-md font-bold tracking-tighter text-primary">ODYSSEY 2026</h1>
+          <div className="flex items-center gap-3">
+            <img src="/logo.svg" alt="Project Greninja" className="w-8 h-8" />
+            <h1 className="font-display-lg text-headline-md font-bold tracking-tighter text-primary">PROJECT GRENINJA</h1>
           </div>
           <nav className="hidden md:flex gap-8">
             <a className="font-label-caps text-label-caps text-primary font-bold border-b-2 border-primary pb-1 hover:text-tertiary transition-colors duration-300" href="#">Mission</a>
@@ -659,7 +659,7 @@ export default function App() {
               <div className="flex flex-wrap gap-4">
                 <button 
                   onClick={() => setIsSimulatorRunning(true)}
-                  className="px-10 py-4 bg-primary-container text-on-primary-container font-label-caps text-label-caps tracking-widest glow-orange hover:scale-105 active:scale-95 transition-all cursor-pointer rounded flex items-center gap-2"
+                  className="px-10 py-4 bg-primary-container text-on-primary-container font-label-caps text-label-caps tracking-widest glow-primary hover:scale-105 active:scale-95 transition-all cursor-pointer rounded flex items-center gap-2"
                 >
                   <Play size={16} /> LAUNCH TERMINAL
                 </button>
@@ -789,7 +789,7 @@ export default function App() {
               <div className="flex flex-col md:flex-row justify-center gap-4 relative z-10">
                 <button 
                   onClick={() => setIsSimulatorRunning(true)}
-                  className="px-12 py-4 bg-primary text-on-primary font-label-caps tracking-widest glow-orange hover:scale-105 active:scale-95 transition-all rounded font-bold cursor-pointer"
+                  className="px-12 py-4 bg-primary text-on-primary font-label-caps tracking-widest glow-primary hover:scale-105 active:scale-95 transition-all rounded font-bold cursor-pointer"
                 >
                   INITIALIZE CONNECTION
                 </button>
@@ -945,12 +945,15 @@ export default function App() {
 
         {/* TopAppBar */}
         <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
-          <div className="flex items-center gap-10 pointer-events-auto">
-            <h1 className="font-display-lg text-2xl tracking-tighter text-white">ODYSSEY <span className="text-secondary font-bold">2026</span></h1>
-            <nav className="hidden md:flex gap-10">
-              <a className="font-label-caps text-[10px] tracking-[0.15em] text-secondary border-b border-secondary/50 pb-1 cursor-pointer">TRAJECTORY</a>
-              <a onClick={() => setIsArchiveOpen(true)} className="font-label-caps text-[10px] tracking-[0.15em] text-white/60 hover:text-secondary transition-colors cursor-pointer">MISSION ARCHIVE</a>
-            </nav>
+          <div className="flex items-center gap-6 pointer-events-auto">
+            <img src="/logo.svg" alt="Project Greninja" className="w-8 h-8" />
+            <div className="flex items-center gap-10">
+              <h1 className="font-display-lg text-2xl tracking-tighter text-white">PROJECT <span className="text-secondary font-bold">GRENINJA</span></h1>
+              <nav className="hidden md:flex gap-10">
+                <a className="font-label-caps text-[10px] tracking-[0.15em] text-secondary border-b border-secondary/50 pb-1 cursor-pointer">TRAJECTORY</a>
+                <a onClick={() => setIsArchiveOpen(true)} className="font-label-caps text-[10px] tracking-[0.15em] text-white/60 hover:text-secondary transition-colors cursor-pointer">MISSION ARCHIVE</a>
+              </nav>
+            </div>
           </div>
           
           <div className="flex items-center gap-6 pointer-events-auto">
@@ -981,7 +984,7 @@ export default function App() {
               <div className="absolute top-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-2.5 rounded-full border border-white/15 bg-background/90 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.6)] pointer-events-auto transition-all">
                 <button 
                   onClick={() => setSelectedTarget(null)}
-                  className={`px-3 py-1 text-[10px] font-label-caps rounded-full border transition-all ${!selectedTarget ? 'border-primary bg-primary/20 text-primary glow-orange font-bold scale-105' : 'border-white/10 text-white/60 hover:text-white bg-white/5'}`}
+                  className={`px-3 py-1 text-[10px] font-label-caps rounded-full border transition-all ${!selectedTarget ? 'border-primary bg-primary/20 text-primary glow-primary font-bold scale-105' : 'border-white/10 text-white/60 hover:text-white bg-white/5'}`}
                   title="Center camera on Sun"
                 >
                   SOL (SUN)
