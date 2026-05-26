@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="900" height="913" alt="transparent-image" src="https://github.com/user-attachments/assets/ff58f8cc-726a-4193-8fa5-83a2f92a0614" />
+  <img src="public/logo.png" alt="Project Greninja Logo" width="200"/>
 </p>
 
 # Project Greninja (MapG)
@@ -45,6 +45,28 @@ Ensure Node.js is installed on your system.
 ### Installation and Local Setup
 
 1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/YOUR_MAIN_USERNAME/ADHD.git](https://github.com/YOUR_MAIN_USERNAME/ADHD.git)
+   
+   git clone [https://github.com/UtkarshSharma000/ADHD.git](https://github.com/UtkarshSharma000/ADHD.git)
    cd MapG
+
+2. **Install dependencies:**
+3. 
+npm install
+
+4. **Run the development server:**
+
+npm run dev
+
+The application will be live locally. If developing on a remote VM, ensure the `vite.config.ts` file is configured to expose the custom host network.
+
+## Repository Structure
+
+├── local_backend/          # Python automation and odyssey core files
+├── public/                 # Static assets (logos, icons)
+├── src/                    # React application source code
+│   ├── components/         # UI Elements (LaunchHUD, layouts)
+│   ├── App.tsx             # Main application entry point
+│   ├── index.css           # Core styles and Tailwind configurations
+│   └── OrbitSimulator.tsx  # Core rendering component for orbits
+├── vite.config.ts          # Vite server and HMR configuration
+└── README.md               # Project documentation
