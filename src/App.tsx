@@ -11,6 +11,10 @@ import {
   Settings2,
   ArrowRight,
   LogOut,
+  Heart,
+  Github,
+  Download,
+  Terminal,
 } from "lucide-react";
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
 import TrajectoryOptimizer, { OptimizeResult, scanPorkchop } from "./TrajectoryOptimizer";
@@ -709,73 +713,79 @@ export default function App() {
             </div>
           </section>
 
-          {/* Roadmap Section */}
-          <section className="px-8 md:px-[32px] py-20">
-            <div className="flex justify-between items-end mb-12">
-              <div>
-                <span className="font-label-caps text-[10px] text-primary tracking-widest">MISSION PARAMETERS</span>
-                <h3 className="font-display-lg text-2xl md:text-3xl font-bold mt-2 tracking-wide">OPERATIONAL ROADMAP</h3>
+          {/* Open Source Section */}
+          <section className="px-8 md:px-[32px] py-20 border-t border-white/5 relative bg-gradient-to-b from-[#020202] via-[#040812] to-[#020202]">
+            {/* Subtle glow behind the heart */}
+            <div className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-primary/5 rounded-full blur-[80px] pointer-events-none"></div>
+
+            <div className="max-w-4xl mx-auto text-center relative z-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 mb-6">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_var(--color-primary)]"></span>
+                <span className="font-mono text-[9px] text-primary tracking-widest uppercase">GRENINJA CORE PROJECT</span>
               </div>
-              <div className="hidden md:block font-data-lg text-tertiary font-bold tracking-wider text-sm">Q3-Q4 DEPLOYMENT</div>
-            </div>
-            
-            <motion.div 
-              className="flex gap-8 cursor-grab active:cursor-grabbing pb-10"
-              drag="x"
-              dragConstraints={{ left: -1200, right: 0 }}
-              initial={{ x: 0 }}
-            >
-              {[
-                {
-                  id: "01",
-                  title: "Phobos Base Construction",
-                  desc: "Establishing the first permanent logistics hub on the Martian moon Phobos to support long-term orbital research.",
-                  date: "JAN 2026",
-                  img: "https://lh3.googleusercontent.com/aida-public/AB6AXuBACplwpq98Rkmgv4zvxb0eAEhIsizmNlJTC2jsQBeMtvZnFYMnCJHR6TAhNJ9sfdEr6k_qaF1jw4HuGWKSNZ1nLjHMBWSml5Pfcat6Fvkkaqj3c3JB-Lku9XZXTymKJOzxULcF7cBYsQhH_FC0LOHV6VFeXFn-5Omy3eEJ1a4hAJ5Txfm3dfZA-dKXoSqeNxCa2_yE5V8DhGfuqoeckWsY-xTNWEWCVaobE57lK5IlDNUKTEQ53H_Qy75i26W4xFsKIJcbnR1z87NM"
-                },
-                {
-                  id: "02",
-                  title: "Deep Space Comm-Relay",
-                  desc: "Deploying a constellation of high-throughput relays to ensure 24/7 link connectivity across the inner solar system.",
-                  date: "MAY 2026",
-                  img: "https://lh3.googleusercontent.com/aida-public/AB6AXuD85HKMyPKmqVyjZ1ilQ9QXGQMuS_ihKntU1-cksmQgiMG7tlG2su3VaQRse6aSrS9PWS31_QDT8avN5E0wJKFXZBnguJQDCR4YAcYcsEouhLHetCjKMIrpnDUdr63QTSrDuZsJ2FHKipCigBpLuHIXXvyqXzJKe8ZxwEkmGg9b6s5Y1GyPW8cvEo7PPvnhYIZpyKJB3h28puIrnHiWeYMkQdPTuHVRlXSsqwf2cdidzDAoagCjT5zucA-7JkJmaFpbW5kbRmgGLzwn"
-                },
-                {
-                  id: "03",
-                  title: "Titan Atmosphere Entry",
-                  desc: "Automated descent and atmospheric analysis of Saturn's largest moon to survey for future methane harvesting sites.",
-                  date: "SEP 2026",
-                  img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAzD6b_ke7zhqRDJVdHBQX-iXLpaxJIz4vQ4uyrJNv7AogmDUAr5AoWfhVZO26D6YVLlscwk4aOPdPDuhQN4pIdXaTazSOrk5Qfa12o8J32s120W2jYx9-1cudP-CfJai50OuBGCDninDwD-TvW8FPilot" // Fixed trailing info
-                },
-                {
-                  id: "04",
-                  title: "Europa Ice Penetrator",
-                  desc: "Deploying a subsurface probe to analyze the chemical composition of Europa's subsurface ocean.",
-                  date: "FEB 2027",
-                  img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAzD6b_ke7zhqRDJVdHBQX-iXLpaxJIz4vQ4uyrJNv7AogmDUAr5AoWfhVZO26D6YVLlscwk4aOPdPDuhQN4pIdXaTazSOrk5Qfa12o8J32s120W2jYx9-1cudP-CfJai50OuBGCDninDwD-TvW8FPilot" // using similar placeholder or missing
-                }
-              ].map((card) => (
-                <div key={card.id} className="min-w-[320px] w-[320px] aspect-[1/1.58] glossy-panel rounded-3xl hover:scale-[1.02] transition-transform duration-300 group overflow-hidden border border-white/5 flex flex-col flex-shrink-0">
-                  <div className="flex-1 overflow-hidden relative border-b border-white/5">
-                    <img className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-80 transition-all duration-700" alt={card.title} src={card.img} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#1d100c] to-transparent bg-opacity-80"></div>
-                    <div className="absolute top-6 left-6 px-3 py-1.5 glass-panel border border-primary/20 rounded">
-                      <span className="font-label-caps text-[10px] text-primary tracking-widest">PHASE {card.id}</span>
+              
+              <h3 className="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6">
+                GRENINJA is <br/>
+                <span className="text-primary glow-primary">Completely Open Source!</span>
+              </h3>
+
+              <div className="flex justify-center items-center gap-2 text-white/50 mb-10 group cursor-default">
+                <Heart className="text-primary fill-primary animate-bounce group-hover:scale-125 transition-transform" size={24} />
+                <span className="font-mono text-sm tracking-wide">Building the future of orbital optimization together</span>
+              </div>
+
+              {/* Bento Grid CTAs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+                {/* Download Local Backend Zip Card */}
+                <div className="glass-panel p-8 text-left border border-white/10 hover:border-primary/40 transition-all duration-300 group flex flex-col justify-between min-h-[220px]">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="p-3 bg-primary/10 rounded-xl text-primary border border-primary/20">
+                        <Terminal size={22} />
+                      </div>
+                      <span className="font-mono text-[10px] text-white/40">C++ ENGINE</span>
                     </div>
+                    <h4 className="font-display-lg text-lg font-bold text-white mb-2">Local Compute Server</h4>
+                    <p className="text-white/60 text-xs font-light leading-relaxed mb-6">
+                      An optimize-compiled trajectory core with custom guidance computers and porkchop scanners. Perfect for low-latency batch analysis.
+                    </p>
                   </div>
-                  <div className="p-8 bg-[#1d100c]/40 relative z-10 flex flex-col h-[200px]">
-                    <h4 className="font-headline-md text-xl md:text-2xl font-semibold mb-3">{card.title}</h4>
-                    <p className="text-on-surface-variant text-sm mb-auto font-light leading-relaxed line-clamp-3">{card.desc}</p>
-                    <div className="flex items-center justify-between mt-6">
-                      <span className="font-label-caps text-[10px] text-tertiary flex items-center gap-1 tracking-widest">
-                         {card.date}
-                      </span>
-                      <ArrowRight className="text-primary group-hover:translate-x-2 transition-transform" size={16} />
-                    </div>
-                  </div>
+                  <a 
+                    href="/greninja_engine.zip" 
+                    download="greninja_engine.zip"
+                    className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/80 text-black font-mono font-bold text-xs uppercase px-6 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all hover:shadow-[0_0_15px_rgba(170,221,255,0.4)] pointer-events-auto"
+                  >
+                    <Download size={14} className="stroke-[3]" />
+                    <span>Download for Windows</span>
+                  </a>
                 </div>
-              ))}
-            </motion.div>
+
+                {/* GitHub Repository Card */}
+                <div className="glass-panel p-8 text-left border border-white/10 hover:border-emerald-500/40 transition-all duration-300 group flex flex-col justify-between min-h-[220px]">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-500/20">
+                        <Github size={22} />
+                      </div>
+                      <span className="font-mono text-[10px] text-white/40">GUI REPO</span>
+                    </div>
+                    <h4 className="font-display-lg text-lg font-bold text-white mb-2">ILikeToCode-dev / MapG</h4>
+                    <p className="text-white/60 text-xs font-light leading-relaxed mb-6">
+                      Fully interactive 3D solar system rendering engine, Three.js simulation views, and trajectory visualization dashboards on GitHub.
+                    </p>
+                  </div>
+                  <a 
+                    href="https://github.com/ILikeToCode-dev/MapG" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-mono font-bold text-xs uppercase px-6 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] pointer-events-auto"
+                  >
+                    <Github size={14} className="stroke-[3]" />
+                    <span>Access GitHub Repo</span>
+                  </a>
+                </div>
+              </div>
+            </div>
           </section>
 
           {/* CTA Section */}
