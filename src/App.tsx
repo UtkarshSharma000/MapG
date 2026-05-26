@@ -621,7 +621,7 @@ export default function App() {
         {/* TopNavBar */}
         <header className="fixed top-0 w-full z-50 flex justify-between items-center px-8 md:px-[32px] h-20 bg-background/80 backdrop-blur-xl border-b border-outline-variant/30">
           <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="Project Greninja" className="w-8 h-8" />
+            <img src="/logo.svg" alt="Project Greninja" className="w-12 h-12 relative -top-0.5" />
             <h1 className="font-display-lg text-headline-md font-bold tracking-tighter text-primary">PROJECT GRENINJA</h1>
           </div>
           <nav className="hidden md:flex gap-8">
@@ -946,7 +946,7 @@ export default function App() {
         {/* TopAppBar */}
         <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
           <div className="flex items-center gap-6 pointer-events-auto">
-            <img src="/logo.svg" alt="Project Greninja" className="w-8 h-8" />
+            <img src="/logo.svg" alt="Project Greninja" className="w-12 h-12 relative -top-0.5" />
             <div className="flex items-center gap-10">
               <h1 className="font-display-lg text-2xl tracking-tighter text-white">PROJECT <span className="text-secondary font-bold">GRENINJA</span></h1>
               <nav className="hidden md:flex gap-10">
