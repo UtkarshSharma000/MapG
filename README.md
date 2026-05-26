@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/logo.png" alt="Project Greninja Logo" width="200"/>
+  <img width="900" height="913" alt="transparent-image" src="https://github.com/user-attachments/assets/ff58f8cc-726a-4193-8fa5-83a2f92a0614" />
 </p>
 
 # Project Greninja (MapG)
