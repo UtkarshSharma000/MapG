@@ -1,20 +1,50 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+<p align="center">
+  <img src="public/logo.png" alt="Project Greninja Logo" width="200"/>
+</p>
 
-# Run and deploy your AI Studio app
+# Project Greninja (MapG)
 
-This contains everything you need to run your app locally.
+An interactive orbital mechanics and trajectory simulator built with React, TypeScript, and Vite. The engine simulates celestial paths, planetary rotation, and porkchop plotting utilizing custom physics engines.
 
-View your app in AI Studio: https://ai.studio/apps/7913fd3d-d821-4fd8-b2a5-413d55a60e6b
+---
 
-## Run Locally
+## Features
 
-**Prerequisites:**  Node.js
+* **Interactive Orbit Simulator:** Visualizes planetary trajectories and satellite orbits in real-time.
+* **Automated Porkchop Plotting:** Integrated porkchop plots to calculate optimal interplanetary launch windows and delta-v requirements.
+* **Custom Physics Engine (greninja_engine):** Built from scratch to handle rotational velocity tracking and vector positioning.
+* **Launch HUD:** Real-time dashboard overlay to monitor telemetry, velocities, and orbital states during simulation.
 
+---
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## The Physics Engine (greninja_engine)
+
+The core engine maps out planetary behavior using custom direct-proportionality scaling equations for fixed circular tracks. 
+
+Instead of traditional textbook derivations, the engine handles rotational tracking speeds ($R_v$) relative to linear velocities ($V_s$) using a strict custom scaling constant $k$, where:
+
+$$R_v = k \cdot V_s$$
+
+Where the proportionality constant $k$ effectively scales as $\frac{1}{\text{radius}}$ to balance visual tracking across massive scales—from Low Earth Orbit up to full solar system paths.
+
+---
+
+## Tech Stack
+
+* **Frontend:** React, TypeScript, Vite
+* **Styling:** Tailwind CSS
+* **Backend/Simulation Scripts:** Python (Local backend engine tracking paths)
+
+---
+
+## Getting Started
+
+### Prerequisites
+Ensure Node.js is installed on your system.
+
+### Installation and Local Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/YOUR_MAIN_USERNAME/ADHD.git](https://github.com/YOUR_MAIN_USERNAME/ADHD.git)
+   cd MapG
