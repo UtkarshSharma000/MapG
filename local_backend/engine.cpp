@@ -43,24 +43,22 @@ struct PropBody {
     Eigen::Vector3d pos;
 };
 
-inline Eigen::Vector3d get_sun_pos(double t) {
-    double omega = 2.0 * M_PI / 31557600.0;
-    double r = 149597870.0;
+inline Eigen::Vector3d get_earth_helio_pos(double t) {
+    double omega = 2.0 * M_PI / (365.25 * 86400.0);
+    double r = AU / 1000.0; // km
     return Eigen::Vector3d(r * cos(omega * t), r * sin(omega * t), 0);
 }
 
-inline Eigen::Vector3d get_moon_pos(double t) {
-    double omega = 2.0 * M_PI / (27.3 * 86400.0);
-    double r = 384400.0;
-    return Eigen::Vector3d(r * cos(omega * t), r * sin(omega * t), r * 0.087 * sin(omega * t));
+inline Eigen::Vector3d get_jupiter_helio_pos(double t) {
+    double omega = 2.0 * M_PI / (11.86 * 365.25 * 86400.0);
+    double r = 5.203 * AU / 1000.0; // km
+    return Eigen::Vector3d(r * cos(omega * t), r * sin(omega * t), 0);
 }
 
-inline Eigen::Vector3d get_jupiter_pos(double t) {
-    double omega = 2.0 * M_PI / (11.86 * 31557600.0);
-    double r = 778500000.0;
-    Eigen::Vector3d pos_sun = get_sun_pos(t);
-    Eigen::Vector3d pos_jup_sun(r * cos(omega * t), r * sin(omega * t), 0);
-    return pos_sun + pos_jup_sun;
+inline Eigen::Vector3d get_moon_geo_pos(double t) {
+    double omega = 2.0 * M_PI / (27.32 * 86400.0);
+    double r = 384400.0; // km
+    return Eigen::Vector3d(r * cos(omega * t), r * sin(omega * t), r * 0.087 * sin(omega * t));
 }
 
 inline State get_derivatives_prop(const State& state, double t, bool nbody_enabled) {
@@ -83,10 +81,11 @@ inline State get_derivatives_prop(const State& state, double t, bool nbody_enabl
 
     // 3. N-Body Perturbations
     if (nbody_enabled) {
+        Eigen::Vector3d earth_helio = get_earth_helio_pos(t);
         std::vector<PropBody> bodies = {
-            {"Sun", MU_SUN_N, get_sun_pos(t)},
-            {"Moon", MU_MOON, get_moon_pos(t)},
-            {"Jupiter", MU_JUPITER, get_jupiter_pos(t)}
+            {"Sun", MU_SUN_N, -earth_helio}, // Sun relative to Earth
+            {"Moon", MU_MOON, get_moon_geo_pos(t)},
+            {"Jupiter", MU_JUPITER, get_jupiter_helio_pos(t) - earth_helio} // Jupiter relative to Earth
         };
 
         for (const auto& body : bodies) {
@@ -101,10 +100,14 @@ inline State get_derivatives_prop(const State& state, double t, bool nbody_enabl
     // 4. Atmospheric Drag (< 200km)
     double altitude = r - PREVIEW_RE;
     if (altitude < 200.0 && altitude > 0) {
-        double rho = RHO0 * exp(-(altitude - H0) / SH);
-        double v_rel = v_vec.norm();
-        Eigen::Vector3d acc_drag = -0.5 * CD * AM * rho * 1000.0 * v_rel * v_vec;
-        acc += acc_drag;
+        // Pure SI units to prevent unit mixing
+        double h_meters = altitude * 1000.0;
+        double rho = RHO0 * exp(-(h_meters) / (SH * 1000.0)); // SH in km to meters
+        double v_rel_ms = v_vec.norm() * 1000.0;
+        Eigen::Vector3d v_vec_ms = v_vec * 1000.0;
+        
+        Eigen::Vector3d acc_drag_ms2 = -0.5 * CD * AM * rho * v_rel_ms * v_vec_ms;
+        acc += acc_drag_ms2 / 1000.0; // Convert m/s^2 back to km/s^2
     }
 
     State dstate;
@@ -203,14 +206,14 @@ void ExecuteCaptureBurn(Spacecraft& probe, const Planet& target_planet) {
 }
 
 // --- ADAPTIVE N-BODY INTEGRATOR ENGINE ---
-void IntegratePhysics(Spacecraft& probe, const std::vector<Planet>& planets, double max_dt) {
+void IntegratePhysics(Spacecraft& probe, std::vector<Planet>& planets, double max_dt) {
     const double alpha = 0.01;
     double t_accumulated = 0.0;
 
     while (t_accumulated < max_dt) {
         double min_dist = INFINITY;
-        const Planet* nearest_planet = nullptr;
-        for (const auto& planet : planets) {
+        Planet* nearest_planet = nullptr;
+        for (auto& planet : planets) {
             double d = (probe.pos - planet.pos).norm();
             if (d < min_dist) {
                 min_dist = d;
@@ -254,6 +257,14 @@ void IntegratePhysics(Spacecraft& probe, const std::vector<Planet>& planets, dou
         probe.pos += (dt_adaptive / 6.0) * (v1 + 2.0 * v2 + 2.0 * v3 + v4);
         probe.vel += (dt_adaptive / 6.0) * (a1 + 2.0 * a2 + 2.0 * a3 + a4);
 
+        // Update planetary positions simply linearly during this timestep
+        for (auto& planet : planets) {
+            double r_sun = planet.pos.norm();
+            Eigen::Vector3d a_planet = -MU_SUN * planet.pos / (r_sun * r_sun * r_sun);
+            planet.pos += planet.vel * dt_adaptive;
+            planet.vel += a_planet * dt_adaptive; 
+        }
+
         if (nearest_planet) {
             ExecuteCaptureBurn(probe, *nearest_planet);
         }
@@ -263,39 +274,71 @@ void IntegratePhysics(Spacecraft& probe, const std::vector<Planet>& planets, dou
 }
 
 // --- MULTI-BODY SYSTEM INITIALIZATION ---
-std::vector<Planet> InitializeSolarSystem() {
+std::vector<Planet> InitializeSolarSystem(double current_time = 0.0) {
     std::vector<Planet> planets;
 
-    planets.push_back({
-        "Earth", 5.9722e24, 6371000.0, 120000.0, G * 5.9722e24,
-        1.00 * AU, 365.25 * 86400.0,
-        Eigen::Vector3d(1.00 * AU, 0.0, 0.0),
-        Eigen::Vector3d(0.0, 29780.0, 0.0)
-    });
-    planets.push_back({
-        "Jupiter", 1.8982e27, 69911000.0, 1000000.0, G * 1.8982e27,
-        5.20 * AU, 11.86 * 365.25 * 86400.0,
-        Eigen::Vector3d(5.20 * AU, 0.0, 0.0),
-        Eigen::Vector3d(0.0, 13070.0, 0.0)
-    });
-    planets.push_back({
-        "Saturn", 5.6834e26, 58232000.0, 1000000.0, G * 5.6834e26,
-        9.58 * AU, 29.45 * 365.25 * 86400.0,
-        Eigen::Vector3d(9.58 * AU, 0.0, 0.0),
-        Eigen::Vector3d(0.0, 9690.0, 0.0)
-    });
-    planets.push_back({
-        "Uranus", 8.6810e25, 25362000.0, 500000.0, G * 8.6810e25,
-        19.22 * AU, 84.01 * 365.25 * 86400.0,
-        Eigen::Vector3d(19.22 * AU, 0.0, 0.0),
-        Eigen::Vector3d(0.0, 6810.0, 0.0)
-    });
-    planets.push_back({
-        "Neptune", 1.0241e26, 24622000.0, 500000.0, G * 1.0241e26,
-        30.05 * AU, 164.79 * 365.25 * 86400.0,
-        Eigen::Vector3d(30.05 * AU, 0.0, 0.0),
-        Eigen::Vector3d(0.0, 5430.0, 0.0)
-    });
+    struct KeplerianElements {
+        std::string name;
+        double a; double e; double i; double Omega; double w; double M0; double period; double radius; double mu;
+    };
+    std::vector<KeplerianElements> table = {
+        {"Earth",   1.000 * AU, 0.0167, 0.0, -11.26 * M_PI/180.0, 114.2 * M_PI/180.0, 358.0 * M_PI/180.0, 365.25 * 86400, 6371000.0, 3.986e14},
+        {"Jupiter", 5.204 * AU, 0.0489, 1.3 * M_PI/180.0, 100.4 * M_PI/180.0, 273.8 * M_PI/180.0, 20.0 * M_PI/180.0, 4332.59 * 86400, 69911000.0, 1.267e17},
+        {"Saturn",  9.582 * AU, 0.0565, 2.48 * M_PI/180.0, 113.6 * M_PI/180.0, 339.3 * M_PI/180.0, 317.0 * M_PI/180.0, 10759.0 * 86400, 58232000.0, 3.793e16},
+        {"Uranus",  19.201 * AU, 0.0457, 0.77 * M_PI/180.0, 74.0 * M_PI/180.0, 96.6 * M_PI/180.0, 142.0 * M_PI/180.0, 30688.0 * 86400, 25362000.0, 5.794e15},
+        {"Neptune", 30.047 * AU, 0.0113, 1.77 * M_PI/180.0, 131.7 * M_PI/180.0, 273.1 * M_PI/180.0, 256.0 * M_PI/180.0, 60182.0 * 86400, 24622000.0, 6.837e15},
+    };
+
+    auto propagate_orbit = [](const KeplerianElements& el, double t) -> std::pair<Eigen::Vector3d, Eigen::Vector3d> {
+        double n = (2.0 * M_PI) / el.period;
+        double M = std::fmod(el.M0 + n * t, 2.0 * M_PI);
+        double E = M;
+        for (int i=0; i<100; ++i) {
+            double num = E - el.e * std::sin(E) - M;
+            double den = 1.0 - el.e * std::cos(E);
+            if (std::abs(num/den) < 1e-6) break;
+            E -= num/den;
+        }
+        
+        double nu = 2.0 * std::atan2(std::sqrt(1.0 + el.e) * std::sin(E / 2.0), std::sqrt(1.0 - el.e) * std::cos(E / 2.0));
+        double r = el.a * (1.0 - el.e * std::cos(E));
+        
+        double x_orbit = r * std::cos(nu);
+        double y_orbit = r * std::sin(nu);
+        
+        double cw = std::cos(el.w), sw = std::sin(el.w);
+        double c_Omega = std::cos(el.Omega), s_Omega = std::sin(el.Omega);
+        double ci = std::cos(el.i), si = std::sin(el.i);
+        
+        double x = x_orbit * (cw * c_Omega - sw * ci * s_Omega) - y_orbit * (sw * c_Omega + cw * ci * s_Omega);
+        double y = x_orbit * (cw * s_Omega + sw * ci * c_Omega) - y_orbit * (sw * s_Omega - cw * ci * c_Omega);
+        double z = x_orbit * (sw * si) + y_orbit * (cw * si);
+
+        double dt = 1.0;
+        double M_dt = std::fmod(el.M0 + n * (t + dt), 2.0 * M_PI);
+        double E_dt = M_dt;
+        for (int i=0; i<100; ++i) {
+            double num = E_dt - el.e * std::sin(E_dt) - M_dt;
+            if (std::abs(num/(1.0 - el.e * std::cos(E_dt))) < 1e-6) break;
+            E_dt -= num/(1.0 - el.e * std::cos(E_dt));
+        }
+        double nu_dt = 2.0 * std::atan2(std::sqrt(1.0 + el.e) * std::sin(E_dt / 2.0), std::sqrt(1.0 - el.e) * std::cos(E_dt / 2.0));
+        double r_dt = el.a * (1.0 - el.e * std::cos(E_dt));
+        double xo_dt = r_dt * std::cos(nu_dt), yo_dt = r_dt * std::sin(nu_dt);
+
+        double x_dt = xo_dt * (cw * c_Omega - sw * ci * s_Omega) - yo_dt * (sw * c_Omega + cw * ci * s_Omega);
+        double y_dt = xo_dt * (cw * s_Omega + sw * ci * c_Omega) - yo_dt * (sw * s_Omega - cw * ci * c_Omega);
+        double z_dt = xo_dt * (sw * si) + yo_dt * (cw * si);
+
+        return {Eigen::Vector3d(x, y, z), Eigen::Vector3d(x_dt - x, y_dt - y, z_dt - z)};
+    };
+
+    for (const auto& el : table) {
+        auto [pos, vel] = propagate_orbit(el, current_time);
+        planets.push_back({
+            el.name, el.mu / G, el.radius, 500000.0, el.mu, el.a, el.period, pos, vel
+        });
+    }
 
     return planets;
 }
@@ -455,26 +498,91 @@ int main(int argc, char* argv[]) {
     }
 
     // -------------------------------------------------------
-    // CALCULATE MODE: Interplanetary trajectory via Hohmann + RK4
+    // CALCULATE MODE: Interplanetary trajectory via Lambert + N-Body
     // Reads JSON from stdin, writes JSON result to stdout
     // -------------------------------------------------------
     if (argc >= 2 && std::string(argv[1]) == "calculate") {
-        struct PD { std::string name; double sma, period, radius, mu, v_circ; };
-        static const std::vector<PD> table = {
-            {"Mercury", 0.387*AU, 87.97*86400,    2439700,  2.203e13, 47360},
-            {"Venus",   0.723*AU, 224.70*86400,   6051800,  3.249e14, 35020},
-            {"Mars",    1.524*AU, 686.97*86400,   3389500,  4.283e13, 24130},
-            {"Jupiter", 5.203*AU, 11.86*365.25*86400, 69911000, 1.267e17, 13070},
-            {"Saturn",  9.537*AU, 29.46*365.25*86400, 58232000, 3.794e16,  9690},
-            {"Uranus",  19.19*AU, 84.01*365.25*86400, 25362000, 5.794e15,  6810},
-            {"Neptune", 30.07*AU, 164.8*365.25*86400, 24622000, 6.837e15,  5430},
+        struct KeplerianElements {
+            std::string name;
+            double a; // semi-major axis (meters)
+            double e; // eccentricity
+            double i; // inclination (rad)
+            double Omega; // longitude of ascending node (rad)
+            double w; // argument of periapsis (rad)
+            double M0; // mean anomaly at epoch (rad)
+            double period; // orbital period (seconds)
+            double radius; // planet radius (meters)
+            double mu; // gravitational parameter (m^3/s^2)
+        };
+
+        static const std::vector<KeplerianElements> table = {
+            {"Mercury", 0.387 * AU, 0.2056, 7.0 * M_PI/180.0, 48.33 * M_PI/180.0, 29.124 * M_PI/180.0, 174.0 * M_PI/180.0, 88.0 * 86400, 2439000.0, 2.203e13},
+            {"Venus",   0.723 * AU, 0.0067, 3.39 * M_PI/180.0, 76.68 * M_PI/180.0, 54.88 * M_PI/180.0, 50.0 * M_PI/180.0, 224.7 * 86400, 6051000.0, 3.249e14},
+            {"Earth",   1.000 * AU, 0.0167, 0.00005 * M_PI/180.0, -11.26 * M_PI/180.0, 114.2 * M_PI/180.0, 358.0 * M_PI/180.0, 365.25 * 86400, 6371000.0, 3.986e14},
+            {"Mars",    1.524 * AU, 0.0934, 1.85 * M_PI/180.0, 49.57 * M_PI/180.0, 286.5 * M_PI/180.0, 19.0 * M_PI/180.0, 686.98 * 86400, 3389000.0, 4.283e13},
+            {"Jupiter", 5.204 * AU, 0.0489, 1.3 * M_PI/180.0, 100.4 * M_PI/180.0, 273.8 * M_PI/180.0, 20.0 * M_PI/180.0, 4332.59 * 86400, 69911000.0, 1.267e17},
+            {"Saturn",  9.582 * AU, 0.0565, 2.48 * M_PI/180.0, 113.6 * M_PI/180.0, 339.3 * M_PI/180.0, 317.0 * M_PI/180.0, 10759.0 * 86400, 58232000.0, 3.793e16},
+            {"Uranus",  19.201 * AU, 0.0457, 0.77 * M_PI/180.0, 74.0 * M_PI/180.0, 96.6 * M_PI/180.0, 142.0 * M_PI/180.0, 30688.0 * 86400, 25362000.0, 5.794e15},
+            {"Neptune", 30.047 * AU, 0.0113, 1.77 * M_PI/180.0, 131.7 * M_PI/180.0, 273.1 * M_PI/180.0, 256.0 * M_PI/180.0, 60182.0 * 86400, 24622000.0, 6.837e15},
+        };
+
+        auto solve_kepler = [](double M, double e, double tol=1e-6) -> double {
+            double E = M;
+            double delta = 1.0;
+            int max_iter = 100;
+            while (std::abs(delta) > tol && max_iter > 0) {
+                delta = (E - e * std::sin(E) - M) / (1.0 - e * std::cos(E));
+                E -= delta;
+                max_iter--;
+            }
+            return E;
+        };
+
+        auto propagate_orbit = [&](const KeplerianElements& el, double time_since_epoch) -> Eigen::Vector3d {
+            double n = (2.0 * M_PI) / el.period;
+            double M = std::fmod(el.M0 + n * time_since_epoch, 2.0 * M_PI);
+            double E = solve_kepler(M, el.e);
+            
+            double nu = 2.0 * std::atan2(std::sqrt(1.0 + el.e) * std::sin(E / 2.0),
+                                         std::sqrt(1.0 - el.e) * std::cos(E / 2.0));
+            double r = el.a * (1.0 - el.e * std::cos(E));
+            
+            double x_orbit = r * std::cos(nu);
+            double y_orbit = r * std::sin(nu);
+            
+            double cw = std::cos(el.w);
+            double sw = std::sin(el.w);
+            double c_Omega = std::cos(el.Omega);
+            double s_Omega = std::sin(el.Omega);
+            double ci = std::cos(el.i);
+            double si = std::sin(el.i);
+            
+            double x = x_orbit * (cw * c_Omega - sw * ci * s_Omega) - y_orbit * (sw * c_Omega + cw * ci * s_Omega);
+            double y = x_orbit * (cw * s_Omega + sw * ci * c_Omega) - y_orbit * (sw * s_Omega - cw * ci * c_Omega);
+            double z = x_orbit * (sw * si) + y_orbit * (cw * si);
+            
+            return Eigen::Vector3d(x, y, z);
+        };
+
+        auto get_orbital_velocity = [&](const KeplerianElements& el, double time_since_epoch) -> Eigen::Vector3d {
+            double dt = 1.0;
+            Eigen::Vector3d p1 = propagate_orbit(el, time_since_epoch - dt/2.0);
+            Eigen::Vector3d p2 = propagate_orbit(el, time_since_epoch + dt/2.0);
+            return (p2 - p1) / dt;
         };
 
         std::string input;
         while (std::getline(std::cin, input)) {
             if (input.empty()) continue;
 
-            // Parse targetPlanet
+            std::string launchPlanet = "Earth";
+            auto lp = input.find("\"launchPlanet\"");
+            if (lp != std::string::npos) {
+                auto s = input.find("\"", lp + 14); s++;
+                auto e = input.find("\"", s);
+                if (e != std::string::npos) launchPlanet = input.substr(s, e - s);
+            }
+
             std::string targetPlanet = "Mars";
             auto tp = input.find("\"targetPlanet\"");
             if (tp != std::string::npos) {
@@ -483,7 +591,6 @@ int main(int argc, char* argv[]) {
                 if (e != std::string::npos) targetPlanet = input.substr(s, e - s);
             }
 
-            // Parse globalTime
             double globalTime = 0.0;
             auto gt = input.find("\"globalTime\"");
             if (gt != std::string::npos) {
@@ -493,80 +600,113 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            const PD* tgt = &table[2]; // default Mars
+            const KeplerianElements* earth = &table[2]; // Default Earth
+            for (auto& p : table) if (p.name == launchPlanet) { earth = &p; break; }
+
+            const KeplerianElements* tgt = &table[3]; // Default Mars
             for (auto& p : table) if (p.name == targetPlanet) { tgt = &p; break; }
 
-            double earth_sma   = AU;
-            double earth_angle = (2.0 * M_PI * globalTime) / (365.25 * 86400.0);
-            double cos_earth   = cos(earth_angle);
-            double sin_earth   = sin(earth_angle);
-            Eigen::Vector3d earth_pos(earth_sma * cos_earth, earth_sma * sin_earth, 0.0);
-            Eigen::Vector3d earth_vel(-29780.0 * sin_earth, 29780.0 * cos_earth, 0.0);
+            Eigen::Vector3d earth_pos = propagate_orbit(*earth, globalTime);
+            Eigen::Vector3d earth_vel = get_orbital_velocity(*earth, globalTime);
 
-            double tgt_sma   = tgt->sma;
-            double tgt_angle = (2.0 * M_PI * globalTime) / tgt->period;
-
-            // Hohmann transfer
-            double a_transfer = (earth_sma + tgt_sma) / 2.0;
-            double tof        = M_PI * sqrt((a_transfer * a_transfer * a_transfer) / MU_SUN);
-
-            double v_earth   = sqrt(MU_SUN / earth_sma);
-            double v_depart  = sqrt(MU_SUN * (2.0 / earth_sma - 1.0 / a_transfer));
-            double v_arrive  = sqrt(MU_SUN * (2.0 / tgt_sma   - 1.0 / a_transfer));
-            double v_tgt_circ = sqrt(MU_SUN / tgt_sma);
-            double dv_depart  = std::abs(v_depart - v_earth);
-            double dv_arrive  = std::abs(v_tgt_circ - v_arrive);
-            double total_dv   = dv_depart + dv_arrive;
-
-            // Departure direction (prograde for outer, retrograde for inner)
-            Eigen::Vector3d depart_dir = earth_vel.normalized();
-            if (tgt_sma < earth_sma) depart_dir = -depart_dir;
-
-            Eigen::Vector3d sc_pos = earth_pos;
-            Eigen::Vector3d sc_vel = earth_vel + depart_dir * dv_depart;
-
-            // RK4 integrate, sample 500 points
-            static const int N = 500;
-            double dt_step   = tof / N;
-            std::array<std::array<double, 3>, 500> pts;
-
-            for (int i = 0; i < N; i++) {
-                pts[i] = {sc_pos.x()/1000.0, sc_pos.y()/1000.0, sc_pos.z()/1000.0};
-                auto [v1,a1] = deriv_heliocentric(sc_pos, sc_vel);
-                auto [v2,a2] = deriv_heliocentric(sc_pos + 0.5*dt_step*v1, sc_vel + 0.5*dt_step*a1);
-                auto [v3,a3] = deriv_heliocentric(sc_pos + 0.5*dt_step*v2, sc_vel + 0.5*dt_step*a2);
-                auto [v4,a4] = deriv_heliocentric(sc_pos + dt_step*v3,     sc_vel + dt_step*a3);
-                sc_pos += (dt_step/6.0)*(v1 + 2*v2 + 2*v3 + v4);
-                sc_vel += (dt_step/6.0)*(a1 + 2*a2 + 2*a3 + a4);
+            // Coarse parameter approximation for Lambert
+            double a_transfer = (earth->a + tgt->a) / 2.0;
+            double hohmann_tof = M_PI * std::sqrt((a_transfer * a_transfer * a_transfer) / MU_SUN);
+            
+            // Refined Lambert target search
+            GuidanceComputer gc(MU_SUN, 0, 0, 0, 0, 0, 0); // Temporary GC just for Lambert
+            
+            double best_tof = hohmann_tof;
+            double min_dv = std::numeric_limits<double>::infinity();
+            Eigen::Vector3d best_v = Eigen::Vector3d::Zero();
+            
+            double d_min = std::max(10.0, (hohmann_tof / 86400.0) * 0.2);
+            double d_max = std::max(100.0, (hohmann_tof / 86400.0) * 2.5);
+            
+            for (double d = d_min; d <= d_max; d += 5.0) {
+                double tof_seconds = d * 86400.0;
+                Eigen::Vector3d tgt_pos = propagate_orbit(*tgt, globalTime + tof_seconds);
+                try {
+                    Eigen::Vector3d v_lambert = gc.solve_lambert(earth_pos, tgt_pos, tof_seconds, MU_SUN);
+                    double dv = (v_lambert - earth_vel).norm();
+                    if (dv < min_dv) {
+                        min_dv = dv;
+                        best_tof = tof_seconds;
+                        best_v = v_lambert;
+                    }
+                } catch (...) {}
             }
 
-            double max_dv    = (tgt_sma > 4.0 * AU) ? 15000.0 : 3500.0;
-            bool   captured  = (total_dv <= max_dv);
-            double remaining = max_dv - total_dv;
-            double capture_alt = (tgt->radius / 1000.0) * 0.3;
+            double dv_depart = min_dv;
+            Eigen::Vector3d v_arrive = gc.solve_lambert(propagate_orbit(*tgt, globalTime + best_tof), earth_pos, -best_tof, MU_SUN); // Velocity at arrival
+            // Arrival dv approximation (difference from target velocity)
+            Eigen::Vector3d tgt_vel = get_orbital_velocity(*tgt, globalTime + best_tof);
+            double dv_arrive = (v_arrive - tgt_vel).norm();
+            
+            double total_dv = dv_depart + dv_arrive;
 
-            // Target planet position at arrival for orbit period calc
-            double tgt_angle_arrival = (2.0 * M_PI * (globalTime + tof)) / tgt->period;
-            double orbit_period_days = 195.6;
+            Spacecraft probe;
+            probe.pos = earth_pos;
+            probe.vel = best_v;
+            probe.current_delta_v_pool = (tgt->a > 4.0 * AU) ? 15000.0 : 3500.0;
+            
+            Planet target_body = {
+                tgt->name, 
+                tgt->mu / G, 
+                tgt->radius, 
+                200000.0, 
+                tgt->mu, 
+                tgt->a, 
+                tgt->period,
+                propagate_orbit(*tgt, globalTime + best_tof),
+                tgt_vel
+            };
+            std::vector<Planet> sys_planets = { target_body };
+
+            IntegratePhysics(probe, sys_planets, best_tof);
+
+            static const int N = 500;
+            std::vector<Eigen::Vector3d> ghost_path = gc.generate_ghost_path(earth_pos, best_v, best_tof, MU_SUN, N);
+            
+            bool captured = probe.is_captured;
+            double remaining = probe.current_delta_v_pool;
+            double capture_alt = 0.0;
+            double orbit_period_days = 0.0;
+
+            if (captured) {
+                // Post-capture analysis
+                Eigen::Vector3d r_rel = probe.pos - target_body.pos;
+                Eigen::Vector3d v_rel = probe.vel - target_body.vel;
+                double h = r_rel.cross(v_rel).norm();
+                double energy = (v_rel.norm() * v_rel.norm()) / 2.0 - tgt->mu / r_rel.norm();
+                double a_final = -tgt->mu / (2.0 * energy);
+                double e_final = std::sqrt(1.0 + (2.0 * energy * h * h) / (tgt->mu * tgt->mu));
+                double rp = a_final * (1.0 - e_final);
+                capture_alt = (rp - tgt->radius) / 1000.0;
+                orbit_period_days = (2.0 * M_PI * std::sqrt(pow(a_final, 3) / tgt->mu)) / 86400.0;
+            } else {
+                capture_alt = (probe.pos - target_body.pos).norm() / 1000.0; 
+                orbit_period_days = -1.0;
+            }
 
             std::cout << std::fixed << std::setprecision(3);
             std::cout << "{\"points\":[";
             for (int i = 0; i < N; i++) {
                 if (i) std::cout << ",";
-                std::cout << "[" << pts[i][0] << "," << pts[i][1] << "," << pts[i][2] << "]";
+                std::cout << "[" << ghost_path[i].x()/1000.0 << "," << ghost_path[i].y()/1000.0 << "," << ghost_path[i].z()/1000.0 << "]";
             }
             std::cout << "],"
-                      << "\"arrivalTime\":"     << (globalTime + tof) << ","
+                      << "\"arrivalTime\":"     << (globalTime + best_tof) << ","
                       << "\"success\":"         << (captured ? "true" : "false") << ","
                       << "\"missionStatus\":\""  << (captured ? "ORBIT CAPTURE" : "OVERSHOT") << "\","
                       << "\"captureAltitude\":"  << capture_alt << ","
-                      << "\"orbitPeriod\":"      << orbit_period_days << ","
+                      << "\"orbitPeriod\":"      << std::abs(orbit_period_days) << ","
                       << "\"isOvershot\":"       << (captured ? "false" : "true") << ","
                       << "\"remainingDeltaV\":"  << remaining << ","
-                      << "\"usedDuration\":"     << tof << ","
+                      << "\"usedDuration\":"     << best_tof << ","
                       << "\"simStartTime\":"     << globalTime << ","
                       << "\"dvLabel\":"          << total_dv << ","
-                      << "\"vReq\":"             << (v_depart / 1000.0)
+                      << "\"vReq\":"             << (best_v.norm() / 1000.0)
                       << "}" << std::endl;
         }
         return 0;
@@ -601,44 +741,59 @@ int main(int argc, char* argv[]) {
         std::cerr << "Warning: No time argument. Defaulting to 0.0" << std::endl;
     }
 
-    double alt0 = 100000.0;
-    double r0   = RE + alt0;
-    double v0   = std::sqrt(MU / r0);
-    StateVector state;
-    state << r0, 0.0, 0.0, 0.0, v0 * std::cos(51.6 * M_PI/180.0), v0 * std::sin(51.6 * M_PI/180.0);
-
-    double decay_rate = 5.0;
-    double dt = 1.0;
-    for (double t = 0; t < t_target; t += dt) {
-        double step = std::min(dt, t_target - t);
-        rk4_step(state, step);
+    State state;
+    bool nbody_enabled = false;
+    // Usage: odyssey_engine <time> <x> <y> <z> <vx> <vy> <vz> <nbody>
+    if (argc >= 9) {
+        state << std::stod(argv[2]), std::stod(argv[3]), std::stod(argv[4]),
+                 std::stod(argv[5]), std::stod(argv[6]), std::stod(argv[7]);
+        nbody_enabled = std::stoi(argv[8]) == 1;
+    } else {
+        // Fallback ISS orbit in km
+        double alt0 = 400.0;
+        double r0   = PREVIEW_RE + alt0;
+        double v0   = std::sqrt(PREVIEW_MU_EARTH / r0);
+        state << r0, 0.0, 0.0, 
+                 0.0, v0 * std::cos(51.6 * M_PI/180.0), v0 * std::sin(51.6 * M_PI/180.0);
     }
 
-    double x = state(0), y = state(1), z = state(2);
-    double r = std::sqrt(x*x + y*y + z*z);
-    double actual_r = r - (decay_rate * t_target);
-    double fix_ratio = actual_r / r;
-    x *= fix_ratio; y *= fix_ratio; z *= fix_ratio;
+    double dt = 10.0; // Adaptive fallback basic step for standard simulation
+    double t = 0;
+    while (t < t_target) {
+        double step = std::min(dt, t_target - t);
+        step_rk4_prop(state, t, step, nbody_enabled);
+        
+        double current_r = state.segment<3>(0).norm();
+        if (current_r <= PREVIEW_RE) {
+            // Reentry detected
+            break;
+        }
+    }
+
+    double x = state(0) * 1000.0, y = state(1) * 1000.0, z = state(2) * 1000.0; // Output in meters for legacy reasons
+    double actual_r = std::sqrt(x*x + y*y + z*z);
 
     double lat = std::asin(z / actual_r) * 180.0 / M_PI;
     double lon = std::atan2(y, x) * 180.0 / M_PI;
-    double alt = actual_r - RE;
-    lon = std::fmod(lon - (t_target * 0.004178), 360.0);
+    double alt_meters = actual_r - (PREVIEW_RE * 1000.0);
+    
+    // Earth rotation correction for longitude
+    lon = std::fmod(lon - (t * 7.2921159e-5 * 180.0 / M_PI), 360.0);
     if (lon < -180.0) lon += 360.0;
     if (lon >  180.0) lon -= 360.0;
 
-    std::string status = (alt < 100000.0) ? "WARNING_ATMOSPHERIC_REENTRY" : "NOMINAL";
+    std::string status = (alt_meters <= 0.0) ? "TERMINATED_REENTRY" : ((alt_meters < 100000.0) ? "WARNING_ATMOSPHERIC_REENTRY" : "NOMINAL");
 
     std::cout << "{"
               << "\"x\":"               << x << ","
               << "\"y\":"               << y << ","
               << "\"z\":"               << z << ","
-              << "\"vx\":"              << state(3) << ","
-              << "\"vy\":"              << state(4) << ","
-              << "\"vz\":"              << state(5) << ","
+              << "\"vx\":"              << state(3) * 1000.0 << ","
+              << "\"vy\":"              << state(4) * 1000.0 << ","
+              << "\"vz\":"              << state(5) * 1000.0 << ","
               << "\"lat\":"             << lat << ","
               << "\"lon\":"             << lon << ","
-              << "\"alt\":"             << alt << ","
+              << "\"alt\":"             << alt_meters << ","
               << "\"status\":\""        << status << "\","
               << "\"slingshot_rp\":"    << rp << ","
               << "\"slingshot_dv\":"    << delta_v_gained << ","
