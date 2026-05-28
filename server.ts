@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { spawn, execSync } from "child_process";
 import fs from "fs";
+import engineApi from "./engineApi";
 
 async function startServer() {
   const app = express();
@@ -19,7 +20,7 @@ async function startServer() {
 
   let latestTelemetry: any = { status: "waiting_for_engine" };
 
-  // API Route setup - Proxy to FastAPI bridge
+  // API Route setup - Proxy to FastAPI bridge for legacy routes
   app.get("/api/telemetry", async (req, res) => {
     try {
       const response = await fetch("http://localhost:8000/telemetry");
@@ -42,20 +43,8 @@ async function startServer() {
     }
   });
 
-  app.post("/api/calculate", express.json(), async (req, res) => {
-    try {
-      const response = await fetch("http://localhost:8000/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req.body),
-      });
-      const result = await response.json();
-      res.json(result);
-    } catch (error: any) {
-      console.error("Failed to calculate:", error);
-      res.status(500).json({ error: error.message || "Failed to run calculate" });
-    }
-  });
+  // Dedicated C++ engine API
+  app.use("/api", engineApi);
 
   // Start the Python FastAPI Bridge
   console.log("Starting Python FastAPI bridge...");

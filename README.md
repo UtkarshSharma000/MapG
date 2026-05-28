@@ -57,22 +57,28 @@ $$R_v = k \cdot V_s$$
 1. **Clone the repository**
 
 ```bash
-git clone [https://github.com/UtkarshSharma000/ADHD.git](https://github.com/UtkarshSharma000/ADHD.git)
+git clone https://github.com/UtkarshSharma000/ADHD.git
 cd MapG
-Install dependencies
+```
 
-Bash
+2. **Install dependencies**
+
+```bash
 npm install
-Launch the development workspace
+```
 
-Bash
+3. **Launch the development workspace**
+
+```bash
 npm run dev
-[!IMPORTANT]
+```
 
-If you are running the engine on a remote cloud virtual machine, verify your vite.config.ts configuration is set to expose the custom host network.
+> [!IMPORTANT]
+> If you are running the engine on a remote cloud virtual machine, verify your `vite.config.ts` configuration is set to expose the custom host network.
 
-Repository Structure
-Plaintext
+### Repository Structure
+
+```plaintext
 ├── local_backend/          # Python automation and odyssey core engine files
 ├── public/                 # Static asset delivery (logos, icons, manifests)
 ├── src/                    # React application codebase
@@ -82,3 +88,4 @@ Plaintext
 │   └── OrbitSimulator.tsx  # Canvas rendering pipeline for celestial tracking
 ├── vite.config.ts          # Vite bundler and HMR server optimization
 └── README.md               # System architectural documentation
+```
