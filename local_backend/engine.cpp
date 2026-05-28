@@ -150,6 +150,7 @@ struct Spacecraft {
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
     double mass = 1000.0;
     double current_delta_v_pool = 3500.0;
+    double required_capture_dv = 0.0;
     bool is_captured = false;
     bool is_overshot = false;
 };
@@ -173,6 +174,7 @@ void ExecuteCaptureBurn(Spacecraft& probe, const Planet& target_planet) {
     double energy = (v_mag * v_mag) / 2.0 - mu / r_mag;
     if (energy <= 0.0) {
         probe.is_captured = true;
+        probe.required_capture_dv = 0.0;
         return;
     }
 
@@ -188,6 +190,8 @@ void ExecuteCaptureBurn(Spacecraft& probe, const Planet& target_planet) {
     double a_target = std::pow(mu * std::pow(target_period / (2.0 * M_PI), 2), 1.0 / 3.0);
     double v_capture = std::sqrt(mu * (2.0 / rp - 1.0 / a_target));
     double delta_v_required = v_arrival - v_capture;
+    
+    probe.required_capture_dv = delta_v_required;
 
     if (delta_v_required <= 0.0) {
         probe.is_captured = true;
@@ -638,12 +642,7 @@ int main(int argc, char* argv[]) {
             }
 
             double dv_depart = min_dv;
-            Eigen::Vector3d v_arrive = gc.solve_lambert(propagate_orbit(*tgt, globalTime + best_tof), earth_pos, -best_tof, MU_SUN); // Velocity at arrival
-            // Arrival dv approximation (difference from target velocity)
             Eigen::Vector3d tgt_vel = get_orbital_velocity(*tgt, globalTime + best_tof);
-            double dv_arrive = (v_arrive - tgt_vel).norm();
-            
-            double total_dv = dv_depart + dv_arrive;
 
             Spacecraft probe;
             probe.pos = earth_pos;
@@ -664,6 +663,8 @@ int main(int argc, char* argv[]) {
             std::vector<Planet> sys_planets = { target_body };
 
             IntegratePhysics(probe, sys_planets, best_tof);
+
+            double total_dv = dv_depart + probe.required_capture_dv;
 
             static const int N = 500;
             std::vector<Eigen::Vector3d> ghost_path = gc.generate_ghost_path(earth_pos, best_v, best_tof, MU_SUN, N);
