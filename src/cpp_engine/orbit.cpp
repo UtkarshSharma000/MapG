@@ -38,7 +38,7 @@ struct Spacecraft {
     Eigen::Vector3d pos = Eigen::Vector3d::Zero(); // m (heliocentric)
     Eigen::Vector3d vel = Eigen::Vector3d::Zero(); // m/s (heliocentric)
     double mass = 1000.0;         // kg
-    double current_delta_v_pool = 3500.0; // m/s budget
+    double current_delta_v_pool = 25000.0; // m/s budget
     bool is_captured = false;
     bool is_overshot = false;
 };
