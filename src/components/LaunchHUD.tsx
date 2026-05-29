@@ -31,13 +31,7 @@ export function LaunchHUD({
   planets
 }: LaunchHUDProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
-  const [tempSelectedPlanet, setTempSelectedPlanet] = useState<string>('Sun');
   const [isCalculatingLaunchPhase, setIsCalculatingLaunchPhase] = useState(false);
-
-  // Keep dropdown selection synchronised with the externally selected planet target
-  useEffect(() => {
-    setTempSelectedPlanet(selectedTarget?.name || 'Sun');
-  }, [selectedTarget]);
 
   const onLaunch = () => {
     setIsCalculatingLaunchPhase(true);
@@ -50,17 +44,6 @@ export function LaunchHUD({
 
   const handleReset = () => {
     onResetSimulation();
-  };
-
-  const handleLockTarget = () => {
-    if (tempSelectedPlanet === 'Sun') {
-      setSelectedTarget(null);
-    } else {
-      const found = planets.find(p => p.name === tempSelectedPlanet);
-      if (found) {
-        setSelectedTarget(found);
-      }
-    }
   };
 
   if (missionStatus === undefined) {
@@ -85,44 +68,6 @@ export function LaunchHUD({
         </div>
         
         <div className="space-y-6">
-          
-          {/* Planet Navigation Lock Controller */}
-          <div className="flex flex-col gap-2">
-            <label htmlFor="nav-target-select" className="text-[9px] font-label-caps text-white/40 uppercase tracking-[0.2em] cursor-pointer">
-              Navigation Target
-            </label>
-            <div className="flex gap-2">
-              <select 
-                id="nav-target-select"
-                value={tempSelectedPlanet} 
-                onChange={(e) => setTempSelectedPlanet(e.target.value)}
-                className="flex-1 bg-black/40 border border-white/10 rounded p-2 text-xs font-data-lg text-white focus:border-secondary outline-none cursor-pointer hover:border-white/20 transition-colors"
-              >
-                <option value="Sun">Central Sol (Sun)</option>
-                {planets.map((p) => (
-                  <option key={p.name} value={p.name}>
-                    {p.name.toUpperCase()}
-                  </option>
-                ))}
-              </select>
-              
-              <button
-                onClick={handleLockTarget}
-                title="Telemetry Lock on selected planet camera"
-                className="px-4 bg-secondary/10 hover:bg-secondary/25 border border-secondary/40 hover:border-secondary text-secondary rounded transition-colors flex items-center justify-center cursor-pointer"
-              >
-                <Compass className="w-4 h-4 animate-spin-slow" />
-              </button>
-            </div>
-            
-            <button
-              onClick={handleLockTarget}
-              className="w-full py-2 mt-1 bg-secondary/5 hover:bg-secondary/15 border border-secondary/20 hover:border-secondary/40 text-[9px] font-label-caps tracking-[0.2em] text-secondary rounded transition-all cursor-pointer uppercase flex items-center justify-center gap-2"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse glow-cyan"></span>
-              Synchronize Target
-            </button>
-          </div>
 
           {/* Primary Ignition Trigger Button */}
           <button 

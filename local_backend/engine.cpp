@@ -148,24 +148,62 @@ struct Planet {
 struct Spacecraft {
     Eigen::Vector3d pos = Eigen::Vector3d::Zero();
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
-    double mass = 1000.0;
-    double current_delta_v_pool = 3500.0;
+    
+    // Tsiolkovsky parameters
+    double dry_mass = 1000.0; // kg
+    double fuel_mass = 8000.0; // kg
+    double isp = 350.0; // seconds
+
     double required_capture_dv = 0.0;
-    bool is_captured = false;
-    bool is_overshot = false;
+    double closest_approach = INFINITY;
+    double relative_arrival_velocity = 0.0;
+    
+    bool reached_target = false;
+    bool capture_possible = false;
+
+    double get_current_dv() const {
+        const double g0 = 9.80665;
+        if (fuel_mass <= 0.0) return 0.0;
+        return isp * g0 * std::log((dry_mass + fuel_mass) / dry_mass);
+    }
+    
+    bool burn_delta_v(double dv) {
+        const double g0 = 9.80665;
+        double current_dv = get_current_dv();
+        if (dv > current_dv) {
+            fuel_mass = 0.0;
+            return false;
+        }
+        double m_initial = dry_mass + fuel_mass;
+        double m_final = m_initial * std::exp(-dv / (isp * g0));
+        fuel_mass = m_final - dry_mass;
+        return true;
+    }
 };
 
 // --- ORBITAL INSERTION RETRO-BURN ---
-void ExecuteCaptureBurn(Spacecraft& probe, const Planet& target_planet) {
-    if (probe.is_captured || probe.is_overshot) return;
+void ExecuteCaptureBurn(Spacecraft& probe, const Planet& target_planet, bool is_final_step = false) {
+    if (probe.reached_target) return;
 
     Eigen::Vector3d r_rel = probe.pos - target_planet.pos;
     Eigen::Vector3d v_rel = probe.vel - target_planet.vel;
     double r_mag = r_rel.norm();
     double v_mag = v_rel.norm();
 
-    double soi = target_planet.radius * 150.0;
-    if (r_mag > soi) return;
+    probe.closest_approach = std::min(probe.closest_approach, r_mag);
+
+    double soi = target_planet.radius * 150.0; // roughly sphere of influence
+    if (r_mag > soi && !is_final_step) return;
+
+    // We consider target "reached" if we enter SOI, OR if this is the final step
+    // and we're remarkably close (e.g. Lambert precisely targeted the center).
+    if (r_mag <= soi) {
+        probe.reached_target = true;
+    } else {
+        return; // didn't reach
+    }
+
+    probe.relative_arrival_velocity = v_mag;
 
     double mu = target_planet.mu;
     Eigen::Vector3d h_vec = r_rel.cross(v_rel);
@@ -173,8 +211,9 @@ void ExecuteCaptureBurn(Spacecraft& probe, const Planet& target_planet) {
 
     double energy = (v_mag * v_mag) / 2.0 - mu / r_mag;
     if (energy <= 0.0) {
-        probe.is_captured = true;
+        // Already captured (elliptical relative orbit)
         probe.required_capture_dv = 0.0;
+        probe.capture_possible = true;
         return;
     }
 
@@ -183,10 +222,12 @@ void ExecuteCaptureBurn(Spacecraft& probe, const Planet& target_planet) {
     double rp = a_hyper * (e - 1.0);
     if (rp <= 0.0) rp = target_planet.radius;
 
-    if (r_mag > rp * 1.05) return;
+    // If periapsis is wildly large, we missed the insertion window
+    if (r_mag > rp * 1.5) return; 
 
+    // Calculate required delta-v to drop orbit into a highly elliptical stable capture
     double v_arrival = std::sqrt(2.0 * (energy + mu / rp));
-    double target_period = 195.6 * 86400.0;
+    double target_period = 50.0 * 86400.0; // 50 day highly elliptical capture orbit
     double a_target = std::pow(mu * std::pow(target_period / (2.0 * M_PI), 2), 1.0 / 3.0);
     double v_capture = std::sqrt(mu * (2.0 / rp - 1.0 / a_target));
     double delta_v_required = v_arrival - v_capture;
@@ -194,18 +235,16 @@ void ExecuteCaptureBurn(Spacecraft& probe, const Planet& target_planet) {
     probe.required_capture_dv = delta_v_required;
 
     if (delta_v_required <= 0.0) {
-        probe.is_captured = true;
+        probe.capture_possible = true;
         return;
     }
 
-    if (probe.current_delta_v_pool >= delta_v_required) {
-        probe.current_delta_v_pool -= delta_v_required;
-        probe.is_captured = true;
-        probe.is_overshot = false;
-        probe.vel = target_planet.vel + v_rel.normalized() * v_capture;
+    if (probe.get_current_dv() >= delta_v_required) {
+        probe.capture_possible = true;
+        probe.burn_delta_v(delta_v_required);
+        // Do not instantly modify velocity at SOI, as the required burn is meant for periapsis.
     } else {
-        probe.is_overshot = true;
-        probe.is_captured = false;
+        probe.capture_possible = false;
     }
 }
 
@@ -647,7 +686,9 @@ int main(int argc, char* argv[]) {
             Spacecraft probe;
             probe.pos = earth_pos;
             probe.vel = best_v;
-            probe.current_delta_v_pool = (tgt->a > 4.0 * AU) ? 15000.0 : 3500.0;
+            // deduct the departure burn from fuel
+            probe.burn_delta_v(dv_depart);
+
             
             Planet target_body = {
                 tgt->name, 
@@ -663,28 +704,43 @@ int main(int argc, char* argv[]) {
             std::vector<Planet> sys_planets = { target_body };
 
             IntegratePhysics(probe, sys_planets, best_tof);
+            ExecuteCaptureBurn(probe, target_body, true); // Final check at target time
 
             double total_dv = dv_depart + probe.required_capture_dv;
 
             static const int N = 500;
             std::vector<Eigen::Vector3d> ghost_path = gc.generate_ghost_path(earth_pos, best_v, best_tof, MU_SUN, N);
             
-            bool captured = probe.is_captured;
-            double remaining = probe.current_delta_v_pool;
+            bool reached_target = probe.reached_target;
+            bool capture_possible = probe.capture_possible;
+            double remaining = probe.get_current_dv();
             double capture_alt = 0.0;
             double orbit_period_days = 0.0;
 
-            if (captured) {
-                // Post-capture analysis
+            std::string mission_status;
+            if (dv_depart > 350.0 * 9.80665 * std::log((1000.0 + 8000.0) / 1000.0)) {
+                mission_status = "FAILED - INSUFFICIENT DEPARTURE FUEL";
+            } else if (!reached_target) {
+                mission_status = "OVERSHOT - MISSED TARGET SOI";
+            } else if (capture_possible) {
+                mission_status = "SUCCESSFUL ORBITAL INSERTION";
+            } else {
+                mission_status = "ARRIVED - INSUFFICIENT FUEL FOR CAPTURE";
+            }
+
+            if (capture_possible) {
+                // Post-capture analysis: use the targeted trajectory parameters
                 Eigen::Vector3d r_rel = probe.pos - target_body.pos;
                 Eigen::Vector3d v_rel = probe.vel - target_body.vel;
                 double h = r_rel.cross(v_rel).norm();
                 double energy = (v_rel.norm() * v_rel.norm()) / 2.0 - tgt->mu / r_rel.norm();
-                double a_final = -tgt->mu / (2.0 * energy);
-                double e_final = std::sqrt(1.0 + (2.0 * energy * h * h) / (tgt->mu * tgt->mu));
-                double rp = a_final * (1.0 - e_final);
+                double a_hyper = tgt->mu / (2.0 * energy);
+                double e_hyper = std::sqrt(1.0 + (2.0 * energy * h * h) / (tgt->mu * tgt->mu));
+                double rp = a_hyper * (e_hyper - 1.0);
+                if (rp <= 0.0) rp = tgt->radius;
+
                 capture_alt = (rp - tgt->radius) / 1000.0;
-                orbit_period_days = (2.0 * M_PI * std::sqrt(pow(a_final, 3) / tgt->mu)) / 86400.0;
+                orbit_period_days = 50.0; // The target period of the capture burn
             } else {
                 capture_alt = (probe.pos - target_body.pos).norm() / 1000.0; 
                 orbit_period_days = -1.0;
@@ -697,17 +753,22 @@ int main(int argc, char* argv[]) {
                 std::cout << "[" << ghost_path[i].x()/1000.0 << "," << ghost_path[i].y()/1000.0 << "," << ghost_path[i].z()/1000.0 << "]";
             }
             std::cout << "],"
-                      << "\"arrivalTime\":"     << (globalTime + best_tof) << ","
-                      << "\"success\":"         << (captured ? "true" : "false") << ","
-                      << "\"missionStatus\":\""  << (captured ? "ORBIT CAPTURE" : "OVERSHOT") << "\","
-                      << "\"captureAltitude\":"  << capture_alt << ","
-                      << "\"orbitPeriod\":"      << std::abs(orbit_period_days) << ","
-                      << "\"isOvershot\":"       << (captured ? "false" : "true") << ","
-                      << "\"remainingDeltaV\":"  << remaining << ","
-                      << "\"usedDuration\":"     << best_tof << ","
-                      << "\"simStartTime\":"     << globalTime << ","
-                      << "\"dvLabel\":"          << total_dv << ","
-                      << "\"vReq\":"             << (best_v.norm() / 1000.0)
+                      << "\"arrivalTime\":"        << (globalTime + best_tof) << ","
+                      << "\"reachedTarget\":"      << (reached_target ? "true" : "false") << ","
+                      << "\"capturePossible\":"    << (capture_possible ? "true" : "false") << ","
+                      << "\"missionStatus\":\""     << mission_status << "\","
+                      << "\"captureAltitude\":"     << capture_alt << ","
+                      << "\"orbitPeriod\":"         << std::abs(orbit_period_days) << ","
+                      << "\"remainingDeltaV\":"     << remaining << ","
+                      << "\"requiredCaptureDV\":"   << probe.required_capture_dv << ","
+                      << "\"dvDepart\":"            << dv_depart << ","
+                      << "\"dvCapture\":"           << probe.required_capture_dv << ","
+                      << "\"closestApproach\":"     << probe.closest_approach << ","
+                      << "\"relativeArrivalVel\":"  << probe.relative_arrival_velocity << ","
+                      << "\"usedDuration\":"        << best_tof << ","
+                      << "\"simStartTime\":"        << globalTime << ","
+                      << "\"dvLabel\":"             << total_dv << ","
+                      << "\"vReq\":"                << (best_v.norm() / 1000.0)
                       << "}" << std::endl;
         }
         return 0;

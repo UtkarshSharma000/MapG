@@ -679,7 +679,7 @@ function GhostPath({
   const captureTimeRef = useRef<number | null>(null);
   const transferTimeRef = useRef<number>(1000);
   const simDurationRef = useRef<number>(1000);
-  const captureInfoRef = useRef<{status?: string, altitude?: number, period?: number, isOvershot?: boolean, remainingDeltaV?: number}>({});
+  const captureInfoRef = useRef<{status?: string, altitude?: number, period?: number, isOvershot?: boolean, remainingDeltaV?: number, reachedTarget?: boolean, capturePossible?: boolean}>({});
   const requiredDVRef = useRef<number>(0);
   const fuelRef = useRef<number>(100); // %
   const [status, setStatus] = useState<string>("Standby");
@@ -724,7 +724,14 @@ function GhostPath({
       requiredDVRef.current = data.dvLabel;
       transferTimeRef.current = data.arrivalTime - time;
       simDurationRef.current = data.usedDuration || (data.arrivalTime - time);
-      captureInfoRef.current = { status: data.missionStatus, altitude: data.captureAltitude, period: data.orbitPeriod, isOvershot: data.isOvershot, remainingDeltaV: data.remainingDeltaV };
+      captureInfoRef.current = { 
+          status: data.missionStatus, 
+          altitude: data.captureAltitude, 
+          period: data.orbitPeriod, 
+          reachedTarget: data.reachedTarget, 
+          capturePossible: data.capturePossible,
+          remainingDeltaV: data.remainingDeltaV 
+      };
       
       const threePoints = data.points
         .filter((p: any) => p && Array.isArray(p) && p.length >= 3 && Number.isFinite(p[0]) && Number.isFinite(p[1]) && Number.isFinite(p[2]))
@@ -733,7 +740,7 @@ function GhostPath({
       console.log(`[Trajectory Optimizer] Generated ${threePoints.length} valid points from ${data.points?.length} backend points. First Point:`, threePoints[0]);
       
       setPoints(threePoints);
-      setStatus(data.success ? "Intercept Locked" : "Transfer Optimized");
+      setStatus("Transfer Optimized");
       
       if (onPointsCalculated) {
         const isReturn = (launchPlanet !== "Earth" || targetName === "Earth");
@@ -868,35 +875,27 @@ function GhostPath({
       setReachedDestination((prev) => (prev !== arrived ? arrived : prev));
       
       let targetStatus = "Inertial Cruise";
+      const MAX_DV = 350.0 * 9.80665 * Math.log(9000.0 / 1000.0);
+
       if (pct_tof < 0.05) {
         targetStatus = "Main Engine Burn";
         const startBurnPct = 100;
-        const endBurnPct = Math.max(5, ((3500.0 - requiredDVRef.current) / 3500.0) * 100.0);
+        const endBurnPct = Math.max(0, ((MAX_DV - requiredDVRef.current) / MAX_DV) * 100.0);
         fuelRef.current = startBurnPct - (startBurnPct - endBurnPct) * (pct_tof / 0.05);
       } else if (pct_tof >= 0.98 && captureInfoRef.current.status) {
-        if (captureInfoRef.current.isOvershot) {
-          targetStatus = "OVERSHOT - INSUFFICIENT FUEL";
-          fuelRef.current = 0;
-        } else {
-          targetStatus = captureInfoRef.current.status;
-          const finalFuelPct = Math.max(1, ((captureInfoRef.current.remainingDeltaV ?? 0) / 3500.0) * 100.0);
-          fuelRef.current = finalFuelPct;
-          if (!captureTimeRef.current) {
-            captureTimeRef.current = globalTimeRef.current;
-          }
-          const nextStayTime = Math.floor((globalTimeRef.current - captureTimeRef.current) / 86400);
-          setStayTimeDays((prev) => (prev !== nextStayTime ? nextStayTime : prev));
+        targetStatus = captureInfoRef.current.status;
+        const finalFuelPct = Math.max(0, ((captureInfoRef.current.remainingDeltaV ?? 0) / MAX_DV) * 100.0);
+        fuelRef.current = finalFuelPct;
+        if (!captureTimeRef.current) {
+          captureTimeRef.current = globalTimeRef.current;
         }
+        const nextStayTime = Math.floor((globalTimeRef.current - captureTimeRef.current) / 86400);
+        setStayTimeDays((prev) => (prev !== nextStayTime ? nextStayTime : prev));
       } else {
-        if (pct_tof >= 0.98 && captureInfoRef.current.isOvershot) {
-          targetStatus = "OVERSHOT - INSUFFICIENT FUEL";
-          fuelRef.current = 0;
-        } else {
-          targetStatus = "Inertial Cruise";
-          const cruiseFuelPct = Math.max(5, ((3500.0 - requiredDVRef.current) / 3500.0) * 100.0);
-          fuelRef.current = cruiseFuelPct;
-          captureTimeRef.current = null;
-        }
+        targetStatus = "Inertial Cruise";
+        const cruiseFuelPct = Math.max(0, ((MAX_DV - requiredDVRef.current) / MAX_DV) * 100.0);
+        fuelRef.current = cruiseFuelPct;
+        captureTimeRef.current = null;
       }
 
       setStatus((prev) => (prev !== targetStatus ? targetStatus : prev));
