@@ -726,7 +726,12 @@ function GhostPath({
       simDurationRef.current = data.usedDuration || (data.arrivalTime - time);
       captureInfoRef.current = { status: data.missionStatus, altitude: data.captureAltitude, period: data.orbitPeriod, isOvershot: data.isOvershot, remainingDeltaV: data.remainingDeltaV };
       
-      const threePoints = data.points.map((p: any) => new THREE.Vector3(p[0] * POS_SCALE, p[2] * POS_SCALE, -p[1] * POS_SCALE));
+      const threePoints = data.points
+        .filter((p: any) => p && Array.isArray(p) && p.length >= 3 && Number.isFinite(p[0]) && Number.isFinite(p[1]) && Number.isFinite(p[2]))
+        .map((p: any) => new THREE.Vector3(p[0] * 1000 * POS_SCALE, p[2] * 1000 * POS_SCALE, -p[1] * 1000 * POS_SCALE));
+      
+      console.log(`[Trajectory Optimizer] Generated ${threePoints.length} valid points from ${data.points?.length} backend points. First Point:`, threePoints[0]);
+      
       setPoints(threePoints);
       setStatus(data.success ? "Intercept Locked" : "Transfer Optimized");
       

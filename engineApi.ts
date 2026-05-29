@@ -26,7 +26,11 @@ router.post('/calculate', express.json(), (req, res) => {
             return res.status(500).json({ error: 'Engine calculation failed', stderr: errorOutput });
         }
         try {
-            const result = JSON.parse(output);
+            // Clean unquoted nan/inf which C++ streams might emit and break JSON.parse
+            let safeOutput = output
+                .replace(/-?\b(?:nan|NaN)\b/g, 'null')
+                .replace(/-?\b(?:inf|Infinity|inf)\b/g, 'null');
+            const result = JSON.parse(safeOutput);
             res.json(result);
         } catch (e) {
             console.error('Failed to parse engine output:', output);
