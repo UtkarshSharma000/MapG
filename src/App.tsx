@@ -967,14 +967,6 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-6 pointer-events-auto">
-            <div className="flex flex-col items-end mr-4">
-              <span className="font-label-caps text-[9px] text-secondary tracking-[0.2em]">NETWORK STATUS</span>
-              <span className="text-white font-data-lg text-sm flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse glow-cyan"></span>
-                {missionStatus ? missionStatus.replace('_', ' ').toUpperCase() : 'STANDBY'}
-              </span>
-            </div>
-            
             <button
               onClick={() => setIsSimulatorRunning(false)}
               className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:text-red-400 hover:border-red-400/30 transition-all cursor-pointer"
