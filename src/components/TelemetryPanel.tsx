@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { motion } from "motion/react";
 
 export function TelemetryPanel() {
   const [telemetry, setTelemetry] = useState<any>(null);
@@ -14,7 +15,12 @@ export function TelemetryPanel() {
   }, []);
 
   return (
-    <div className="fixed top-36 left-8 p-6 rounded-lg border border-white/10 glass-panel shadow-[0_0_40px_rgba(0,0,0,0.5)] text-white w-72 pointer-events-auto z-40 flex flex-col">
+    <motion.div 
+      initial={{ opacity: 0, x: -50 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.8, type: 'spring' }}
+      className="fixed top-36 left-8 p-6 rounded-lg border border-white/10 glass-panel shadow-[0_0_40px_rgba(0,0,0,0.5)] text-white w-72 pointer-events-auto z-40 flex flex-col"
+    >
       <div className="mb-6">
         <div className="font-label-caps text-[9px] text-white/40 tracking-[0.2em] mb-1">CRAFT IDENTIFIER</div>
         <div className="font-headline-md text-white text-xl">SATELLITE-01</div>
@@ -72,6 +78,6 @@ export function TelemetryPanel() {
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
