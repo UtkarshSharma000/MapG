@@ -649,7 +649,12 @@ export default function App() {
               <img alt="Atmospheric planetary background" className="w-full h-full object-cover opacity-20 mix-blend-screen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBACplwpq98Rkmgv4zvxb0eAEhIsizmNlJTC2jsQBeMtvZnFYMnCJHR6TAhNJ9sfdEr6k_qaF1jw4HuGWKSNZ1nLjHMBWSml5Pfcat6Fvkkaqj3c3JB-Lku9XZXTymKJOzxULcF7cBYsQhH_FC0LOHV6VFeXFn-5Omy3eEJ1a4hAJ5Txfm3dfZA-dKXoSqeNxCa2_yE5V8DhGfuqoeckWsY-xTNWEWCVaobE57lK5IlDNUKTEQ53H_Qy75i26W4xFsKIJcbnR1z87NM" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent"></div>
             </div>
-            <div className="relative z-10 max-w-4xl">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="relative z-10 max-w-4xl"
+            >
               <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 glass-panel border border-primary/30 rounded">
                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
                 <span className="font-label-caps text-[10px] text-primary tracking-widest">SYSTEMS NOMINAL // ORBITAL SECTOR 7</span>
@@ -663,55 +668,75 @@ export default function App() {
               <div className="flex flex-wrap gap-4">
                 <button 
                   onClick={() => setIsSimulatorRunning(true)}
-                  className="px-10 py-4 bg-primary-container text-on-primary-container font-label-caps text-label-caps tracking-widest glow-primary hover:scale-105 active:scale-95 transition-all cursor-pointer rounded flex items-center gap-2"
+                  className="px-10 py-4 bg-primary-container text-on-primary-container font-label-caps text-label-caps tracking-widest glow-primary hover:scale-105 active:scale-95 transition-all cursor-pointer rounded-full flex items-center gap-2"
                 >
-                  <Play size={16} /> LAUNCH TERMINAL
+                  <Play size={16} fill="currentColor" /> LAUNCH TERMINAL
                 </button>
-                <button className="px-10 py-4 glass-panel border border-tertiary/40 text-tertiary font-label-caps text-label-caps tracking-widest glow-blue hover:scale-105 active:scale-95 transition-all rounded cursor-pointer">
+                <button className="px-10 py-4 glass-panel border border-tertiary/40 text-tertiary font-label-caps text-label-caps tracking-widest glow-blue hover:scale-105 hover:bg-white/5 active:scale-95 transition-all rounded-full cursor-pointer">
                   VIEW ROADMAP
                 </button>
               </div>
-            </div>
+            </motion.div>
             {/* Side Floating Visual */}
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 aspect-square hidden xl:block">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 0.9, scale: 1 }}
+              transition={{ duration: 1.5, delay: 0.4, type: "spring" }}
+              className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 aspect-square hidden xl:block"
+            >
               <div className="relative w-full h-full cursor-grab active:cursor-grabbing opacity-90 transition-opacity duration-500">
                 <Canvas camera={{ position: [0, 0, 3] }}>
                   <InteractiveGlobe url="/textures/2k_mars.jpg" color="#c1440e" />
                 </Canvas>
                 <div className="absolute inset-0 bg-gradient-to-l from-[#050505]/60 to-transparent pointer-events-none"></div>
               </div>
-            </div>
+            </motion.div>
           </section>
 
           {/* Stats HUD */}
-          <section className="px-8 md:px-[32px] py-12">
+          <motion.section 
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="px-8 md:px-[32px] py-12"
+          >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-[16px]">
-              <div className="glossy-panel p-[32px] rounded-3xl flex flex-col gap-2 group hover:bg-white/[0.03] transition-colors border border-white/10">
+              <motion.div whileHover={{ scale: 1.02 }} className="glossy-panel p-[32px] rounded-3xl flex flex-col gap-2 group border border-white/10 cursor-default shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Activity size={48} />
+                </div>
                 <span className="font-label-caps text-[10px] tracking-widest text-tertiary relative z-10">CURRENT ALTITUDE</span>
                 <div className="flex items-baseline gap-2 relative z-10">
                   <span className="font-data-lg text-4xl md:text-5xl leading-none group-hover:text-primary transition-colors font-bold">102.4</span>
                   <span className="font-label-caps text-xl text-on-surface-variant font-bold">KM</span>
                 </div>
                 <div className="h-px bg-gradient-to-r from-transparent via-primary to-transparent w-full opacity-20 mt-2 relative z-10"></div>
-              </div>
-              <div className="glossy-panel p-[32px] rounded-3xl flex flex-col gap-2 group hover:bg-white/[0.03] transition-colors border border-white/10">
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} className="glossy-panel p-[32px] rounded-3xl flex flex-col gap-2 group border border-white/10 cursor-default shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Satellite size={48} />
+                </div>
                 <span className="font-label-caps text-[10px] tracking-widest text-tertiary relative z-10">RELATIVE VELOCITY</span>
                 <div className="flex items-baseline gap-2 relative z-10">
                   <span className="font-data-lg text-4xl md:text-5xl leading-none group-hover:text-primary transition-colors font-bold">7.8</span>
                   <span className="font-label-caps text-xl text-on-surface-variant font-bold">KM/S</span>
                 </div>
                 <div className="h-px bg-gradient-to-r from-transparent via-primary to-transparent w-full opacity-20 mt-2 relative z-10"></div>
-              </div>
-              <div className="glossy-panel p-[32px] rounded-3xl flex flex-col gap-2 group hover:bg-white/[0.03] transition-colors border border-white/10">
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} className="glossy-panel p-[32px] rounded-3xl flex flex-col gap-2 group border border-white/10 cursor-default shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Globe size={48} />
+                </div>
                 <span className="font-label-caps text-[10px] tracking-widest text-tertiary relative z-10">SIGNAL STRENGTH</span>
                 <div className="flex items-baseline gap-2 relative z-10">
                   <span className="font-data-lg text-4xl md:text-5xl leading-none group-hover:text-primary transition-colors font-bold">98</span>
                   <span className="font-label-caps text-xl text-on-surface-variant font-bold">%</span>
                 </div>
                 <div className="h-px bg-gradient-to-r from-transparent via-primary to-transparent w-full opacity-20 mt-2 relative z-10"></div>
-              </div>
+              </motion.div>
             </div>
-          </section>
+          </motion.section>
 
           {/* Open Source Section */}
           <section className="px-8 md:px-[32px] py-20 border-t border-white/5 relative bg-gradient-to-b from-[#020202] via-[#040812] to-[#020202]">

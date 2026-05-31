@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Draggable from 'react-draggable';
 import { Move, Compass } from 'lucide-react';
+import { motion } from 'motion/react';
 import { OptimizeResult } from '../TrajectoryOptimizer';
 
 interface LaunchHUDProps {
@@ -57,7 +58,13 @@ export function LaunchHUD({
 
   return (
     <Draggable nodeRef={nodeRef} handle=".vab-drag-handle">
-      <div ref={nodeRef} className="fixed left-8 bottom-8 w-80 glass-panel border-white/10 rounded-lg p-6 text-white z-40 pointer-events-auto shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col">
+      <motion.div 
+        ref={nodeRef} 
+        initial={{ opacity: 0, x: -50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6, type: 'spring', bounce: 0.3 }}
+        className="fixed left-8 bottom-8 w-80 glass-panel border-white/10 rounded-lg p-6 text-white z-40 pointer-events-auto shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col"
+      >
         
         {/* Panel Header */}
         <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-white/10 pb-3 mb-6 select-none">
@@ -121,7 +128,7 @@ export function LaunchHUD({
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     </Draggable>
   );
 }
