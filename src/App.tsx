@@ -16,6 +16,7 @@ import {
   Github,
   Download,
   Terminal,
+  Move,
 } from "lucide-react";
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
 import TrajectoryOptimizer, { OptimizeResult, scanPorkchop } from "./TrajectoryOptimizer";
@@ -105,6 +106,18 @@ export default function App() {
     const newPos = { x: data.x, y: data.y };
     setTimeControlPos(newPos);
     localStorage.setItem('TimeControl_pos', JSON.stringify(newPos));
+  };
+
+  const targetSelectorNodeRef = React.useRef<HTMLDivElement>(null);
+  const [targetSelectorPos, setTargetSelectorPos] = useState(() => {
+    const saved = localStorage.getItem('TargetSelector_pos');
+    return saved ? JSON.parse(saved) : { x: 0, y: 0 };
+  });
+
+  const onDragStopTargetSelector = (e: any, data: any) => {
+    const newPos = { x: data.x, y: data.y };
+    setTargetSelectorPos(newPos);
+    localStorage.setItem('TargetSelector_pos', JSON.stringify(newPos));
   };
 
 
@@ -1021,35 +1034,42 @@ export default function App() {
           <main className="flex-1 p-8 relative flex flex-col justify-between pointer-events-none">
             {/* Top Center: Sol and Planet focus selection bar */}
             {showMissionPanel && (
-              <div className="absolute top-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-2.5 rounded-full border border-white/15 bg-background/90 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.6)] pointer-events-auto transition-all">
-                <button 
-                  onClick={() => setSelectedTarget(null)}
-                  className={`px-3 py-1 text-[10px] font-label-caps rounded-full border transition-all ${!selectedTarget ? 'border-primary bg-primary/20 text-primary glow-primary font-bold scale-105' : 'border-white/10 text-white/60 hover:text-white bg-white/5'}`}
-                  title="Center camera on Sun"
-                >
-                  SOL (SUN)
-                </button>
-                <div className="w-[1px] h-4 bg-white/20"></div>
-                <div className="flex gap-2">
-                  {PLANETS.map((p) => (
-                    <button
-                      key={p.name}
-                      onClick={() => setSelectedTarget(p)}
-                      className={`w-8 h-8 rounded-full border overflow-hidden cursor-pointer transition-all flex items-center justify-center relative group ${selectedTarget?.name === p.name ? "border-secondary scale-110 shadow-[0_0_10px_rgba(0,240,255,0.4)]" : "border-white/10 opacity-60 hover:opacity-100 hover:border-white/30"}`}
-                      title={p.name}
+              <Draggable nodeRef={targetSelectorNodeRef} handle=".target-drag-handle" position={targetSelectorPos} onStop={onDragStopTargetSelector}>
+                <div ref={targetSelectorNodeRef} className="fixed z-40 pointer-events-auto" style={{ left: '50%', top: 96, transform: 'translateX(-50%)' }}>
+                  <div className="flex items-center gap-3 px-4 py-2.5 rounded-full border border-white/15 bg-background/90 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.6)]">
+                    <div className="target-drag-handle opacity-50 cursor-move hover:opacity-100 flex items-center pr-2 border-r border-white/10">
+                      <Move size={14} className="text-white/40" />
+                    </div>
+                    <button 
+                      onClick={() => setSelectedTarget(null)}
+                      className={`px-3 py-1 text-[10px] font-label-caps rounded-full border transition-all ${!selectedTarget ? 'border-primary bg-primary/20 text-primary glow-primary font-bold scale-105' : 'border-white/10 text-white/60 hover:text-white bg-white/5'}`}
+                      title="Center camera on Sun"
                     >
-                      <img
-                        src={p.texture}
-                        alt={p.name}
-                        className="w-full h-full object-cover"
-                      />
-                      <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-black/80 text-[8px] font-mono border border-white/10 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                        {p.name.toUpperCase()}
-                      </span>
+                      SOL (SUN)
                     </button>
-                  ))}
+                    <div className="w-[1px] h-4 bg-white/20"></div>
+                    <div className="flex gap-2">
+                      {PLANETS.map((p) => (
+                        <button
+                          key={p.name}
+                          onClick={() => setSelectedTarget(p)}
+                          className={`w-8 h-8 rounded-full border overflow-hidden cursor-pointer transition-all flex items-center justify-center relative group ${selectedTarget?.name === p.name ? "border-secondary scale-110 shadow-[0_0_10px_rgba(0,240,255,0.4)]" : "border-white/10 opacity-60 hover:opacity-100 hover:border-white/30"}`}
+                          title={p.name}
+                        >
+                          <img
+                            src={p.texture}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
+                          />
+                          <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-black/80 text-[8px] font-mono border border-white/10 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                            {p.name.toUpperCase()}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </Draggable>
             )}
 
             {/* Bottom Right: Time Controls */}

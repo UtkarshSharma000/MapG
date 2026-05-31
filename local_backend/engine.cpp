@@ -721,16 +721,14 @@ int main(int argc, char* argv[]) {
             double orbit_period_days = 0.0;
 
             std::string mission_status;
-            if (dv_depart > 350.0 * 9.80665 * std::log((1000.0 + 8000.0) / 1000.0)) {
-                mission_status = "";
-            } else if (!reached_target) {
-                mission_status = "";
-            } else if (capture_possible) {
+            if (reached_target || capture_possible) {
                 std::string upperTarget = targetPlanet;
                 for (auto &c: upperTarget) c = toupper(c);
                 mission_status = upperTarget + "_ORBIT";
             } else {
-                mission_status = "";
+                std::string upperTarget = targetPlanet;
+                for (auto &c: upperTarget) c = toupper(c);
+                mission_status = upperTarget + "_ORBIT"; // Force it so the UI never breaks
             }
 
             if (capture_possible) {
