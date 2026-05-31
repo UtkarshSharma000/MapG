@@ -1143,6 +1143,7 @@ function SystemEngine({
   cameraPresetToLoad?: number | null;
   cameraPresetToSave?: number | null;
   resetCameraTrigger?: number;
+  activeReplay?: any;
   onPointsCalculated?: (pts: THREE.Vector3[], isReturn: boolean) => void;
 }) {
   const controlsRef = useRef<any>(null);
@@ -1411,6 +1412,7 @@ export default function OrbitSimulator({
   cameraPresetToLoad?: number | null;
   cameraPresetToSave?: number | null;
   resetCameraTrigger?: number;
+  activeReplay?: any;
   onPointsCalculated?: (pts: THREE.Vector3[], isReturn: boolean) => void;
 }) {
   const fallbackRef = useRef(0);

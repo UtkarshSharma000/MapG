@@ -1,7 +1,8 @@
-#include <iostream>
-#include <string>
+#define _USE_MATH_DEFINES  // Must be at the very top!
 #include <cmath>
+#include <iostream>
 #include <vector>
+#include <string>
 #include <array>
 #include <iomanip>
 #include <memory>
@@ -332,7 +333,7 @@ std::vector<Planet> InitializeSolarSystem(double current_time = 0.0) {
         {"Neptune", 30.047 * AU, 0.0113, 1.77 * M_PI/180.0, 131.7 * M_PI/180.0, 273.1 * M_PI/180.0, 256.0 * M_PI/180.0, 60182.0 * 86400, 24622000.0, 6.837e15},
     };
 
-    auto propagate_orbit = [](const KeplerianElements& el, double t) -> std::pair<Eigen::Vector3d, Eigen::Vector3d> {
+    auto propagate_orbit = [=](const KeplerianElements& el, double t) -> std::pair<Eigen::Vector3d, Eigen::Vector3d> {
         double n = (2.0 * M_PI) / el.period;
         double M = std::fmod(el.M0 + n * t, 2.0 * M_PI);
         double E = M;
