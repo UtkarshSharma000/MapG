@@ -719,13 +719,15 @@ int main(int argc, char* argv[]) {
 
             std::string mission_status;
             if (dv_depart > 350.0 * 9.80665 * std::log((1000.0 + 8000.0) / 1000.0)) {
-                mission_status = "FAILED - INSUFFICIENT DEPARTURE FUEL";
+                mission_status = "";
             } else if (!reached_target) {
-                mission_status = "OVERSHOT - MISSED TARGET SOI";
+                mission_status = "";
             } else if (capture_possible) {
-                mission_status = "SUCCESSFUL ORBITAL INSERTION";
+                std::string upperTarget = targetPlanet;
+                for (auto &c: upperTarget) c = toupper(c);
+                mission_status = upperTarget + "_ORBIT";
             } else {
-                mission_status = "ARRIVED - INSUFFICIENT FUEL FOR CAPTURE";
+                mission_status = "";
             }
 
             if (capture_possible) {
