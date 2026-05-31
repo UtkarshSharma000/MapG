@@ -1,8 +1,9 @@
-#pragma once
-#include <Eigen/Dense>
-#include <vector>
+#define _USE_MATH_DEFINES  // Must be at the very top!
 #include <cmath>
 #include <iostream>
+#include <vector>
+#pragma once
+#include <Eigen/Dense>
 
 using namespace Eigen;
 using namespace std;
