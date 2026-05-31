@@ -13,6 +13,16 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, launchPlane
   const [targetPoint, setTargetPoint] = useState<{lat: number, lon: number} | null>(initialTarget);
 
   const nodeRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState(() => {
+    const saved = localStorage.getItem('Planet2DMap_pos');
+    return saved ? JSON.parse(saved) : { x: 0, y: 0 };
+  });
+
+  const onDragStop = (e: any, data: any) => {
+    const newPos = { x: data.x, y: data.y };
+    setPosition(newPos);
+    localStorage.setItem('Planet2DMap_pos', JSON.stringify(newPos));
+  };
 
   const handleMapClick = (e: React.MouseEvent, clickType: "launch" | "target") => {
     e.preventDefault();
@@ -73,8 +83,12 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, launchPlane
   };
 
   return (
-    <Draggable nodeRef={nodeRef} handle=".drag-handle">
-      <div ref={nodeRef} className="fixed top-24 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-surface/90 backdrop-blur-md border border-outline rounded-xl shadow-2xl overflow-hidden z-50 pointer-events-auto flex flex-col">
+    <Draggable nodeRef={nodeRef} handle=".drag-handle" position={position} onStop={onDragStop}>
+      <div 
+        ref={nodeRef} 
+        style={{ position: 'fixed', left: 'calc(50vw - 400px)', top: '96px' }}
+        className="w-[800px] h-[500px] bg-surface/90 backdrop-blur-md border border-outline rounded-xl shadow-2xl overflow-hidden z-50 pointer-events-auto flex flex-col"
+      >
         {/* Header */}
         <div className="drag-handle bg-surface border-b border-outline p-3 flex justify-between items-center cursor-move">
           <div className="flex items-center gap-2">

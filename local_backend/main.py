@@ -406,14 +406,15 @@ async def trajectory_preview(
         
     # Standard 10-day Orbit Prediction
     t = 0.0
-    dt = 100.0
+    dt = 2.5
     path = []
     
     pos = state_pos
     vel = state_vel
-    for _ in range(8640):
+    for i in range(345600):
         pos, vel, t = step_rk4_prop(pos, vel, t, dt, nbody)
-        path.append([pos[0], pos[1], pos[2]])
+        if i % 40 == 0:
+            path.append([pos[0], pos[1], pos[2]])
         if get_norm(pos) <= RE:
             break
             

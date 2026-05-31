@@ -40,10 +40,10 @@ export type Vector3 = [number, number, number];
 export type StateVector = [...Vector3, ...Vector3]; // [x, y, z, vx, vy, vz]
 
 // Solve Kepler's equation for Eccentric Anomaly (E)
-export function solveKepler(M: number, e: number, tol = 1e-6): number {
+export function solveKepler(M: number, e: number, tol = 1e-12): number {
   let E = M;
   let delta = 1;
-  let maxIter = 100;
+  let maxIter = 1000;
   while (Math.abs(delta) > tol && maxIter > 0) {
     delta = (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
     E -= delta;
@@ -92,7 +92,7 @@ export function propagateOrbit(
 }
 
 export function getOrbitalVelocity(elements: KeplerianElements, timeSinceEpoch: number): Vector3 {
-  const dt = 1.0; 
+  const dt = 0.05; 
   const p1 = propagateOrbit(elements, timeSinceEpoch - dt/2);
   const p2 = propagateOrbit(elements, timeSinceEpoch + dt/2);
   return [

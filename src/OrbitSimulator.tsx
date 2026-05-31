@@ -766,7 +766,6 @@ function GhostPath({
     const isInterplanetary = (launchParams.targetPlanet && launchParams.targetPlanet !== (launchParams.launchPlanet || "Earth")) || !!launchParams.missionLegs;
 
     if (legsChanged || targetChanged) {
-      setPoints([]);
       launchTimeRef.current = null;
       progressRef.current = 0;
       setReachedDestination(false);
@@ -830,20 +829,8 @@ function GhostPath({
       launchTimeRef.current = null;
       progressRef.current = 0;
 
-      // Constantly recalculate if not launched (interplanetary)
-      if (launchParams.isLaunched) return;
-      const isInterplanetary = (launchParams.targetPlanet && launchParams.targetPlanet !== (launchParams.launchPlanet || "Earth")) || !!launchParams.missionLegs;
-      if (isInterplanetary) {
-        lastCalcTime.current += delta;
-        if (lastCalcTime.current > 1.0) { // Update frequency reduced to 1s
-           lastCalcTime.current = 0;
-           try {
-             calculateInterplanetaryPath();
-           } catch (err) {
-             console.error('RK4 prediction error:', err);
-           }
-        }
-      }
+      // Only recalculate interplanetary path when parameters change to prevent UI blinking
+      // The path will remain static relative to the current launch window until launched.
       return;
     }
 
