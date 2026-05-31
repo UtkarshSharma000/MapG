@@ -336,10 +336,10 @@ std::vector<Planet> InitializeSolarSystem(double current_time = 0.0) {
         double n = (2.0 * M_PI) / el.period;
         double M = std::fmod(el.M0 + n * t, 2.0 * M_PI);
         double E = M;
-        for (int i=0; i<100; ++i) {
+        for (int i=0; i<1000; ++i) {
             double num = E - el.e * std::sin(E) - M;
             double den = 1.0 - el.e * std::cos(E);
-            if (std::abs(num/den) < 1e-6) break;
+            if (std::abs(num/den) < 1e-12) break;
             E -= num/den;
         }
         
@@ -357,12 +357,12 @@ std::vector<Planet> InitializeSolarSystem(double current_time = 0.0) {
         double y = x_orbit * (cw * s_Omega + sw * ci * c_Omega) - y_orbit * (sw * s_Omega - cw * ci * c_Omega);
         double z = x_orbit * (sw * si) + y_orbit * (cw * si);
 
-        double dt = 1.0;
+        double dt = 0.05;
         double M_dt = std::fmod(el.M0 + n * (t + dt), 2.0 * M_PI);
         double E_dt = M_dt;
-        for (int i=0; i<100; ++i) {
+        for (int i=0; i<1000; ++i) {
             double num = E_dt - el.e * std::sin(E_dt) - M_dt;
-            if (std::abs(num/(1.0 - el.e * std::cos(E_dt))) < 1e-6) break;
+            if (std::abs(num/(1.0 - el.e * std::cos(E_dt))) < 1e-12) break;
             E_dt -= num/(1.0 - el.e * std::cos(E_dt));
         }
         double nu_dt = 2.0 * std::atan2(std::sqrt(1.0 + el.e) * std::sin(E_dt / 2.0), std::sqrt(1.0 - el.e) * std::cos(E_dt / 2.0));
@@ -373,7 +373,7 @@ std::vector<Planet> InitializeSolarSystem(double current_time = 0.0) {
         double y_dt = xo_dt * (cw * s_Omega + sw * ci * c_Omega) - yo_dt * (sw * s_Omega - cw * ci * c_Omega);
         double z_dt = xo_dt * (sw * si) + yo_dt * (cw * si);
 
-        return {Eigen::Vector3d(x, y, z), Eigen::Vector3d(x_dt - x, y_dt - y, z_dt - z)};
+        return {Eigen::Vector3d(x, y, z), Eigen::Vector3d((x_dt - x)/dt, (y_dt - y)/dt, (z_dt - z)/dt)};
     };
 
     for (const auto& el : table) {
@@ -529,12 +529,15 @@ int main(int argc, char* argv[]) {
         }
 
         double t = 0.0;
-        double dt = 100.0;
+        double dt = 2.5;
         std::cout << "[";
-        for (int i = 0; i < 8640; ++i) { // 10 days at 100s steps
+        int print_step = 40; // 100s per print
+        for (int i = 0; i < 345600; ++i) { // 10 days at 2.5s steps
             step_rk4_prop(state, t, dt, nbody_enabled);
-            std::cout << "[" << state(0) << "," << state(1) << "," << state(2) << "]";
-            if (i < 8639) std::cout << ",";
+            if (i % print_step == 0) {
+                std::cout << "[" << state(0) << "," << state(1) << "," << state(2) << "]";
+                if (i < 345600 - print_step) std::cout << ",";
+            }
         }
         std::cout << "]" << std::endl;
         return 0;
@@ -569,10 +572,10 @@ int main(int argc, char* argv[]) {
             {"Neptune", 30.047 * AU, 0.0113, 1.77 * M_PI/180.0, 131.7 * M_PI/180.0, 273.1 * M_PI/180.0, 256.0 * M_PI/180.0, 60182.0 * 86400, 24622000.0, 6.837e15},
         };
 
-        auto solve_kepler = [](double M, double e, double tol=1e-6) -> double {
+        auto solve_kepler = [](double M, double e, double tol=1e-12) -> double {
             double E = M;
             double delta = 1.0;
-            int max_iter = 100;
+            int max_iter = 1000;
             while (std::abs(delta) > tol && max_iter > 0) {
                 delta = (E - e * std::sin(E) - M) / (1.0 - e * std::cos(E));
                 E -= delta;
@@ -821,7 +824,7 @@ int main(int argc, char* argv[]) {
                  0.0, v0 * std::cos(51.6 * M_PI/180.0), v0 * std::sin(51.6 * M_PI/180.0);
     }
 
-    double dt = 10.0; // Adaptive fallback basic step for standard simulation
+    double dt = 0.5; // High accuracy mode step
     double t = 0;
     while (t < t_target) {
         double step = std::min(dt, t_target - t);

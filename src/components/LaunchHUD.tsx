@@ -33,6 +33,16 @@ export function LaunchHUD({
 }: LaunchHUDProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
   const [isCalculatingLaunchPhase, setIsCalculatingLaunchPhase] = useState(false);
+  const [position, setPosition] = useState(() => {
+    const saved = localStorage.getItem('LaunchHUD_pos');
+    return saved ? JSON.parse(saved) : { x: 0, y: 0 };
+  });
+
+  const onDragStop = (e: any, data: any) => {
+    const newPos = { x: data.x, y: data.y };
+    setPosition(newPos);
+    localStorage.setItem('LaunchHUD_pos', JSON.stringify(newPos));
+  };
 
   const onLaunch = () => {
     setIsCalculatingLaunchPhase(true);
@@ -58,12 +68,13 @@ export function LaunchHUD({
 
   return (
     <motion.div 
-      initial={{ opacity: 0, x: -50 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.6, type: 'spring', bounce: 0.3 }}
-      className="fixed left-8 bottom-8 z-40 pointer-events-auto"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6 }}
+      className="fixed z-40 pointer-events-auto"
+      style={{ left: 32, bottom: 32 }}
     >
-      <Draggable nodeRef={nodeRef} handle=".vab-drag-handle">
+      <Draggable nodeRef={nodeRef} handle=".vab-drag-handle" position={position} onStop={onDragStop}>
         <div 
           ref={nodeRef} 
           className="w-80 glass-panel border-white/10 rounded-lg p-6 text-white shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col"

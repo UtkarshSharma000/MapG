@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useTexture, OrbitControls } from "@react-three/drei";
 import * as THREE from 'three';
+import Draggable from 'react-draggable';
 import { motion } from "motion/react";
 import {
   Play,
@@ -93,6 +94,18 @@ export default function App() {
   const [showTelemetryPanel, setShowTelemetryPanel] = useState(true); 
   const [showMissionPanel, setShowMissionPanel] = useState(true); 
   const lastTimeMultRef = useRef(86400); // 1 Day/sec
+
+  const timeControlNodeRef = React.useRef<HTMLDivElement>(null);
+  const [timeControlPos, setTimeControlPos] = useState(() => {
+    const saved = localStorage.getItem('TimeControl_pos');
+    return saved ? JSON.parse(saved) : { x: 0, y: 0 };
+  });
+
+  const onDragStopTC = (e: any, data: any) => {
+    const newPos = { x: data.x, y: data.y };
+    setTimeControlPos(newPos);
+    localStorage.setItem('TimeControl_pos', JSON.stringify(newPos));
+  };
 
 
 
@@ -1040,17 +1053,19 @@ export default function App() {
             )}
 
             {/* Bottom Right: Time Controls */}
-            <div className="absolute bottom-8 right-8 p-5 rounded-lg w-80 flex flex-col gap-4 pointer-events-auto border border-white/10 glass-panel shadow-[0_0_20px_rgba(0,0,0,0.5)] text-white">
-              <div className="flex justify-between items-center">
-                <span className="font-label-caps text-[9px] tracking-[0.2em] text-white/40">
-                  TIME DILATION
-                </span>
-                <span className="font-data-lg text-lg text-secondary">
-                  {timeMult === 1
-                    ? "REALTIME"
-                    : `x${timeMult.toLocaleString()}`}
-                </span>
-              </div>
+            <Draggable nodeRef={timeControlNodeRef} handle=".drag-handle" position={timeControlPos} onStop={onDragStopTC}>
+              <div ref={timeControlNodeRef} className="fixed z-40 pointer-events-auto" style={{ right: 32, bottom: 32 }}>
+                <div className="p-5 rounded-lg w-80 flex flex-col gap-4 border border-white/10 glass-panel shadow-[0_0_20px_rgba(0,0,0,0.5)] text-white">
+                  <div className="flex justify-between items-center drag-handle cursor-move select-none pb-2 border-b border-white/10">
+                    <span className="font-label-caps text-[9px] tracking-[0.2em] text-white/40">
+                      TIME DILATION
+                    </span>
+                    <span className="font-data-lg text-lg text-secondary">
+                      {timeMult === 1
+                        ? "REALTIME"
+                        : `x${timeMult.toLocaleString()}`}
+                    </span>
+                  </div>
 
               <input
                 type="range"
@@ -1090,7 +1105,9 @@ export default function App() {
                 <span>DEC</span>
                 <span>CEN</span>
               </div>
-            </div>
+                </div>
+              </div>
+            </Draggable>
           </main>
         </div>
 

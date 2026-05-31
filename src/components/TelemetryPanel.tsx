@@ -1,8 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import Draggable from "react-draggable";
+import { Move } from "lucide-react";
 import { motion } from "motion/react";
 
 export function TelemetryPanel() {
   const [telemetry, setTelemetry] = useState<any>(null);
+  const nodeRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState(() => {
+    const saved = localStorage.getItem('TelemetryPanel_pos');
+    return saved ? JSON.parse(saved) : { x: 0, y: 0 };
+  });
+
+  const onDragStop = (e: any, data: any) => {
+    const newPos = { x: data.x, y: data.y };
+    setPosition(newPos);
+    localStorage.setItem('TelemetryPanel_pos', JSON.stringify(newPos));
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -16,21 +29,30 @@ export function TelemetryPanel() {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, x: -50 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.8, type: 'spring' }}
-      className="fixed top-36 left-8 p-6 rounded-lg border border-white/10 glass-panel shadow-[0_0_40px_rgba(0,0,0,0.5)] text-white w-72 pointer-events-auto z-40 flex flex-col"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8 }}
+      className="fixed z-40 pointer-events-auto"
+      style={{ left: 32, top: 144 }}
     >
-      <div className="mb-6">
-        <div className="font-label-caps text-[9px] text-white/40 tracking-[0.2em] mb-1">CRAFT IDENTIFIER</div>
-        <div className="font-headline-md text-white text-xl">SATELLITE-01</div>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="px-1.5 py-0.5 rounded-sm bg-secondary/10 text-secondary text-[8px] font-bold border border-secondary/20 uppercase">
-            {telemetry?.time ? "TELEMETRY LINKED" : "ACQUIRING..."}
-          </span>
-          <span className={`w-1.5 h-1.5 rounded-full ${telemetry?.time ? 'bg-secondary glow-cyan animate-pulse' : 'bg-red-500 animate-pulse'}`}></span>
-        </div>
-      </div>
+      <Draggable nodeRef={nodeRef} handle=".drag-handle" position={position} onStop={onDragStop}>
+        <div 
+          ref={nodeRef}
+          className="p-6 rounded-lg border border-white/10 glass-panel shadow-[0_0_40px_rgba(0,0,0,0.5)] text-white w-72 flex flex-col"
+        >
+          <div className="mb-6 drag-handle cursor-move select-none relative">
+            <div className="absolute top-0 right-0 p-1 opacity-50 hover:opacity-100">
+              <Move className="w-3.5 h-3.5 text-white/40" />
+            </div>
+            <div className="font-label-caps text-[9px] text-white/40 tracking-[0.2em] mb-1">CRAFT IDENTIFIER</div>
+            <div className="font-headline-md text-white text-xl pr-6">SATELLITE-01</div>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="px-1.5 py-0.5 rounded-sm bg-secondary/10 text-secondary text-[8px] font-bold border border-secondary/20 uppercase">
+                {telemetry?.time ? "TELEMETRY LINKED" : "ACQUIRING..."}
+              </span>
+              <span className={`w-1.5 h-1.5 rounded-full ${telemetry?.time ? 'bg-secondary glow-cyan animate-pulse' : 'bg-red-500 animate-pulse'}`}></span>
+            </div>
+          </div>
 
       {!telemetry?.time ? (
         <div className="text-xs font-label-caps tracking-widest text-white/40 mt-4">
@@ -78,6 +100,8 @@ export function TelemetryPanel() {
           </div>
         </div>
       )}
+        </div>
+      </Draggable>
     </motion.div>
   );
 }
