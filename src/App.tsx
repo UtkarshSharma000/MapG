@@ -53,6 +53,23 @@ function InteractiveGlobe({ url, color }: { url: string, color: string }) {
 }
 
 export default function App() {
+  const [showPortraitWarning, setShowPortraitWarning] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const isPortrait = window.innerHeight > window.innerWidth;
+      const isMobile = window.innerWidth < 1024;
+      setShowPortraitWarning(isPortrait && isMobile);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+    };
+  }, []);
+
   const [isSimulatorRunning, setIsSimulatorRunning] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState<
     (typeof PLANETS)[0] | null
@@ -671,6 +688,45 @@ export default function App() {
 
   return (
     <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-[#03060f]">
+      {showPortraitWarning && (
+        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#03060f] text-white p-8 text-center select-none pointer-events-auto">
+          {/* Ambient space glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-primary/10 rounded-full blur-[80px] pointer-events-none"></div>
+          
+          {/* Animated rotating device graphic */}
+          <div className="relative mb-8 flex items-center justify-center">
+            <svg 
+              className="w-20 h-20 text-primary animate-rotate-device" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="1.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <rect x="5" y="2" width="14" height="20" rx="3" />
+              <line x1="12" y1="18" x2="12.01" y2="18" strokeWidth="3" />
+            </svg>
+            
+            {/* Compass / orbit element decoration */}
+            <div className="absolute -inset-4 border border-dashed border-white/10 rounded-full animate-spin [animation-duration:12s] pointer-events-none"></div>
+          </div>
+          
+          <h2 className="font-display-lg text-2xl font-bold tracking-widest text-[#aaddff] uppercase mb-4 max-w-sm">
+            ORIENTATION RESTRICTED
+          </h2>
+          
+          <p className="font-body-rg text-sm text-white/60 tracking-wide max-w-sm leading-relaxed mb-8">
+            Access to the Odyssey Astrodynamics Terminal flight deck is restricted in portrait mode. Please rotate your device to <span className="text-white font-semibold">Landscape Mode</span>.
+          </p>
+          
+          <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+            <span className="font-mono text-[9px] text-white/40 tracking-[0.2em] uppercase">SYSTEM CONNECTIVITY SUSPENDED</span>
+          </div>
+        </div>
+      )}
+
       <OrbitSimulator
         isRunning={isSimulatorRunning}
         timeMult={timeMult}
@@ -1091,9 +1147,9 @@ export default function App() {
           <main className="flex-1 p-8 relative flex flex-col justify-between pointer-events-none">
             {/* Top Center: Sol and Planet focus selection bar */}
             {showMissionPanel && (
-              <Draggable nodeRef={targetSelectorNodeRef} handle=".target-drag-handle" position={targetSelectorPos} onStop={onDragStopTargetSelector}>
-                <div ref={targetSelectorNodeRef} className="fixed z-40 pointer-events-auto" style={{ left: '50%', top: 96, transform: 'translateX(-50%)' }}>
-                  <div className="flex items-center gap-3 px-4 py-2.5 rounded-full border border-white/15 bg-background/90 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.6)]">
+              <div id="target-selector-wrapper" className="fixed top-24 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex items-center justify-center w-max" style={{ transform: 'translateX(-50%)' }}>
+                <Draggable nodeRef={targetSelectorNodeRef} handle=".target-drag-handle" position={targetSelectorPos} onStop={onDragStopTargetSelector}>
+                  <div ref={targetSelectorNodeRef} className="pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-full border border-white/15 bg-background/90 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.6)]">
                     <div className="target-drag-handle opacity-50 cursor-move hover:opacity-100 flex items-center pr-2 border-r border-white/10">
                       <Move size={14} className="text-white/40" />
                     </div>
@@ -1125,8 +1181,8 @@ export default function App() {
                       ))}
                     </div>
                   </div>
-                </div>
-              </Draggable>
+                </Draggable>
+              </div>
             )}
 
             {/* Bottom Right: Time Controls */}

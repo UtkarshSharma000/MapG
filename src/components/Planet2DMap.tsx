@@ -86,8 +86,12 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, launchPlane
     <Draggable nodeRef={nodeRef} handle=".drag-handle" position={position} onStop={onDragStop}>
       <div 
         ref={nodeRef} 
-        style={{ position: 'fixed', left: 'calc(50vw - 400px)', top: '96px' }}
-        className="w-[800px] h-[500px] bg-surface/90 backdrop-blur-md border border-outline rounded-xl shadow-2xl overflow-hidden z-50 pointer-events-auto flex flex-col"
+        style={{ 
+          position: 'fixed', 
+          left: 'max(16px, calc(50vw - 400px))', 
+          top: '96px' 
+        }}
+        className="w-[calc(100vw-32px)] md:w-[800px] h-[350px] md:h-[500px] bg-surface/90 backdrop-blur-md border border-outline rounded-xl shadow-2xl overflow-hidden z-50 pointer-events-auto flex flex-col"
       >
         {/* Header */}
         <div className="drag-handle bg-surface border-b border-outline p-3 flex justify-between items-center cursor-move">
