@@ -163,7 +163,7 @@ public:
     }
 
     // Solves for required initial velocity vector
-    Vector3d solve_lambert(const Vector3d& r1, const Vector3d& r2, double tof, double mu_sun, bool prograde = true) const {
+    std::pair<Vector3d, Vector3d> solve_lambert_full(const Vector3d& r1, const Vector3d& r2, double tof, double mu_sun, bool prograde = true) const {
         double norm1 = r1.norm();
         double norm2 = r2.norm();
         
@@ -213,10 +213,24 @@ public:
             z = (zHigh + zLow) / 2.0;
         }
         
+        double cVal = C(z);
+        double sVal = S(z);
+        
         double f = 1.0 - y / norm1;
         double g = A * sqrt(y / mu_sun);
         
-        return (r2 - f * r1) / g;
+        Vector3d v1 = (r2 - f * r1) / g;
+        
+        double f_dot = sqrt(mu_sun) / (norm1 * norm2) * sqrt(y / cVal) * (z * sVal - 1.0);
+        double g_dot = 1.0 - y / norm2;
+        
+        Vector3d v2 = f_dot * r1 + g_dot * v1;
+        
+        return {v1, v2};
+    }
+
+    Vector3d solve_lambert(const Vector3d& r1, const Vector3d& r2, double tof, double mu_sun, bool prograde = true) const {
+        return solve_lambert_full(r1, r2, tof, mu_sun, prograde).first;
     }
 
     // --- Dual-Mode Mission Solver ---
