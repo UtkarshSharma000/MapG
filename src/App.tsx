@@ -76,8 +76,15 @@ export default function App() {
 
   const [launchPlanet, setLaunchPlanet] = useState<string | null>("Earth");
   const [targetPlanet, setTargetPlanet] = useState<string | null>(null);
+  const [initialLaunchPlanet, setInitialLaunchPlanet] = useState<string>("Earth");
+  const [initialTargetPlanet, setInitialTargetPlanet] = useState<string | null>(null);
   const [missionLegs, setMissionLegs] = useState<any[] | null>(null);
   const [returnWindow, setReturnWindow] = useState<OptimizeResult | null>(null);
+
+  const [missionStartRealTime, setMissionStartRealTime] = useState<number>(0);
+  const [recordedTimeEvents, setRecordedTimeEvents] = useState<{ elapsedMs: number, mult: number }[]>([]);
+  const [activeReplay, setActiveReplay] = useState<any>(null);
+  const [activeReplayStartTime, setActiveReplayStartTime] = useState<number>(0);
   
   // Track mission completions to trigger archiving in OrbitSimulator
   const [completedMissions, setCompletedMissions] = useState<number>(0);
@@ -212,6 +219,13 @@ export default function App() {
     }
   }, [selectedTarget, isLaunched]);
 
+  const handleTimeMultChange = (newMult: number) => {
+    setTimeMult(newMult);
+    if (isLaunched && !activeReplay) {
+      setRecordedTimeEvents(prev => [...prev, { elapsedMs: Date.now() - missionStartRealTime, mult: newMult }]);
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT') {
@@ -272,9 +286,9 @@ export default function App() {
           e.preventDefault();
           if (timeMult > 0) {
             lastTimeMultRef.current = timeMult;
-            setTimeMult(0);
+            handleTimeMultChange(0);
           } else {
-            setTimeMult(lastTimeMultRef.current || 86400);
+            handleTimeMultChange(lastTimeMultRef.current || 86400);
           }
           break;
         case '[':
@@ -282,7 +296,7 @@ export default function App() {
             const warpSpeeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10];
             const currIdx = warpSpeeds.indexOf(timeMult);
             if (currIdx > 0) {
-              setTimeMult(warpSpeeds[currIdx - 1]);
+              handleTimeMultChange(warpSpeeds[currIdx - 1]);
             }
           }
           break;
@@ -291,9 +305,9 @@ export default function App() {
             const warpSpeeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10];
             const currIdx = warpSpeeds.indexOf(timeMult);
             if (currIdx !== -1 && currIdx < warpSpeeds.length - 1) {
-              setTimeMult(warpSpeeds[currIdx + 1]);
+              handleTimeMultChange(warpSpeeds[currIdx + 1]);
             } else if (currIdx === -1) {
-              setTimeMult(86400);
+              handleTimeMultChange(86400);
             }
           }
           break;
@@ -397,6 +411,11 @@ export default function App() {
     teiAppliedRef.current = false;
     setCurrentLaunchTime(globalTimeRef.current);
     setIsLaunched(true);
+    setInitialLaunchPlanet(launchPlanet || "Earth");
+    setInitialTargetPlanet(targetPlanet);
+    setRecordedTimeEvents([{ elapsedMs: 0, mult: timeMult }]);
+    setMissionStartRealTime(Date.now());
+    setActiveReplay(null);
   };
 
   const planReturn = () => {
@@ -611,10 +630,44 @@ export default function App() {
     if (planetMap) setSelectedTarget(planetMap);
     
     teiAppliedRef.current = archive.teiApplied || false;
+    
+    // Launch and let time events drive the simulation
+    setActiveReplay(archive);
+    setActiveReplayStartTime(Date.now());
     setIsLaunched(true);
     setMissionStatus("STANDBY");
     setIsArchiveOpen(false);
   };
+
+  useEffect(() => {
+    if (!activeReplay || !activeReplay.recordedTimeEvents) return;
+    
+    let frameId: number;
+    let eventIndex = 0;
+    const events = activeReplay.recordedTimeEvents;
+
+    if (events.length > 0) {
+      handleTimeMultChange(events[0].mult);
+      lastTimeMultRef.current = events[0].mult;
+    }
+
+    const checkTime = () => {
+       if (eventIndex < events.length - 1) {
+           const elapsed = Date.now() - activeReplayStartTime;
+           const nextEvent = events[eventIndex + 1];
+           if (elapsed >= nextEvent.elapsedMs) {
+               handleTimeMultChange(nextEvent.mult);
+               lastTimeMultRef.current = nextEvent.mult;
+               eventIndex++;
+           }
+       }
+       frameId = requestAnimationFrame(checkTime);
+    };
+    
+    frameId = requestAnimationFrame(checkTime);
+    
+    return () => cancelAnimationFrame(frameId);
+  }, [activeReplay, activeReplayStartTime]);
 
   return (
     <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-[#03060f]">
@@ -628,6 +681,7 @@ export default function App() {
         onStatusUpdate={setMissionStatus}
         completedMissions={completedMissions}
         archivedMissions={archivedMissions}
+        activeReplay={activeReplay}
         onPointsCalculated={(pts, isReturn) => {
           if (isReturn) {
             setCurrentReturnPoints(pts);
@@ -918,12 +972,13 @@ export default function App() {
                 orbitType: missionStatus,
                 offset: completedMissions * (Math.PI / 4), // Phase offset to prevent collisions
                 missionLegs: missionLegs,
-                launchPlanet: launchPlanet,
-                originalTargetPlanet: targetPlanet,
+                launchPlanet: initialLaunchPlanet,
+                originalTargetPlanet: initialTargetPlanet,
                 launchTime: currentLaunchTime,
                 teiApplied: teiAppliedRef.current,
                 launchPoints: currentLaunchPoints,
                 returnPoints: currentReturnPoints,
+                recordedTimeEvents: [...recordedTimeEvents],
               };
               setArchivedMissions(prev => [...prev, missionArchive]);
               setCompletedMissions(prev => prev + 1);
@@ -936,6 +991,8 @@ export default function App() {
               teiAppliedRef.current = false;
               setCurrentLaunchPoints([]);
               setCurrentReturnPoints([]);
+              setRecordedTimeEvents([]);
+              setActiveReplay(null);
             }}
           />
         )}
@@ -1107,12 +1164,12 @@ export default function App() {
                 }
                 onChange={(e) => {
                   const val = parseInt(e.target.value);
-                  if (val === 0) setTimeMult(1);
-                  else if (val === 1) setTimeMult(86400);
-                  else if (val === 2) setTimeMult(86400 * 30);
-                  else if (val === 3) setTimeMult(86400 * 365.25);
-                  else if (val === 4) setTimeMult(86400 * 365.25 * 10);
-                  else setTimeMult(86400 * 365.25 * 100);
+                  if (val === 0) handleTimeMultChange(1);
+                  else if (val === 1) handleTimeMultChange(86400);
+                  else if (val === 2) handleTimeMultChange(86400 * 30);
+                  else if (val === 3) handleTimeMultChange(86400 * 365.25);
+                  else if (val === 4) handleTimeMultChange(86400 * 365.25 * 10);
+                  else handleTimeMultChange(86400 * 365.25 * 100);
                 }}
                 className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-secondary glow-cyan"
               />
