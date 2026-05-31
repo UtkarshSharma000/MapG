@@ -298,14 +298,15 @@ const AsteroidBelt = React.memo(function AsteroidBelt({ timeMult }: { timeMult: 
 
 const KuiperBelt = React.memo(function KuiperBelt({ timeMult }: { timeMult: number }) {
   const beltRef = useRef<THREE.Points>(null);
-  const PARTICLE_COUNT = 2000;
+  const PARTICLE_COUNT = 2500;
 
   const positions = useMemo(() => {
     const pos = new Float32Array(PARTICLE_COUNT * 3);
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const r = 30 + Math.random() * 20; // 30-50 AU
+      // The classical Kuiper Belt starts past Neptune's orbit (30 AU), primarily beyond the 3:2 resonance (39.5 to 55 AU)
+      const r = 39.5 + Math.random() * 15.5; 
       const theta = Math.random() * Math.PI * 2;
-      const y = (Math.random() - 0.5) * 2.0 * AU * POS_SCALE; 
+      const y = (Math.random() - 0.5) * 2.5 * AU * POS_SCALE; 
       
       pos[i * 3] = r * AU * POS_SCALE * Math.cos(theta);
       pos[i * 3 + 1] = y;
@@ -1081,49 +1082,8 @@ function OrbitingShuttle({
 }
 
 function ArchivedShuttle({ mission, globalTimeRef, onDoubleClick }: { mission: any, globalTimeRef: React.MutableRefObject<number>, onDoubleClick?: (label: string, ref: any) => void }) {
-  const ref = useRef<THREE.Group>(null);
-  const pName = mission.returnPlanet || mission.targetPlanet;
-  const planet = PLANETS.find(p => p.name === pName) || PLANETS.find(p => p.name === "Earth");
-
-  // Replay combined coordinates
   const launchPts = mission.launchPoints || [];
   const returnPts = mission.returnPoints || [];
-  const combinedPts = useMemo(() => [...launchPts, ...returnPts], [launchPts, returnPts]);
-
-  useFrame(() => {
-    if (!ref.current) return;
-    const time = globalTimeRef.current;
-
-    if (combinedPts.length > 0) {
-      const totalPoints = combinedPts.length;
-      const loopDuration = 15; // Complete flight path in 15 seconds
-      const elapsed = (time % loopDuration) / loopDuration;
-      const floatIdx = elapsed * (totalPoints - 1);
-      const idx = Math.floor(floatIdx);
-      const p1 = combinedPts[idx];
-      const p2 = combinedPts[idx + 1] || p1;
-      const t = floatIdx - idx;
-      
-      if (p1 && p2) {
-        ref.current.position.lerpVectors(p1, p2, t);
-        ref.current.lookAt(p2);
-      }
-    } else if (planet) {
-      // Fallback to orbiting planet
-      const [pX, pY, pZ] = propagateOrbit(planet.elements, time);
-      const orbitalRadius = 1.2;
-      const ang = (time / 86400) * 0.5 + mission.offset;
-      const ox = Math.cos(ang) * orbitalRadius;
-      const oz = Math.sin(ang) * orbitalRadius;
-      
-      ref.current.position.set(pX * POS_SCALE + ox, pZ * POS_SCALE, -pY * POS_SCALE + oz);
-      const nextAng = ang + 0.01;
-      const nox = Math.cos(nextAng) * orbitalRadius;
-      const noz = Math.sin(nextAng) * orbitalRadius;
-      const nextPos = new THREE.Vector3(pX * POS_SCALE + nox, pZ * POS_SCALE, -pY * POS_SCALE + noz);
-      ref.current.lookAt(nextPos);
-    }
-  });
 
   return (
     <group>
@@ -1132,9 +1092,9 @@ function ArchivedShuttle({ mission, globalTimeRef, onDoubleClick }: { mission: a
         <Line 
           points={launchPts}
           color="#00ff55"
-          opacity={0.12}
+          opacity={0.3}
           transparent
-          lineWidth={1.5}
+          lineWidth={2.5}
         />
       )}
       {/* Historical Return Trajectory */}
@@ -1142,39 +1102,11 @@ function ArchivedShuttle({ mission, globalTimeRef, onDoubleClick }: { mission: a
         <Line 
           points={returnPts}
           color="#ff3366"
-          opacity={0.12}
+          opacity={0.3}
           transparent
-          lineWidth={1.5}
+          lineWidth={2.5}
         />
       )}
-
-      <group 
-        ref={ref}
-        onDoubleClick={(e) => {
-          e.stopPropagation();
-          onDoubleClick?.(`ARCHIVE ${String(mission.id + 1).padStart(2, '0')}`, ref);
-        }}
-      >
-        <mesh position={[0, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-          <cylinderGeometry args={[0.08, 0.08, 0.5, 8]} />
-          <meshStandardMaterial color="#88aacc" roughness={0.2} metalness={0.8} />
-        </mesh>
-        {/* Solar panels */}
-        <mesh position={[0, -0.25, 0]} rotation={[0, 0, 0]}>
-          <boxGeometry args={[0.8, 0.02, 0.2]} />
-          <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
-        </mesh>
-        <mesh position={[0, 0.25, 0]} rotation={[0, 0, 0]}>
-          <boxGeometry args={[0.8, 0.02, 0.2]} />
-          <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
-        </mesh>
-        <Html distanceFactor={20} position={[0, 0.5, 0]}>
-          <div className="bg-black/60 px-2 py-0.5 rounded border border-green-500/30 flex flex-col gap-0 shadow-lg min-w-[70px]">
-            <div className="text-[6px] text-zinc-400 font-mono tracking-tighter uppercase whitespace-nowrap">MISSION {mission.id + 1}</div>
-            <div className="text-[8px] text-green-400 font-mono font-bold tracking-tight uppercase whitespace-nowrap">ARCHIVED</div>
-          </div>
-        </Html>
-      </group>
     </group>
   );
 }
@@ -1188,6 +1120,7 @@ function SystemEngine({
   onStatusUpdate,
   completedMissions,
   archivedMissions = [],
+  activeReplay,
   orbitPathsVisible = true,
   planetaryLabelsVisible = true,
   followSpacecraft = false,
@@ -1404,9 +1337,11 @@ function SystemEngine({
         />
       ))}
 
-      {archivedMissions.map(m => (
-        <ArchivedShuttle key={m.id} mission={m} globalTimeRef={globalTimeRef} onDoubleClick={handleShuttleDoubleClick} />
-      ))}
+      <React.Fragment>
+        {activeReplay ? (
+          <ArchivedShuttle mission={activeReplay} globalTimeRef={globalTimeRef} onDoubleClick={handleShuttleDoubleClick} />
+        ) : null}
+      </React.Fragment>
 
       {showOrbitingShuttle && orbPlanetName && (
         <OrbitingShuttle planetName={orbPlanetName} globalTimeRef={globalTimeRef} />
@@ -1452,6 +1387,7 @@ export default function OrbitSimulator({
   onStatusUpdate,
   completedMissions = 0,
   archivedMissions = [],
+  activeReplay,
   orbitPathsVisible = true,
   planetaryLabelsVisible = true,
   followSpacecraft = false,
@@ -1502,6 +1438,7 @@ export default function OrbitSimulator({
           onStatusUpdate={onStatusUpdate}
           completedMissions={completedMissions}
           archivedMissions={archivedMissions}
+          activeReplay={activeReplay}
           orbitPathsVisible={orbitPathsVisible}
           planetaryLabelsVisible={planetaryLabelsVisible}
           followSpacecraft={followSpacecraft}
@@ -1512,11 +1449,11 @@ export default function OrbitSimulator({
         />
 
         <Stars
-          radius={500}
-          depth={50}
-          count={8000}
-          factor={6}
-          saturation={0}
+          radius={300000}
+          depth={50000}
+          count={30000}
+          factor={15}
+          saturation={0.5}
           fade
         />
       </Canvas>
