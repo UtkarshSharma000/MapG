@@ -53,20 +53,17 @@ function InteractiveGlobe({ url, color }: { url: string, color: string }) {
 }
 
 export default function App() {
-  const [showPortraitWarning, setShowPortraitWarning] = useState(false);
+  const [showMobileBlock, setShowMobileBlock] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
-      const isPortrait = window.innerHeight > window.innerWidth;
       const isMobile = window.innerWidth < 1024;
-      setShowPortraitWarning(isPortrait && isMobile);
+      setShowMobileBlock(isMobile);
     };
     handleResize();
     window.addEventListener("resize", handleResize);
-    window.addEventListener("orientationchange", handleResize);
     return () => {
       window.removeEventListener("resize", handleResize);
-      window.removeEventListener("orientationchange", handleResize);
     };
   }, []);
 
@@ -688,15 +685,11 @@ export default function App() {
 
   return (
     <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-[#03060f]">
-      {showPortraitWarning && (
-        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#03060f] text-white p-8 text-center select-none pointer-events-auto">
-          {/* Ambient space glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-primary/10 rounded-full blur-[80px] pointer-events-none"></div>
-          
-          {/* Animated rotating device graphic */}
-          <div className="relative mb-8 flex items-center justify-center">
+      {showMobileBlock && (
+        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#03060f] text-white p-6 text-center select-none pointer-events-auto">
+          <div className="max-w-xs flex flex-col items-center">
             <svg 
-              className="w-20 h-20 text-primary animate-rotate-device" 
+              className="w-10 h-10 text-primary/70 mb-5" 
               viewBox="0 0 24 24" 
               fill="none" 
               stroke="currentColor" 
@@ -704,25 +697,15 @@ export default function App() {
               strokeLinecap="round" 
               strokeLinejoin="round"
             >
-              <rect x="5" y="2" width="14" height="20" rx="3" />
-              <line x1="12" y1="18" x2="12.01" y2="18" strokeWidth="3" />
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+              <line x1="12" y1="18" x2="12.01" y2="18" />
             </svg>
-            
-            {/* Compass / orbit element decoration */}
-            <div className="absolute -inset-4 border border-dashed border-white/10 rounded-full animate-spin [animation-duration:12s] pointer-events-none"></div>
-          </div>
-          
-          <h2 className="font-display-lg text-2xl font-bold tracking-widest text-[#aaddff] uppercase mb-4 max-w-sm">
-            ORIENTATION RESTRICTED
-          </h2>
-          
-          <p className="font-body-rg text-sm text-white/60 tracking-wide max-w-sm leading-relaxed mb-8">
-            Access to the Odyssey Astrodynamics Terminal flight deck is restricted in portrait mode. Please rotate your device to <span className="text-white font-semibold">Landscape Mode</span>.
-          </p>
-          
-          <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-            <span className="font-mono text-[9px] text-white/40 tracking-[0.2em] uppercase">SYSTEM CONNECTIVITY SUSPENDED</span>
+            <h1 className="text-xs font-bold tracking-[0.25em] text-[#aaddff] uppercase mb-2">
+              DESKTOP ONLY
+            </h1>
+            <p className="text-[11px] text-white/40 tracking-wider leading-relaxed">
+              Mobile support has not been added. Please connect using a desktop display.
+            </p>
           </div>
         </div>
       )}
