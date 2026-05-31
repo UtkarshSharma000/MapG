@@ -765,28 +765,25 @@ function GhostPath({
 
     const isInterplanetary = (launchParams.targetPlanet && launchParams.targetPlanet !== (launchParams.launchPlanet || "Earth")) || !!launchParams.missionLegs;
 
-    // Reset points ONLY if not launched OR if legs/target changed (e.g. planning return trip)
-    if (!launchParams.isLaunched || legsChanged || targetChanged) {
+    if (legsChanged || targetChanged) {
       setPoints([]);
+      launchTimeRef.current = null;
+      progressRef.current = 0;
+      setReachedDestination(false);
+      setStatus("Standby");
       
-      if (legsChanged || targetChanged) {
-        launchTimeRef.current = null;
-        progressRef.current = 0;
-        setReachedDestination(false);
-        setStatus("Standby");
-        
-        const isPlanningReturn = launchParams.launchPlanet && launchParams.launchPlanet !== "Earth" && launchParams.targetPlanet === "Earth";
-        if (isPlanningReturn) {
-          const orbitStatus = `${launchParams.launchPlanet.toUpperCase()}_ORBIT`;
-          lastStatusRef.current = orbitStatus;
-          if (onStatusUpdate) onStatusUpdate(orbitStatus);
-        } else {
-          lastStatusRef.current = "Standby";
-          if (onStatusUpdate) onStatusUpdate("Standby");
-        }
+      const isPlanningReturn = launchParams.launchPlanet && launchParams.launchPlanet !== "Earth" && launchParams.targetPlanet === "Earth";
+      if (isPlanningReturn) {
+        const orbitStatus = `${launchParams.launchPlanet.toUpperCase()}_ORBIT`;
+        lastStatusRef.current = orbitStatus;
+        if (onStatusUpdate) onStatusUpdate(orbitStatus);
+      } else {
+        lastStatusRef.current = "Standby";
+        if (onStatusUpdate) onStatusUpdate("Standby");
       }
-      
-      // Interplanetary mode (target select OR mission legs active)
+    }
+
+    if (!launchParams.isLaunched) {
       if (isInterplanetary) {
         calculateInterplanetaryPath();
         return;
@@ -832,8 +829,6 @@ function GhostPath({
     if (!launchParams.isLaunched) {
       launchTimeRef.current = null;
       progressRef.current = 0;
-      setStatus((prev) => (prev !== "Standby" ? "Standby" : prev));
-      setReachedDestination((prev) => (prev !== false ? false : prev));
 
       // Constantly recalculate if not launched (interplanetary)
       if (launchParams.isLaunched) return;

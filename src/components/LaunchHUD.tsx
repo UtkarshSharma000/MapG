@@ -57,17 +57,19 @@ export function LaunchHUD({
   }
 
   return (
-    <Draggable nodeRef={nodeRef} handle=".vab-drag-handle">
-      <motion.div 
-        ref={nodeRef} 
-        initial={{ opacity: 0, x: -50 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, type: 'spring', bounce: 0.3 }}
-        className="fixed left-8 bottom-8 w-80 glass-panel border-white/10 rounded-lg p-6 text-white z-40 pointer-events-auto shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col"
-      >
-        
-        {/* Panel Header */}
-        <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-white/10 pb-3 mb-6 select-none">
+    <motion.div 
+      initial={{ opacity: 0, x: -50 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.6, type: 'spring', bounce: 0.3 }}
+      className="fixed left-8 bottom-8 z-40 pointer-events-auto"
+    >
+      <Draggable nodeRef={nodeRef} handle=".vab-drag-handle">
+        <div 
+          ref={nodeRef} 
+          className="w-80 glass-panel border-white/10 rounded-lg p-6 text-white shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col"
+        >
+          {/* Panel Header */}
+          <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-white/10 pb-3 mb-6 select-none">
           <h3 className="font-label-caps text-[10px] tracking-[0.2em] text-primary flex items-center gap-1.5">
             LAUNCH CONTROL DECK
           </h3>
@@ -128,7 +130,8 @@ export function LaunchHUD({
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
     </Draggable>
+  </motion.div>
   );
 }
