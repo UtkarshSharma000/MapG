@@ -527,7 +527,7 @@ export function simulateInterplanetaryRK4(
             isOvershot = true;
             captured = false;
             success = false;
-            missionStatus = "OVERSHOT - INSUFFICIENT FUEL";
+            missionStatus = "";
           }
         }
       }

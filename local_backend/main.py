@@ -784,7 +784,7 @@ async def calculate_interplanetary(req: dict):
         "points": pts,
         "arrivalTime": globalTime + tof,
         "success": captured,
-        "missionStatus": f"{targetPlanet.upper()}_ORBIT" if captured else "OVERSHOT - INSUFFICIENT FUEL",
+        "missionStatus": f"{targetPlanet.upper()}_ORBIT" if captured else "",
         "captureAltitude": capture_alt,
         "orbitPeriod": orbit_period_days,
         "isOvershot": not captured,
