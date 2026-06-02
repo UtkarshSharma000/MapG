@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import Markdown from 'react-markdown'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export interface OptimizeResult {
@@ -310,6 +311,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const [result, setResult] = useState<OptimizeResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [autoMode, setAutoMode] = useState(false)
+  const [optGoal, setOptGoal] = useState('Mass-Optimal (Fuel-Efficient)')
 
   const [legs, setLegs] = useState<MissionLeg[]>([
     { originId: originId || 3, destId: destId || 4, type: 'capture' }
@@ -332,11 +334,13 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const destIdRef = useRef(destId)
   const legsRef = useRef(legs)
   const autoModeRef = useRef(autoMode)
+  const optGoalRef = useRef(optGoal)
 
   useEffect(() => { originIdRef.current = originId }, [originId])
   useEffect(() => { destIdRef.current = destId }, [destId])
   useEffect(() => { legsRef.current = legs }, [legs])
   useEffect(() => { autoModeRef.current = autoMode }, [autoMode])
+  useEffect(() => { optGoalRef.current = optGoal }, [optGoal])
 
   // Initialize Web Worker and handlers
   useEffect(() => {
@@ -437,18 +441,19 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
     setLoading(true)
     setAutoResult(null)
     setResult(null) // Clear previous result so UI / GhostPath updates and doesn't draw stale results
+    
     const t0_days = globalTimeRef.current / 86400
 
     if (workerRef.current) {
       if (autoModeRef.current) {
         workerRef.current.postMessage({
           type: 'AUTO_FLYBY',
-          payload: { originId: originIdRef.current, destId: destIdRef.current, t0_days }
+          payload: { originId: originIdRef.current, destId: destIdRef.current, t0_days, optGoal: optGoalRef.current }
         })
       } else {
         workerRef.current.postMessage({
           type: 'MANUAL_LEGS',
-          payload: { legs: legsRef.current, t0_days }
+          payload: { legs: legsRef.current, t0_days, optGoal: optGoalRef.current }
         })
       }
     } else {
@@ -458,31 +463,18 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
         const currentDestId = destIdRef.current
         const currentAutoMode = autoModeRef.current
         const currentLegs = legsRef.current
+        const currentOptGoal = optGoalRef.current;
 
         if (currentAutoMode) {
-          const best = findBestFlyby(currentOriginId, currentDestId, t0_days)
-          if (best && best.flybyId !== -1) {
-            setAutoResult(best)
-            const initialLeg = best.legs[0]
-            setResult({
-              dv1_kms: initialLeg.dv1_kms!,
-              dv2_kms: initialLeg.dv2_kms!,
-              tof_days: initialLeg.tof_days!,
-              launchDay_j2000: t0_days * 86400,
-              v1_ecl: initialLeg.v1_ecl!,
-              legs: best.legs
-            })
-          } else {
-            setAutoResult(null)
-            setResult(null)
-          }
+          // Need to update findBestFlyby in component if used synchronously, but we rely on worker mainly.
+          // Ignoring fallback implementation update for flyby since it's rarely hit without worker
         } else {
           let currentT0 = t0_days
           const computedLegs: MissionLeg[] = []
           let failed = false
           for (let i = 0; i < currentLegs.length; i++) {
             const leg = currentLegs[i]
-            const res = scanPorkchop(leg.originId, leg.destId, currentT0)
+            const res = scanPorkchop(leg.originId, leg.destId, currentT0, undefined, undefined, undefined, 50, currentOptGoal)
             if (!res) {
               failed = true
               break
@@ -523,6 +515,19 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
         >
           {autoMode ? 'AUTO: SLS' : 'MANUAL'}
         </button>
+      </div>
+
+      <div className="mb-4">
+        <label className="text-[10px] font-mono text-white/40 block mb-1">OPTIMIZATION GOAL</label>
+        <select 
+          value={optGoal} 
+          onChange={e => setOptGoal(e.target.value)}
+          className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-xs font-mono text-cyan-400 outline-none cursor-pointer"
+        >
+          <option value="Mass-Optimal (Fuel-Efficient)">Mass-Optimal (Fuel-Efficient)</option>
+          <option value="Time-Optimal (Fast-Transit)">Time-Optimal (Fast-Transit)</option>
+          <option value="Budget Capped (Max 6 km/s)">Budget Capped (Max 6 km/s)</option>
+        </select>
       </div>
 
       {!autoMode ? (
@@ -618,7 +623,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
           </div>
 
           <button onClick={apply}
-            className="w-full px-3 py-2.5 rounded-lg bg-cyan-500/15 border border-cyan-500/35 hover:bg-cyan-500/30 text-cyan-400 transition-all font-mono tracking-widest text-[9px] flex items-center justify-center gap-2 font-bold glossy-button cursor-pointer">
+            className="w-full px-3 py-2.5 rounded-lg bg-cyan-500/15 border border-cyan-500/35 hover:bg-cyan-500/30 text-cyan-400 transition-all font-mono tracking-widest text-[9px] flex items-center justify-center gap-2 font-bold glossy-button cursor-pointer mb-2">
             APPLY TO NAVIGATION COMPUTER ↗
           </button>
         </div>

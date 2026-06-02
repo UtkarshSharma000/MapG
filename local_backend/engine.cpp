@@ -921,10 +921,10 @@ int main(int argc, char* argv[]) {
                     leg2_states[i] = propagate_step(leg2_states[i+1].pos, leg2_states[i+1].vel, -dt);
                 }
 
-                // Window in indices
-                double w_flyby = std::min(15.0 * 86400.0, std::min(ga_tof1 * 0.25, ga_tof2 * 0.25));
-                int idx_start = std::max(0, std::min(499, (int)std::floor((ga_tof1 - w_flyby) / dt)));
-                int idx_end = std::max(0, std::min(499, (int)std::ceil((ga_tof1 + w_flyby) / dt)));
+                // Window in indices for a subtle, localized smooth blend around the encounter
+                int w = 8;
+                int idx_start = std::max(0, k - w);
+                int idx_end = std::min(499, k + w);
 
                 for (int i = 0; i < 500; ++i) {
                     if (i < idx_start) {
@@ -932,30 +932,10 @@ int main(int argc, char* argv[]) {
                     } else if (i > idx_end) {
                         ghost_path[i] = leg2_states[i].pos;
                     } else {
-                        // Inside transitioning window
-                        if (i <= k && k > idx_start) {
-                            double h = (k - idx_start) * dt;
-                            double u = (double)(i - idx_start) / (k - idx_start);
-                            double u2 = u * u;
-                            double u3 = u2 * u;
-                            double h00 = 2.0 * u3 - 3.0 * u2 + 1.0;
-                            double h10 = u3 - 2.0 * u2 + u;
-                            double h01 = -2.0 * u3 + 3.0 * u2;
-                            double h11 = u3 - u2;
-                            ghost_path[i] = h00 * leg1_states[idx_start].pos + h10 * h * leg1_states[idx_start].vel + h01 * ga_pos_p + h11 * h * ga_vel_p;
-                        } else if (i > k && idx_end > k) {
-                            double h = (idx_end - k) * dt;
-                            double u = (double)(i - k) / (idx_end - k);
-                            double u2 = u * u;
-                            double u3 = u2 * u;
-                            double h00 = 2.0 * u3 - 3.0 * u2 + 1.0;
-                            double h10 = u3 - 2.0 * u2 + u;
-                            double h01 = -2.0 * u3 + 3.0 * u2;
-                            double h11 = u3 - u2;
-                            ghost_path[i] = h00 * ga_pos_p + h10 * h * ga_vel_p + h01 * leg2_states[idx_end].pos + h11 * h * leg2_states[idx_end].vel;
-                        } else {
-                            ghost_path[i] = ga_pos_p;
-                        }
+                        // Blend smoothly in the encounter window
+                        double alpha = (double)(i - idx_start) / (double)(idx_end - idx_start);
+                        double smooth_alpha = alpha * alpha * (3.0 - 2.0 * alpha); // smoothstep
+                        ghost_path[i] = (1.0 - smooth_alpha) * leg1_states[i].pos + smooth_alpha * leg2_states[i].pos;
                     }
                 }
             } else {

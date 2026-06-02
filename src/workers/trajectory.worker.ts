@@ -203,7 +203,8 @@ export function scanPorkchop(
   searchDays?: number,
   tofMin?: number,
   tofMax?: number,
-  steps = 50
+  steps = 50,
+  optGoal = 'Mass-Optimal (Fuel-Efficient)'
 ): OptimizeResult | null {
   const bounds = getTransferBounds(originId, destId);
   const sDays = (searchDays !== undefined && searchDays > 0) ? searchDays : bounds.searchDays;
@@ -212,7 +213,9 @@ export function scanPorkchop(
   
   const AU_to_km = AU_KM
   let best: OptimizeResult | null = null
-  let bestDv = Infinity
+  let bestScore = Infinity
+  let backupDv = Infinity;
+  let backupBest: OptimizeResult | null = null;
 
   for (let di = 0; di < steps; di++) {
     const launch_days = t0_days + (di / steps) * sDays
@@ -236,48 +239,73 @@ export function scanPorkchop(
       const dvTotal = dv1 + dv2
 
       if (!isFinite(dv1) || !isFinite(dv2)) continue
-      if (dv1 > 50 || dv2 > 50) continue              // skip absurd values
-
-      if (dvTotal < bestDv) {
-        bestDv = dvTotal
-        best = {
+      if (dv1 > 100 || dv2 > 100) continue              // skip absurd values
+      
+      const payload = {
           dv1_kms:         parseFloat(dv1.toFixed(3)),
           dv2_kms:         parseFloat(dv2.toFixed(3)),
           tof_days:        Math.round(tof_days),
           launchDay_j2000: launch_days * 86400,
-          v1_ecl:          [sol.v1[0] - s1.vel[0], sol.v1[1] - s1.vel[1], sol.v1[2] - s1.vel[2]],
-        }
+          v1_ecl:          [sol.v1[0] - s1.vel[0], sol.v1[1] - s1.vel[1], sol.v1[2] - s1.vel[2]] as [number,number,number],
+      };
+
+      if (dvTotal < backupDv) {
+          backupDv = dvTotal;
+          backupBest = payload;
+      }
+
+      let score = dvTotal;
+      if (optGoal === 'Time-Optimal (Fast-Transit)') {
+          if (dvTotal > 40) continue; 
+          score = tof_days + (dvTotal * 0.5); // Favor speed, but penalize crazy high delta-v
+      } else if (optGoal === 'Budget Capped (Max 6 km/s)') {
+          if (dvTotal > 6.0) continue;
+          score = tof_days; // Fastest trajectory under 6 km/s budget
+      }
+
+      if (score < bestScore) {
+        bestScore = score
+        best = payload
       }
     }
   }
 
-  return best
+  // Fallback to lowest possible delta-v if budget constraint totally fails
+  return best || backupBest
 }
 
 function findBestFlyby(
   originId: number,
   destId: number,
-  t0_days: number
+  t0_days: number,
+  optGoal: string
 ): { flybyId: number; totalDv: number; legs: MissionLeg[], all: {flybyId: number, dv: number}[] } {
 
   const candidates = PLANET_IDS.filter(id => id !== originId && id !== destId)
-  let best = { flybyId: -1, totalDv: Infinity, legs: [] as MissionLeg[], all: [] as {flybyId: number; dv: number}[] }
+  let best = { flybyId: -1, totalScore: Infinity, totalDv: Infinity, legs: [] as MissionLeg[], all: [] as {flybyId: number; dv: number}[] }
   const allRes = []
 
   for (const flybyId of candidates) {
-    const leg1 = scanPorkchop(originId, flybyId, t0_days, undefined, undefined, undefined, 40)
+    const leg1 = scanPorkchop(originId, flybyId, t0_days, undefined, undefined, undefined, 40, optGoal)
     if (!leg1) continue
 
     const leg2ArrivalDay = (leg1.launchDay_j2000 / 86400) + leg1.tof_days
-    const leg2 = scanPorkchop(flybyId, destId, leg2ArrivalDay, undefined, undefined, undefined, 40)
+    const leg2 = scanPorkchop(flybyId, destId, leg2ArrivalDay, undefined, undefined, undefined, 40, optGoal)
     if (!leg2) continue
 
     const totalDv = leg1.dv1_kms + leg2.dv1_kms
+    const totalTof = leg1.tof_days + leg2.tof_days
+    
+    let score = totalDv;
+    if (optGoal === 'Time-Optimal (Fast-Transit)') score = totalTof + (totalDv * 0.5);
+    else if (optGoal === 'Budget Capped (Max 6 km/s)') score = totalDv <= 6 ? totalTof : Infinity;
+
     allRes.push({ flybyId, dv: totalDv })
 
-    if (totalDv < best.totalDv) {
+    if (score < best.totalScore) {
       best = {
         flybyId,
+        totalScore: score,
         totalDv,
         legs: [
           { originId, destId: flybyId, type: 'flyby', ...leg1 },
@@ -303,13 +331,14 @@ self.onmessage = (e) => {
       payload.searchDays,
       payload.tofMin,
       payload.tofMax,
-      payload.steps
+      payload.steps,
+      payload.optGoal
     )
     self.postMessage({ type: 'RESULT', result })
   }
 
   if (type === 'AUTO_FLYBY') {
-    const result = findBestFlyby(payload.originId, payload.destId, payload.t0_days)
+    const result = findBestFlyby(payload.originId, payload.destId, payload.t0_days, payload.optGoal)
     self.postMessage({ type: 'AUTO_RESULT', result })
   }
 
@@ -319,7 +348,7 @@ self.onmessage = (e) => {
     let failed = false
     for (let i = 0; i < payload.legs.length; i++) {
       const leg = payload.legs[i]
-      const res = scanPorkchop(leg.originId, leg.destId, currentT0, undefined, undefined, undefined, 40)
+      const res = scanPorkchop(leg.originId, leg.destId, currentT0, undefined, undefined, undefined, 40, payload.optGoal)
       if (!res) {
         failed = true
         break
