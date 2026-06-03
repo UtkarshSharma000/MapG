@@ -217,7 +217,8 @@ export function scanPorkchop(
   searchDays?: number,
   tofMin?: number,
   tofMax?: number,
-  steps = 50
+  steps = 50,
+  optGoal = 'Mass-Optimal (Fuel-Efficient)'
 ): OptimizeResult | null {
   const bounds = getTransferBounds(originId, destId);
   const sDays = (searchDays !== undefined && searchDays > 0) ? searchDays : bounds.searchDays;
@@ -226,7 +227,9 @@ export function scanPorkchop(
 
   const AU_to_km = AU_KM
   let best: OptimizeResult | null = null
-  let bestDv = Infinity
+  let bestScore = Infinity
+  let backupDv = Infinity
+  let backupBest: OptimizeResult | null = null
 
   for (let di = 0; di < steps; di++) {
     const launch_days = t0_days + (di / steps) * sDays
@@ -252,20 +255,36 @@ export function scanPorkchop(
       if (!isFinite(dv1) || !isFinite(dv2)) continue
       if (dv1 > 50 || dv2 > 50) continue              // skip absurd values
 
-      if (dvTotal < bestDv) {
-        bestDv = dvTotal
-        best = {
-          dv1_kms:         parseFloat(dv1.toFixed(3)),
-          dv2_kms:         parseFloat(dv2.toFixed(3)),
-          tof_days:        Math.round(tof_days),
-          launchDay_j2000: launch_days * 86400,  // → seconds for globalTimeRef
-          v1_ecl:          [sol.v1[0] - s1.vel[0], sol.v1[1] - s1.vel[1], sol.v1[2] - s1.vel[2]],
-        }
+      const candidate = {
+        dv1_kms:         parseFloat(dv1.toFixed(3)),
+        dv2_kms:         parseFloat(dv2.toFixed(3)),
+        tof_days:        Math.round(tof_days),
+        launchDay_j2000: launch_days * 86400,  // → seconds for globalTimeRef
+        v1_ecl:          [sol.v1[0] - s1.vel[0], sol.v1[1] - s1.vel[1], sol.v1[2] - s1.vel[2]] as [number, number, number],
+      }
+
+      if (dvTotal < backupDv) {
+        backupDv = dvTotal
+        backupBest = candidate
+      }
+
+      let score = dvTotal
+      if (optGoal === 'Time-Optimal (Fast-Transit)') {
+        if (dvTotal > 40) continue; 
+        score = tof_days + (dvTotal * 0.5); // Favor speed, but penalize crazy high delta-v
+      } else if (optGoal === 'Budget Capped (Max 6 km/s)') {
+        if (dvTotal > 6.0) continue;
+        score = tof_days; // Fastest trajectory under 6 km/s budget
+      }
+
+      if (score < bestScore) {
+        bestScore = score
+        best = candidate
       }
     }
   }
 
-  return best
+  return best || backupBest
 }
 
 function findBestFlyby(
