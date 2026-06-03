@@ -141,6 +141,24 @@ export default function App() {
     localStorage.setItem('TargetSelector_pos', JSON.stringify(newPos));
   };
 
+  const trajectoryNodeRef = React.useRef<HTMLDivElement>(null);
+  const [trajectoryPos, setTrajectoryPos] = useState(() => {
+    const saved = localStorage.getItem('TrajectoryOptimizer_pos');
+    return saved ? JSON.parse(saved) : { x: 0, y: 0 };
+  });
+
+  const onDragStopTrajectory = (e: any, data: any) => {
+    const newPos = { x: data.x, y: data.y };
+    setTrajectoryPos(newPos);
+    localStorage.setItem('TrajectoryOptimizer_pos', JSON.stringify(newPos));
+  };
+
+  const getSimulatedDestId = (): number => {
+    const nameMap = { "MERCURY": 1, "VENUS": 2, "EARTH": 3, "MARS": 4, "JUPITER": 5, "SATURN": 6, "URANUS": 7, "NEPTUNE": 8 } as any;
+    const name = selectedTarget?.name || targetPlanet || "Mars";
+    return nameMap[name.toUpperCase()] || 4;
+  };
+
 
 
   // Time Ref for jumping simulation
@@ -978,6 +996,20 @@ export default function App() {
         className={`absolute inset-0 z-30 pointer-events-none flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-100" : "opacity-0"}`}
       >
         {isSimulatorRunning && showTelemetryPanel && <TelemetryPanel />}
+        {isSimulatorRunning && showMissionPanel && (
+          <div ref={trajectoryNodeRef} className="fixed z-40 pointer-events-auto" style={{ left: 32 + 310, top: 144 }}>
+            <Draggable nodeRef={trajectoryNodeRef} handle=".trajectory-drag-handle" position={trajectoryPos} onStop={onDragStopTrajectory}>
+              <div className="flex flex-col">
+                <TrajectoryOptimizer
+                  originId={getSimulatedOriginId()}
+                  destId={getSimulatedDestId()}
+                  globalTimeRef={globalTimeRef}
+                  onApply={handleApply}
+                />
+              </div>
+            </Draggable>
+          </div>
+        )}
         {isSimulatorRunning && (
           <LaunchHUD
             selectedTarget={selectedTarget}

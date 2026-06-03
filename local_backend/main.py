@@ -343,21 +343,23 @@ async def trajectory_preview(
     v0: float, pitch: float, yaw: float, nbody: bool, 
     start_lat: float = 0, start_lon: float = 0, 
     target_lat: float = 0, target_lon: float = 0, 
-    target_planet: str = ""
+    target_planet: str = "",
+    launch_planet: str = "Earth"
 ):
-    if target_planet and target_planet != "Earth":
+    if target_planet and launch_planet != target_planet:
         # Interplanetary Hohmann curve
         au_km = 1.495978707e8
         planet_a = {
             "Mercury": 0.387 * au_km,
             "Venus": 0.723 * au_km,
+            "Earth": 1.000 * au_km,
             "Mars": 1.524 * au_km,
             "Jupiter": 5.204 * au_km,
             "Saturn": 9.582 * au_km,
             "Uranus": 19.201 * au_km,
             "Neptune": 30.047 * au_km,
         }
-        r1 = 1.0 * au_km
+        r1 = planet_a.get(launch_planet, 1.0 * au_km)
         r2 = planet_a.get(target_planet, 1.524 * au_km)
         
         at = (r1 + r2) / 2.0

@@ -20,9 +20,14 @@ export function TelemetryPanel() {
   useEffect(() => {
     const interval = setInterval(() => {
       fetch("/api/telemetry")
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) throw new Error("Server not ready");
+          return res.json();
+        })
         .then((data) => setTelemetry(data))
-        .catch((err) => console.error("Failed to fetch telemetry", err));
+        .catch((err) => {
+          // Silently wait for backend to boot during startup phase without causing console failures
+        });
     }, 500);
     return () => clearInterval(interval);
   }, []);

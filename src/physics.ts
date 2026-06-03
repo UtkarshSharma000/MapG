@@ -1,6 +1,7 @@
 export const G = 6.6743015e-11; // m^3 kg^-1 s^-2
-export const M_SUN = 1.989e30; // kg
-export const MU_SUN = G * M_SUN; // m^3 s^-2
+export const MU_SUN = 1.32712440018e20; // m^3 s^-2 (Official IAU value)
+export const GM_SUN = MU_SUN;           // Constant symbol symmetry
+export const M_SUN = MU_SUN / G;        // Consistent derived solar mass
 
 export const AU = 149597870700; // meters
 

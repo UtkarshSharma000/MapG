@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import Markdown from 'react-markdown'
+import { Move } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export interface OptimizeResult {
@@ -532,9 +533,12 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const apply = () => { if (result) onApply(result) }
 
   return (
-    <div className="p-5 rounded-2xl w-80 mb-4 pointer-events-auto shadow-2xl relative overflow-y-auto overflow-x-hidden max-h-[85vh] text-white z-[1000] border border-white/10 glossy-panel pointer-events-auto custom-scrollbar">
-      <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2.5">
-        <h3 className="font-sans font-medium text-[10px] tracking-widest text-primary">TRAJECTORY PLANNER</h3>
+    <div className="p-5 rounded-2xl w-80 mb-4 pointer-events-auto shadow-2xl relative overflow-y-auto overflow-x-hidden max-h-[85vh] text-white z-[1000] border border-white/10 glossy-panel pointer-events-auto custom-scrollbar font-sans">
+      <div className="trajectory-drag-handle flex justify-between items-center mb-4 border-b border-white/10 pb-2.5 cursor-move select-none">
+        <h3 className="font-sans font-medium text-[10px] tracking-widest text-primary flex items-center gap-1.5">
+          <Move className="w-3 h-3 text-primary/60" />
+          TRAJECTORY PLANNER
+        </h3>
         <button 
           onClick={() => setAutoMode(!autoMode)}
           className={`px-2.5 py-1 rounded-lg font-mono text-[8.5px] uppercase tracking-widest transition-all glossy-button cursor-pointer ${

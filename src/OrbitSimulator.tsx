@@ -814,7 +814,18 @@ function GhostPath({
         const targetLon = targetLocation?.lon || 0;
 
         const res = await axios.get("/api/trajectory-preview", {
-          params: { v0, pitch, yaw, nbody, startLat, startLon, targetLat, targetLon, targetPlanet }
+          params: { 
+            v0, 
+            pitch, 
+            yaw, 
+            nbody, 
+            startLat, 
+            startLon, 
+            targetLat, 
+            targetLon, 
+            targetPlanet,
+            launchPlanet: launchParams.launchPlanet || "Earth"
+          }
         });
         if (res.data.path) {
           const visualRadius = Math.max(0.4, Math.log10(6371) * 0.4);

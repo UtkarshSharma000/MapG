@@ -36,7 +36,7 @@ const PLANETS: Record<number, {
 const PLANET_IDS = [1, 2, 3, 4, 5, 6, 7, 8]
 
 const AU_KM  = 1.496e8
-const GM_SUN = 1.327124e20  // m³/s²
+const GM_SUN = 1.32712440018e20  // m³/s² (Exact precision alignment)
 const DEG    = Math.PI / 180
 
 function solveKepler(M: number, e: number): number {
