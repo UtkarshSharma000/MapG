@@ -513,7 +513,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const apply = () => { if (result) onApply(result) }
 
   return (
-    <div className="p-5 rounded-2xl w-80 mb-4 pointer-events-auto shadow-2xl relative overflow-hidden text-white z-[1000] border border-white/10 glossy-panel">
+    <div className="p-5 rounded-2xl w-80 mb-4 pointer-events-auto shadow-2xl relative overflow-y-auto overflow-x-hidden max-h-[85vh] text-white z-[1000] border border-white/10 glossy-panel pointer-events-auto custom-scrollbar">
       <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2.5">
         <h3 className="font-sans font-medium text-[10px] tracking-widest text-primary">TRAJECTORY PLANNER</h3>
         <button 

@@ -1440,15 +1440,10 @@ export default function OrbitSimulator({
       className={`absolute inset-0 transition-opacity duration-1000 ${isRunning ? "opacity-100 z-10 pointer-events-auto bg-[#03060f]" : "opacity-0 z-[-10] pointer-events-none"}`}
     >
       {isCalculating && (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-none">
-          <div className="flex flex-col items-center p-8 bg-[#090b14] border border-white/10 rounded-2xl shadow-2xl">
-            <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin mb-4" />
-            <div className="text-cyan-400 font-mono tracking-widest text-xs uppercase animate-pulse">
-              Computing Trajectory
-            </div>
-            <div className="text-white/40 font-mono text-[10px] mt-2 text-center uppercase tracking-wider">
-              Simulating Interplanetary Path
-            </div>
+        <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">
+          <div className="text-cyan-400 font-mono tracking-widest text-[10px] uppercase bg-black/80 px-4 py-2 border border-cyan-500/30 rounded shadow overflow-hidden relative">
+            <div className="absolute inset-0 bg-cyan-500/10 animate-pulse"></div>
+            Computing Trajectory...
           </div>
         </div>
       )}

@@ -914,70 +914,6 @@ int main(int argc, char* argv[]) {
 
                 ga_pos_p = jup_pos_flyby + rp * P_dir;
                 ga_vel_p = jup_vel_flyby + v_p_mag * V_dir;
-
-                // --- Uniform time-step ghost path interpolation ---
-                ghost_path.resize(500);
-                double dt = best_tof / 499.0;
-                
-                struct LocalState {
-                    Eigen::Vector3d pos;
-                    Eigen::Vector3d vel;
-                };
-
-                auto propagate_step = [](const Eigen::Vector3d& p, const Eigen::Vector3d& v, double dt_step) -> LocalState {
-                    auto get_der = [](const Eigen::Vector3d& pos_u, const Eigen::Vector3d& vel_u) {
-                        double r3 = std::pow(pos_u.norm(), 3);
-                        Eigen::Vector3d acc = -MU_SUN * pos_u / r3;
-                        return std::make_pair(vel_u, acc);
-                    };
-                    
-                    auto k1 = get_der(p, v);
-                    auto k2 = get_der(p + 0.5 * dt_step * k1.first, v + 0.5 * dt_step * k1.second);
-                    auto k3 = get_der(p + 0.5 * dt_step * k2.first, v + 0.5 * dt_step * k2.second);
-                    auto k4 = get_der(p + dt_step * k3.first, v + dt_step * k3.second);
-                    
-                    Eigen::Vector3d next_pos = p + (dt_step / 6.0) * (k1.first + 2.0 * k2.first + 2.0 * k3.first + k4.first);
-                    Eigen::Vector3d next_vel = v + (dt_step / 6.0) * (k1.second + 2.0 * k2.second + 2.0 * k3.second + k4.second);
-                    return {next_pos, next_vel};
-                };
-
-                std::vector<LocalState> leg1_states(500);
-                std::vector<LocalState> leg2_states(500);
-
-                // Build Leg 1 states
-                leg1_states[0] = {earth_pos, best_v};
-                for (int i = 1; i < 500; ++i) {
-                    leg1_states[i] = propagate_step(leg1_states[i-1].pos, leg1_states[i-1].vel, dt);
-                }
-
-                // Build Leg 2 states centered at index k
-                int k = std::min(499, std::max(0, (int)std::round(ga_tof1 / dt)));
-                leg2_states[k] = {jup_pos_flyby, ga_v2_dep};
-
-                for (int i = k + 1; i < 500; ++i) {
-                    leg2_states[i] = propagate_step(leg2_states[i-1].pos, leg2_states[i-1].vel, dt);
-                }
-                for (int i = k - 1; i >= 0; --i) {
-                    leg2_states[i] = propagate_step(leg2_states[i+1].pos, leg2_states[i+1].vel, -dt);
-                }
-
-                // Window in indices for a subtle, localized smooth blend around the encounter
-                int w = 8;
-                int idx_start = std::max(0, k - w);
-                int idx_end = std::min(499, k + w);
-
-                for (int i = 0; i < 500; ++i) {
-                    if (i < idx_start) {
-                        ghost_path[i] = leg1_states[i].pos;
-                    } else if (i > idx_end) {
-                        ghost_path[i] = leg2_states[i].pos;
-                    } else {
-                        // Blend smoothly in the encounter window
-                        double alpha = (double)(i - idx_start) / (double)(idx_end - idx_start);
-                        double smooth_alpha = alpha * alpha * (3.0 - 2.0 * alpha); // smoothstep
-                        ghost_path[i] = (1.0 - smooth_alpha) * leg1_states[i].pos + smooth_alpha * leg2_states[i].pos;
-                    }
-                }
             } else {
                 if (bypass_tof1 > 0) {
                     best_tof = bypass_tof1 * 86400.0;
@@ -1071,9 +1007,76 @@ int main(int argc, char* argv[]) {
 
             double total_dv = dv_depart + dv_flyby + probe.required_capture_dv;
 
-            static const int N = 500;
-            if (ghost_path.empty()) {
-                ghost_path = gc.generate_ghost_path(earth_pos, best_v, best_tof, MU_SUN, N);
+            int NUM_POINTS = 500;
+            if (is_gravity_assist) {
+                Eigen::Vector3d jup_pos_flyby = propagate_orbit(*flyby_el, launchTime + ga_tof1);
+                Eigen::Vector3d jup_vel_flyby = get_orbital_velocity(*flyby_el, launchTime + ga_tof1);
+                Eigen::Vector3d tgt_pos_arr = propagate_orbit(*tgt, launchTime + ga_tof1 + ga_tof2);
+
+                Eigen::Vector3d v_sc1_arr = gc.solve_lambert_full(earth_pos, jup_pos_flyby, ga_tof1, MU_SUN).second;
+                Eigen::Vector3d v_sc2_dep = gc.solve_lambert_full(jup_pos_flyby, tgt_pos_arr, ga_tof2, MU_SUN).first;
+
+                Eigen::Vector3d v_inf_in = v_sc1_arr - jup_vel_flyby;
+                Eigen::Vector3d v_inf_out = v_sc2_dep - jup_vel_flyby;
+
+                double v_in_mag = v_inf_in.norm();
+                double v_out_mag = v_inf_out.norm();
+                double v_avg = (v_in_mag + v_out_mag) / 2.0;
+
+                Eigen::Vector3d S_in = -v_inf_in / v_in_mag;
+                Eigen::Vector3d S_out = v_inf_out / v_out_mag;
+                double cos_delta = std::max(-1.0, std::min(1.0, S_in.dot(S_out)));
+                double delta = std::acos(cos_delta);
+
+                double sin_half_delta = std::sin(delta / 2.0);
+                double rp = (flyby_el->mu / (v_avg * v_avg)) * ((1.0 / std::max(1e-4, sin_half_delta)) - 1.0);
+                double safety_margin = flyby_el->radius + 150000.0;
+                if (rp < safety_margin) rp = safety_margin;
+
+                Eigen::Vector3d P_dir = (S_in + S_out).normalized();
+                Eigen::Vector3d V_dir = (S_out - S_in).normalized();
+                double v_p_mag = std::sqrt(v_avg * v_avg + 2.0 * flyby_el->mu / rp);
+
+                ga_pos_p = jup_pos_flyby + rp * P_dir;
+                ga_vel_p = jup_vel_flyby + v_p_mag * V_dir;
+                ga_v2_dep = v_sc2_dep;
+
+                ghost_path.clear();
+                std::vector<Eigen::Vector3d> path1 = gc.generate_ghost_path(earth_pos, best_v, ga_tof1, MU_SUN, 200);
+                std::vector<Eigen::Vector3d> path2 = gc.generate_ghost_path(jup_pos_flyby, ga_v2_dep, ga_tof2, MU_SUN, 200);
+                
+                double t_bound = flyby_el->soi / v_avg; 
+                double dt1 = ga_tof1 / 199.0;
+                for (size_t i = 0; i < path1.size(); ++i) {
+                    if (i * dt1 < ga_tof1 - t_bound) ghost_path.push_back(path1[i]);
+                }
+                
+                // Add high resolution hyperbolic flyby using planetocentric frame
+                int flyby_steps = 100;
+                for (int i = 0; i <= flyby_steps; ++i) {
+                    double t_encounter = -t_bound + 2.0 * t_bound * ((double)i / flyby_steps);
+                    
+                    Eigen::Vector3d current_pos_rel = rp * P_dir;
+                    if (t_encounter < 0) {
+                        current_pos_rel = (rp * P_dir) - (-t_encounter * v_inf_in);
+                    } else {
+                        current_pos_rel = (rp * P_dir) + (t_encounter * v_inf_out);
+                    }
+                    
+                    Eigen::Vector3d p_planet = propagate_orbit(*flyby_el, launchTime + ga_tof1 + t_encounter);
+                    ghost_path.push_back(p_planet + current_pos_rel);
+                }
+
+                double dt2 = ga_tof2 / 199.0;
+                for (size_t i = 0; i < path2.size(); ++i) {
+                    if (i * dt2 > t_bound) ghost_path.push_back(path2[i]);
+                }
+            }
+
+            NUM_POINTS = ghost_path.size();
+            if (NUM_POINTS == 0) {
+                NUM_POINTS = 500;
+                ghost_path = gc.generate_ghost_path(earth_pos, best_v, best_tof, MU_SUN, NUM_POINTS);
             }
             
             bool reached_target = probe.reached_target;
@@ -1126,7 +1129,7 @@ int main(int argc, char* argv[]) {
 
             std::cout << std::fixed << std::setprecision(3);
             std::cout << "{\"points\":[";
-            for (int i = 0; i < N; i++) {
+            for (int i = 0; i < NUM_POINTS; i++) {
                 if (i) std::cout << ",";
                 std::cout << "[" << ghost_path[i].x()/1000.0 << "," << ghost_path[i].y()/1000.0 << "," << ghost_path[i].z()/1000.0 << "]";
             }
