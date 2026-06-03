@@ -997,18 +997,16 @@ export default function App() {
       >
         {isSimulatorRunning && showTelemetryPanel && <TelemetryPanel />}
         {isSimulatorRunning && showMissionPanel && (
-          <div ref={trajectoryNodeRef} className="fixed z-40 pointer-events-auto" style={{ left: 32 + 310, top: 144 }}>
-            <Draggable nodeRef={trajectoryNodeRef} handle=".trajectory-drag-handle" position={trajectoryPos} onStop={onDragStopTrajectory}>
-              <div className="flex flex-col">
-                <TrajectoryOptimizer
-                  originId={getSimulatedOriginId()}
-                  destId={getSimulatedDestId()}
-                  globalTimeRef={globalTimeRef}
-                  onApply={handleApply}
-                />
-              </div>
-            </Draggable>
-          </div>
+          <Draggable nodeRef={trajectoryNodeRef} handle=".trajectory-drag-handle" position={trajectoryPos} onStop={onDragStopTrajectory}>
+            <div ref={trajectoryNodeRef} className="fixed z-40 pointer-events-auto" style={{ left: 32 + 310, top: 144 }}>
+              <TrajectoryOptimizer
+                originId={getSimulatedOriginId()}
+                destId={getSimulatedDestId()}
+                globalTimeRef={globalTimeRef}
+                onApply={handleApply}
+              />
+            </div>
+          </Draggable>
         )}
         {isSimulatorRunning && (
           <LaunchHUD
