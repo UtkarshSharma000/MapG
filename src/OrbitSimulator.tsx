@@ -684,6 +684,7 @@ function GhostPath({
   const requiredDVRef = useRef<number>(0);
   const fuelRef = useRef<number>(100); // %
   const [status, setStatus] = useState<string>("Standby");
+  const [isCalculating, setIsCalculating] = useState(false);
   const [daysPassed, setDaysPassed] = useState<number>(0);
   const [stayTimeDays, setStayTimeDays] = useState<number>(0);
   const [interceptPoint, setInterceptPoint] = useState<THREE.Vector3 | null>(null);
@@ -712,6 +713,7 @@ function GhostPath({
     const targetPlanet = PLANETS.find(p => p.name === targetName);
     if (!targetPlanet) return;
     
+    setIsCalculating(true);
     try {
       const payload = { 
         launchPlanet, 
@@ -757,6 +759,8 @@ function GhostPath({
       setInterceptPoint(new THREE.Vector3(ix * POS_SCALE, iz * POS_SCALE, -iy * POS_SCALE));
     } catch (err) {
       console.error("Backend calculation failed:", err);
+    } finally {
+      setIsCalculating(false);
     }
   }, [launchParams]);
 
@@ -954,6 +958,32 @@ function GhostPath({
 
   return (
     <group>
+      {isCalculating && (
+        <Html fullscreen className="pointer-events-none flex items-center justify-center z-50">
+          <div className="flex flex-col items-center justify-center bg-black/60 backdrop-blur-md px-12 py-10 rounded-2xl border border-cyan-500/30 shadow-2xl relative overflow-hidden">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] opacity-50" />
+            <div className="relative w-24 h-24 mb-6">
+              <div className="absolute inset-0 border-2 border-cyan-500/20 rounded-full animate-[spin_4s_linear_infinite]" />
+              <div className="absolute inset-2 border-2 border-dashed border-cyan-400/40 rounded-full animate-[spin_6s_linear_infinite_reverse]" />
+              <div className="absolute inset-4 border-2 border-dotted border-cyan-300/60 rounded-full animate-[spin_3s_linear_infinite]" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-yellow-400 rounded-full shadow-[0_0_10px_rgba(250,204,21,0.8)]" />
+              <div className="absolute inset-0 animate-[spin_4s_linear_infinite]">
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full shadow-[0_0_5px_rgba(96,165,250,0.8)]" />
+              </div>
+              <div className="absolute inset-2 animate-[spin_6s_linear_infinite_reverse]">
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-red-400 rounded-full" />
+              </div>
+            </div>
+            <div className="text-cyan-400 font-mono tracking-[0.3em] text-[10px] uppercase font-bold animate-pulse relative z-10">
+              SOLVING LAMBERT ARC
+            </div>
+            <div className="text-cyan-500/50 font-mono text-[8px] mt-2 uppercase text-center w-full relative z-10">
+              Optimizing Departure Window<br/>Simulating Ephemeris Targets
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/10 to-transparent h-[200%] animate-[slide_2s_linear_infinite]" />
+          </div>
+        </Html>
+      )}
       <Line
         points={points}
         color={launchParams?.isLaunched ? "#ff4444" : "#00ffff"}
@@ -1316,43 +1346,6 @@ function SystemEngine({
           )}
         </div>
       </Html>
-
-      {isCalculating && (
-        <Html fullscreen className="pointer-events-none flex items-center justify-center z-50">
-          <div className="flex flex-col items-center justify-center bg-black/60 backdrop-blur-md px-12 py-10 rounded-2xl border border-cyan-500/30 shadow-2xl relative overflow-hidden">
-            {/* Background grid */}
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] opacity-50" />
-            
-            {/* Animated orbital rings */}
-            <div className="relative w-24 h-24 mb-6">
-              <div className="absolute inset-0 border-2 border-cyan-500/20 rounded-full animate-[spin_4s_linear_infinite]" />
-              <div className="absolute inset-2 border-2 border-dashed border-cyan-400/40 rounded-full animate-[spin_6s_linear_infinite_reverse]" />
-              <div className="absolute inset-4 border-2 border-dotted border-cyan-300/60 rounded-full animate-[spin_3s_linear_infinite]" />
-              
-              {/* Center dot (Sun) */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-yellow-400 rounded-full shadow-[0_0_10px_rgba(250,204,21,0.8)]" />
-              
-              {/* Orbiting dots */}
-              <div className="absolute inset-0 animate-[spin_4s_linear_infinite]">
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full shadow-[0_0_5px_rgba(96,165,250,0.8)]" />
-              </div>
-              <div className="absolute inset-2 animate-[spin_6s_linear_infinite_reverse]">
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-red-400 rounded-full" />
-              </div>
-            </div>
-
-            <div className="text-cyan-400 font-mono tracking-[0.3em] text-[10px] uppercase font-bold animate-pulse relative z-10">
-              SOLVING LAMBERT ARC
-            </div>
-            <div className="text-cyan-500/50 font-mono text-[8px] mt-2 uppercase text-center w-full relative z-10">
-              Optimizing Departure Window<br/>Simulating Ephemeris Targets
-            </div>
-            
-            {/* Scanline effect */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/10 to-transparent h-[200%] animate-[slide_2s_linear_infinite]" />
-          </div>
-        </Html>
-      )}
 
       {/* The Sun */}
       <mesh>
