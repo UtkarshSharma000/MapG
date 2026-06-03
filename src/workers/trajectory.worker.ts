@@ -183,16 +183,22 @@ function lambertIzzo(
   return { v1, v2 }
 }
 
-export function getTransferBounds(originId: number, destId: number): { searchDays: number, tofMin: number, tofMax: number } {
+export function getTransferBounds(originId: number, destId: number, optGoal?: string): { searchDays: number, tofMin: number, tofMax: number } {
   const p1 = PLANETS[originId] || PLANETS[3];
   const p2 = PLANETS[destId] || PLANETS[4];
   const aTransfer = (p1.a + p2.a) / 2.0;
   const hohmannTofDays = 182.62 * Math.pow(aTransfer, 1.5);
   
   // Set nice, generous bounds around the Hohmann TOF
-  const tofMin = Math.max(10, Math.round(hohmannTofDays * 0.4));
-  const tofMax = Math.max(60, Math.round(hohmannTofDays * 1.8));
+  const tofMin = Math.max(10, Math.round(hohmannTofDays * 0.2));
+  let tofMax = Math.max(60, Math.round(hohmannTofDays * 1.8));
   const searchDays = Math.max(800, Math.round(hohmannTofDays * 0.6));
+
+  if (optGoal === 'Time-Optimal (Fast-Transit)') {
+    if (p1.a > 5 || p2.a > 5) {
+      tofMax = Math.max(365, Math.round(hohmannTofDays * 0.7));
+    }
+  }
   
   return { searchDays, tofMin, tofMax };
 }
@@ -207,7 +213,7 @@ export function scanPorkchop(
   steps = 50,
   optGoal = 'Mass-Optimal (Fuel-Efficient)'
 ): OptimizeResult | null {
-  const bounds = getTransferBounds(originId, destId);
+  const bounds = getTransferBounds(originId, destId, optGoal);
   const sDays = (searchDays !== undefined && searchDays > 0) ? searchDays : bounds.searchDays;
   const tMin = (tofMin !== undefined && tofMin > 0) ? tofMin : bounds.tofMin;
   const tMax = (tofMax !== undefined && tofMax > 0) ? tofMax : bounds.tofMax;
@@ -275,10 +281,10 @@ export function scanPorkchop(
   return best || backupBest
 }
 
-function optimizeSequence(legs: MissionLeg[], t0_days: number, optGoal: string): MissionLeg[] | null {
+function optimizeSequence(legs: MissionLeg[], t0_days: number, optGoal: string, explicitSearchDays?: number): MissionLeg[] | null {
   const steps = 18; // 18x18x18 = 5832 iterations, very fast
   if (legs.length === 1) {
-    const res = scanPorkchop(legs[0].originId, legs[0].destId, t0_days, undefined, undefined, undefined, 40, optGoal);
+    const res = scanPorkchop(legs[0].originId, legs[0].destId, t0_days, explicitSearchDays, undefined, undefined, 40, optGoal);
     if (!res) return null;
     return [{ ...legs[0], dv1_kms: res.dv1_kms, dv2_kms: res.dv2_kms, tof_days: res.tof_days, v1_ecl: res.v1_ecl }];
   }
@@ -290,8 +296,9 @@ function optimizeSequence(legs: MissionLeg[], t0_days: number, optGoal: string):
     const flybyId = leg2.originId;
     const destId = leg2.destId;
     
-    const bounds0 = getTransferBounds(originId, flybyId);
-    const bounds1 = getTransferBounds(flybyId, destId);
+    const bounds0 = getTransferBounds(originId, flybyId, optGoal);
+    const bounds1 = getTransferBounds(flybyId, destId, optGoal);
+    if (explicitSearchDays !== undefined) bounds0.searchDays = explicitSearchDays;
     
     let bestScore = Infinity;
     let bestLegs: MissionLeg[] | null = null;
@@ -357,12 +364,14 @@ function optimizeSequence(legs: MissionLeg[], t0_days: number, optGoal: string):
   // For 3+ legs, fallback to older sequential because N^4+ grid search is too slow
   let currentT0 = t0_days;
   const computedLegs: MissionLeg[] = [];
+  let sDays: number | undefined = explicitSearchDays;
   for (let i = 0; i < legs.length; i++) {
     const leg = legs[i];
-    const res = scanPorkchop(leg.originId, leg.destId, currentT0, undefined, undefined, undefined, 40, optGoal);
+    const res = scanPorkchop(leg.originId, leg.destId, currentT0, sDays, undefined, undefined, 40, optGoal);
     if (!res) return null;
     computedLegs.push({ ...leg, launchDay_j2000: res.launchDay_j2000, dv1_kms: res.dv1_kms, dv2_kms: res.dv2_kms, tof_days: res.tof_days, v1_ecl: res.v1_ecl });
     currentT0 += res.tof_days;
+    sDays = undefined; // Only the first leg searches standard window, subsequent legs use arrival time
   }
   return computedLegs;
 }
@@ -371,7 +380,8 @@ function findBestFlyby(
   originId: number,
   destId: number,
   t0_days: number,
-  optGoal: string
+  optGoal: string,
+  searchDays?: number
 ): { flybyId: number; totalDv: number; legs: MissionLeg[], all: {flybyId: number, dv: number}[] } {
 
   const candidates = PLANET_IDS.filter(id => id !== originId && id !== destId)
@@ -383,7 +393,7 @@ function findBestFlyby(
       { originId, destId: flybyId, type: 'flyby' },
       { originId: flybyId, destId, type: 'capture' }
     ];
-    const resLegs = optimizeSequence(testLegs, t0_days, optGoal);
+    const resLegs = optimizeSequence(testLegs, t0_days, optGoal, searchDays);
     if (!resLegs || resLegs.length < 2) continue;
     
     const dv_launch = resLegs[0].dv1_kms || 0;
@@ -431,12 +441,12 @@ self.onmessage = (e) => {
   }
 
   if (type === 'AUTO_FLYBY') {
-    const result = findBestFlyby(payload.originId, payload.destId, payload.t0_days, payload.optGoal)
+    const result = findBestFlyby(payload.originId, payload.destId, payload.t0_days, payload.optGoal, payload.searchDays)
     self.postMessage({ type: 'AUTO_RESULT', result })
   }
 
   if (type === 'MANUAL_LEGS') {
-    const computedLegs = optimizeSequence(payload.legs, payload.t0_days, payload.optGoal);
+    const computedLegs = optimizeSequence(payload.legs, payload.t0_days, payload.optGoal, payload.searchDays);
     self.postMessage({ type: 'MANUAL_RESULT', legs: computedLegs })
   }
 }

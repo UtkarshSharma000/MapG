@@ -717,6 +717,18 @@ int main(int argc, char* argv[]) {
                 }
             }
 
+            double bypass_tof1 = 0, bypass_tof2 = 0;
+            auto t1Pos = input.find("\"tof1\"");
+            if (t1Pos != std::string::npos) {
+                auto c = input.find(":", t1Pos);
+                if (c != std::string::npos) { try { bypass_tof1 = std::stod(input.substr(c + 1)); } catch (...) {} }
+            }
+            auto t2Pos = input.find("\"tof2\"");
+            if (t2Pos != std::string::npos) {
+                auto c = input.find(":", t2Pos);
+                if (c != std::string::npos) { try { bypass_tof2 = std::stod(input.substr(c + 1)); } catch (...) {} }
+            }
+
             const KeplerianElements* earth = &table[2]; // Default Earth
             for (auto& p : table) if (p.name == launchPlanet) { earth = &p; break; }
 
@@ -765,49 +777,67 @@ int main(int argc, char* argv[]) {
 
                 double min_total_dv = std::numeric_limits<double>::infinity();
 
-                int grid_size_1 = 15;
-                int grid_size_2 = 15;
-                for (int i = 0; i < grid_size_1; ++i) {
-                    double t1_frac = 0.4 + 1.4 * (double)i / (grid_size_1 - 1);
-                    double tof1_seconds = t1_frac * hoh_tof1;
+                if (bypass_tof1 > 0 && bypass_tof2 > 0) {
+                    ga_tof1 = bypass_tof1 * 86400.0;
+                    ga_tof2 = bypass_tof2 * 86400.0;
+
+                    Eigen::Vector3d jup_pos_flyby_can = propagate_orbit(*flyby_el, launchTime + ga_tof1);
+                    Eigen::Vector3d jup_vel_flyby_can = get_orbital_velocity(*flyby_el, launchTime + ga_tof1);
+                    Eigen::Vector3d tgt_pos_arr = propagate_orbit(*tgt, launchTime + ga_tof1 + ga_tof2);
+
+                    auto p_lambert1 = gc.solve_lambert_full(earth_pos, jup_pos_flyby_can, ga_tof1, MU_SUN);
+                    auto p_lambert2 = gc.solve_lambert_full(jup_pos_flyby_can, tgt_pos_arr, ga_tof2, MU_SUN);
+
+                    best_v = p_lambert1.first;
+                    dv_depart = (p_lambert1.first - earth_vel).norm();
                     
-                    Eigen::Vector3d jup_pos_flyby_can = propagate_orbit(*flyby_el, launchTime + tof1_seconds);
-                    Eigen::Vector3d jup_vel_flyby_can = get_orbital_velocity(*flyby_el, launchTime + tof1_seconds);
+                    Eigen::Vector3d v_inf_in = p_lambert1.second - jup_vel_flyby_can;
+                    Eigen::Vector3d v_inf_out = p_lambert2.first - jup_vel_flyby_can;
+                    dv_flyby = std::abs(v_inf_in.norm() - v_inf_out.norm());
+                } else {
+                    int grid_size_1 = 15;
+                    int grid_size_2 = 15;
+                    for (int i = 0; i < grid_size_1; ++i) {
+                        double t1_frac = 0.4 + 1.4 * (double)i / (grid_size_1 - 1);
+                        double tof1_seconds = t1_frac * hoh_tof1;
+                        
+                        Eigen::Vector3d jup_pos_flyby_can = propagate_orbit(*flyby_el, launchTime + tof1_seconds);
+                        Eigen::Vector3d jup_vel_flyby_can = get_orbital_velocity(*flyby_el, launchTime + tof1_seconds);
 
-                    Eigen::Vector3d v_sc1_dep, v_sc1_arr;
-                    try {
-                        auto p_lambert1 = gc.solve_lambert_full(earth_pos, jup_pos_flyby_can, tof1_seconds, MU_SUN);
-                        v_sc1_dep = p_lambert1.first;
-                        v_sc1_arr = p_lambert1.second;
-                    } catch (...) {
-                        continue;
-                    }
-
-                    double d_dep = (v_sc1_dep - earth_vel).norm();
-
-                    for (int j = 0; j < grid_size_2; ++j) {
-                        double t2_frac = 0.4 + 1.4 * (double)j / (grid_size_2 - 1);
-                        double tof2_seconds = t2_frac * hoh_tof2;
-
-                        Eigen::Vector3d tgt_pos_arr = propagate_orbit(*tgt, launchTime + tof1_seconds + tof2_seconds);
-                        Eigen::Vector3d tgt_vel_arr = get_orbital_velocity(*tgt, launchTime + tof1_seconds + tof2_seconds);
-
-                        Eigen::Vector3d v_sc2_dep, v_sc2_arr;
+                        Eigen::Vector3d v_sc1_dep, v_sc1_arr;
                         try {
-                            auto p_lambert2 = gc.solve_lambert_full(jup_pos_flyby_can, tgt_pos_arr, tof2_seconds, MU_SUN);
-                            v_sc2_dep = p_lambert2.first;
-                            v_sc2_arr = p_lambert2.second;
+                            auto p_lambert1 = gc.solve_lambert_full(earth_pos, jup_pos_flyby_can, tof1_seconds, MU_SUN);
+                            v_sc1_dep = p_lambert1.first;
+                            v_sc1_arr = p_lambert1.second;
                         } catch (...) {
                             continue;
                         }
 
-                        // Flyby analysis
-                        Eigen::Vector3d v_inf_in = v_sc1_arr - jup_vel_flyby_can;
-                        Eigen::Vector3d v_inf_out = v_sc2_dep - jup_vel_flyby_can;
-                        double v_in_mag = v_inf_in.norm();
-                        double v_out_mag = v_inf_out.norm();
+                        double d_dep = (v_sc1_dep - earth_vel).norm();
 
-                        double cos_delta = v_inf_in.dot(v_inf_out) / (v_in_mag * v_out_mag);
+                        for (int j = 0; j < grid_size_2; ++j) {
+                            double t2_frac = 0.4 + 1.4 * (double)j / (grid_size_2 - 1);
+                            double tof2_seconds = t2_frac * hoh_tof2;
+
+                            Eigen::Vector3d tgt_pos_arr = propagate_orbit(*tgt, launchTime + tof1_seconds + tof2_seconds);
+                            Eigen::Vector3d tgt_vel_arr = get_orbital_velocity(*tgt, launchTime + tof1_seconds + tof2_seconds);
+
+                            Eigen::Vector3d v_sc2_dep, v_sc2_arr;
+                            try {
+                                auto p_lambert2 = gc.solve_lambert_full(jup_pos_flyby_can, tgt_pos_arr, tof2_seconds, MU_SUN);
+                                v_sc2_dep = p_lambert2.first;
+                                v_sc2_arr = p_lambert2.second;
+                            } catch (...) {
+                                continue;
+                            }
+
+                            // Flyby analysis
+                            Eigen::Vector3d v_inf_in = v_sc1_arr - jup_vel_flyby_can;
+                            Eigen::Vector3d v_inf_out = v_sc2_dep - jup_vel_flyby_can;
+                            double v_in_mag = v_inf_in.norm();
+                            double v_out_mag = v_inf_out.norm();
+
+                            double cos_delta = v_inf_in.dot(v_inf_out) / (v_in_mag * v_out_mag);
                         cos_delta = std::max(-1.0, std::min(1.0, cos_delta));
                         double delta = std::acos(cos_delta);
 
@@ -847,6 +877,7 @@ int main(int argc, char* argv[]) {
                         }
                     }
                 }
+                } // close else bypass
 
                 best_tof = ga_tof1 + ga_tof2;
                 min_dv = dv_depart;
@@ -948,23 +979,30 @@ int main(int argc, char* argv[]) {
                     }
                 }
             } else {
-                double d_min = std::max(10.0, (hohmann_tof / 86400.0) * 0.2);
-                double d_max = std::max(100.0, (hohmann_tof / 86400.0) * 2.5);
-                
-                for (double d = d_min; d <= d_max; d += 5.0) {
-                    double tof_seconds = d * 86400.0;
-                    Eigen::Vector3d tgt_pos = propagate_orbit(*tgt, launchTime + tof_seconds);
-                    try {
-                        Eigen::Vector3d v_lambert = gc.solve_lambert(earth_pos, tgt_pos, tof_seconds, MU_SUN);
-                        double dv = (v_lambert - earth_vel).norm();
-                        if (dv < min_dv) {
-                            min_dv = dv;
-                            best_tof = tof_seconds;
-                            best_v = v_lambert;
-                        }
-                    } catch (...) {}
+                if (bypass_tof1 > 0) {
+                    best_tof = bypass_tof1 * 86400.0;
+                    Eigen::Vector3d tgt_pos = propagate_orbit(*tgt, launchTime + best_tof);
+                    best_v = gc.solve_lambert(earth_pos, tgt_pos, best_tof, MU_SUN);
+                    dv_depart = (best_v - earth_vel).norm();
+                } else {
+                    double d_min = std::max(10.0, (hohmann_tof / 86400.0) * 0.2);
+                    double d_max = std::max(100.0, (hohmann_tof / 86400.0) * 2.5);
+                    
+                    for (double d = d_min; d <= d_max; d += 5.0) {
+                        double tof_seconds = d * 86400.0;
+                        Eigen::Vector3d tgt_pos = propagate_orbit(*tgt, launchTime + tof_seconds);
+                        try {
+                            Eigen::Vector3d v_lambert = gc.solve_lambert(earth_pos, tgt_pos, tof_seconds, MU_SUN);
+                            double dv = (v_lambert - earth_vel).norm();
+                            if (dv < min_dv) {
+                                min_dv = dv;
+                                best_tof = tof_seconds;
+                                best_v = v_lambert;
+                            }
+                        } catch (...) {}
+                    }
+                    dv_depart = min_dv;
                 }
-                dv_depart = min_dv;
             }
 
             Eigen::Vector3d tgt_vel = get_orbital_velocity(*tgt, launchTime + best_tof);

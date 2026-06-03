@@ -313,6 +313,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const [loading, setLoading] = useState(false)
   const [autoMode, setAutoMode] = useState(false)
   const [optGoal, setOptGoal] = useState('Mass-Optimal (Fuel-Efficient)')
+  const [searchYears, setSearchYears] = useState<number>(10)
 
   const [legs, setLegs] = useState<MissionLeg[]>([
     { originId: originId || 3, destId: destId || 4, type: 'capture' }
@@ -336,12 +337,14 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const legsRef = useRef(legs)
   const autoModeRef = useRef(autoMode)
   const optGoalRef = useRef(optGoal)
+  const searchYearsRef = useRef(searchYears)
 
   useEffect(() => { originIdRef.current = originId }, [originId])
   useEffect(() => { destIdRef.current = destId }, [destId])
   useEffect(() => { legsRef.current = legs }, [legs])
   useEffect(() => { autoModeRef.current = autoMode }, [autoMode])
   useEffect(() => { optGoalRef.current = optGoal }, [optGoal])
+  useEffect(() => { searchYearsRef.current = searchYears }, [searchYears])
 
   // Initialize Web Worker and handlers
   useEffect(() => {
@@ -449,12 +452,12 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
       if (autoModeRef.current) {
         workerRef.current.postMessage({
           type: 'AUTO_FLYBY',
-          payload: { originId: originIdRef.current, destId: destIdRef.current, t0_days, optGoal: optGoalRef.current }
+          payload: { originId: originIdRef.current, destId: destIdRef.current, t0_days, optGoal: optGoalRef.current, searchDays: searchYearsRef.current * 365.25 }
         })
       } else {
         workerRef.current.postMessage({
           type: 'MANUAL_LEGS',
-          payload: { legs: legsRef.current, t0_days, optGoal: optGoalRef.current }
+          payload: { legs: legsRef.current, t0_days, optGoal: optGoalRef.current, searchDays: searchYearsRef.current * 365.25 }
         })
       }
     } else {
@@ -529,6 +532,24 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
           <option value="Time-Optimal (Fast-Transit)">Time-Optimal (Fast-Transit)</option>
           <option value="Budget Capped (Max 6 km/s)">Budget Capped (Max 6 km/s)</option>
         </select>
+      </div>
+
+      <div className="mb-4">
+        <label className="text-[10px] font-mono text-white/40 flex justify-between mb-1">
+          <span>SEARCH WINDOW</span>
+          <span className="text-cyan-400">{searchYears} YEARS</span>
+        </label>
+        <input 
+          type="range" 
+          min="1" max="100" step="1" 
+          value={searchYears}
+          onChange={e => setSearchYears(parseInt(e.target.value))}
+          className="w-full accent-cyan-500"
+        />
+        <div className="flex justify-between text-[8px] font-mono text-white/30 mt-1">
+          <span>1YR</span>
+          <span>100YR</span>
+        </div>
       </div>
 
       {!autoMode ? (
