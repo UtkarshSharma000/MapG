@@ -314,6 +314,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const [autoMode, setAutoMode] = useState(false)
   const [optGoal, setOptGoal] = useState('Mass-Optimal (Fuel-Efficient)')
   const [searchYears, setSearchYears] = useState<number>(10)
+  const [maxFlightYears, setMaxFlightYears] = useState<number>(50)
 
   const [legs, setLegs] = useState<MissionLeg[]>([
     { originId: originId || 3, destId: destId || 4, type: 'capture' }
@@ -338,6 +339,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const autoModeRef = useRef(autoMode)
   const optGoalRef = useRef(optGoal)
   const searchYearsRef = useRef(searchYears)
+  const maxFlightYearsRef = useRef(maxFlightYears)
 
   useEffect(() => { originIdRef.current = originId }, [originId])
   useEffect(() => { destIdRef.current = destId }, [destId])
@@ -345,6 +347,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   useEffect(() => { autoModeRef.current = autoMode }, [autoMode])
   useEffect(() => { optGoalRef.current = optGoal }, [optGoal])
   useEffect(() => { searchYearsRef.current = searchYears }, [searchYears])
+  useEffect(() => { maxFlightYearsRef.current = maxFlightYears }, [maxFlightYears])
 
   // Initialize Web Worker and handlers
   useEffect(() => {
@@ -452,12 +455,12 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
       if (autoModeRef.current) {
         workerRef.current.postMessage({
           type: 'AUTO_FLYBY',
-          payload: { originId: originIdRef.current, destId: destIdRef.current, t0_days, optGoal: optGoalRef.current, searchDays: searchYearsRef.current * 365.25 }
+          payload: { originId: originIdRef.current, destId: destIdRef.current, t0_days, optGoal: optGoalRef.current, searchDays: searchYearsRef.current * 365.25, tofMax: maxFlightYearsRef.current * 365.25 }
         })
       } else {
         workerRef.current.postMessage({
           type: 'MANUAL_LEGS',
-          payload: { legs: legsRef.current, t0_days, optGoal: optGoalRef.current, searchDays: searchYearsRef.current * 365.25 }
+          payload: { legs: legsRef.current, t0_days, optGoal: optGoalRef.current, searchDays: searchYearsRef.current * 365.25, tofMax: maxFlightYearsRef.current * 365.25 }
         })
       }
     } else {
@@ -468,6 +471,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
         const currentAutoMode = autoModeRef.current
         const currentLegs = legsRef.current
         const currentOptGoal = optGoalRef.current;
+        const currentTofMax = maxFlightYearsRef.current * 365.25;
 
         if (currentAutoMode) {
           // Need to update findBestFlyby in component if used synchronously, but we rely on worker mainly.
@@ -478,7 +482,8 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
           let failed = false
           for (let i = 0; i < currentLegs.length; i++) {
             const leg = currentLegs[i]
-            const res = scanPorkchop(leg.originId, leg.destId, currentT0, undefined, undefined, undefined, 50, currentOptGoal)
+            const sDays = i === 0 ? searchYearsRef.current * 365.25 : undefined;
+            const res = scanPorkchop(leg.originId, leg.destId, currentT0, sDays, undefined, currentTofMax, 50, currentOptGoal)
             if (!res) {
               failed = true
               break
@@ -536,7 +541,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
 
       <div className="mb-4">
         <label className="text-[10px] font-mono text-white/40 flex justify-between mb-1">
-          <span>SEARCH WINDOW</span>
+          <span>LAUNCH WINDOW</span>
           <span className="text-cyan-400">{searchYears} YEARS</span>
         </label>
         <input 
@@ -544,6 +549,22 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
           min="1" max="100" step="1" 
           value={searchYears}
           onChange={e => setSearchYears(parseInt(e.target.value))}
+          className="w-full accent-cyan-500"
+        />
+        <div className="flex justify-between text-[8px] font-mono text-white/30 mt-1 mb-2">
+          <span>1YR</span>
+          <span>100YR</span>
+        </div>
+
+        <label className="text-[10px] font-mono text-white/40 flex justify-between mb-1">
+          <span>MAX FLIGHT TIME</span>
+          <span className="text-cyan-400">{maxFlightYears} YEARS</span>
+        </label>
+        <input 
+          type="range" 
+          min="1" max="100" step="1" 
+          value={maxFlightYears}
+          onChange={e => setMaxFlightYears(parseInt(e.target.value))}
           className="w-full accent-cyan-500"
         />
         <div className="flex justify-between text-[8px] font-mono text-white/30 mt-1">
