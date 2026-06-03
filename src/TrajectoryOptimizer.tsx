@@ -35,19 +35,19 @@ export const PLANETS: Record<number, {
   name: string; a: number; e: number; inc_deg: number;
   raan_deg: number; argp_deg: number; M0_deg: number; T_days: number
 }> = {
-  1: { name:'Mercury', a:0.3871, e:0.2056, inc_deg:7.00,  raan_deg:48.33,  argp_deg:29.12,  M0_deg:174.79, T_days:87.97  },
-  2: { name:'Venus',   a:0.7233, e:0.0068, inc_deg:3.39,  raan_deg:76.68,  argp_deg:54.88,  M0_deg:50.44,  T_days:224.70 },
-  3: { name:'Earth',   a:1.0000, e:0.0167, inc_deg:0.00,  raan_deg:0.0,    argp_deg:102.94, M0_deg:100.46, T_days:365.25 },
-  4: { name:'Mars',    a:1.5237, e:0.0934, inc_deg:1.85,  raan_deg:49.56,  argp_deg:286.50, M0_deg:355.43, T_days:686.97 },
-  5: { name:'Jupiter', a:5.2034, e:0.0489, inc_deg:1.30,  raan_deg:100.46, argp_deg:273.87, M0_deg:34.40,  T_days:4332.6 },
-  6: { name:'Saturn',  a:9.5371, e:0.0565, inc_deg:2.49,  raan_deg:113.66, argp_deg:339.39, M0_deg:50.08,  T_days:10759  },
-  7: { name:'Uranus',  a:19.2010, e:0.0457, inc_deg:0.77,  raan_deg:74.0,   argp_deg:96.6,   M0_deg:142.00, T_days:30688  },
-  8: { name:'Neptune', a:30.0470, e:0.0113, inc_deg:1.77,  raan_deg:131.7,  argp_deg:273.1,  M0_deg:256.00, T_days:60182  },
+  1: { name:'Mercury', a:0.387, e:0.2056, inc_deg:7.0,  raan_deg:48.33,  argp_deg:29.124, M0_deg:174.0, T_days:88.0  },
+  2: { name:'Venus',   a:0.723, e:0.0067, inc_deg:3.39,  raan_deg:76.68,  argp_deg:54.88,  M0_deg:50.0,  T_days:224.7 },
+  3: { name:'Earth',   a:1.0,   e:0.0167, inc_deg:0.00005,raan_deg:-11.26,argp_deg:114.2,  M0_deg:358.0, T_days:365.25 },
+  4: { name:'Mars',    a:1.524, e:0.0934, inc_deg:1.85,  raan_deg:49.57,  argp_deg:286.5,  M0_deg:19.0,  T_days:686.98 },
+  5: { name:'Jupiter', a:5.204, e:0.0489, inc_deg:1.3,   raan_deg:100.4,  argp_deg:273.8,  M0_deg:20.0,  T_days:4332.59 },
+  6: { name:'Saturn',  a:9.582, e:0.0565, inc_deg:2.48,  raan_deg:113.6,  argp_deg:339.3,  M0_deg:317.0, T_days:10759 },
+  7: { name:'Uranus',  a:19.201,e:0.0457, inc_deg:0.77,  raan_deg:74.0,   argp_deg:96.6,   M0_deg:142.0, T_days:30688 },
+  8: { name:'Neptune', a:30.047,e:0.0113, inc_deg:1.77,  raan_deg:131.7,  argp_deg:273.1,  M0_deg:256.0, T_days:60182 },
 }
 const PLANET_IDS = [1, 2, 3, 4, 5, 6, 7, 8]
 
-const AU_KM  = 1.496e8
-const GM_SUN = 1.327124e20  // m³/s²
+const AU_KM  = 1.495978707e8
+const GM_SUN = 1.32712440018e20  // m³/s² (Exact precision alignment)
 const DEG    = Math.PI / 180
 
 // ── Kepler solver (Newton-Raphson) ─────────────────────────────────────────
@@ -343,8 +343,15 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const [autoResult, setAutoResult] = useState<any | null>(null)
   const workerRef = useRef<Worker | null>(null)
 
-  // Keep legs and results synced when originId or destId changes
+  // Keep legs and results synced when originId or destId changes, with guard against feedback loops
   useEffect(() => {
+    const firstLeg = legs[0];
+    const lastLeg = legs[legs.length - 1];
+    if (firstLeg && lastLeg && firstLeg.originId === originId && lastLeg.destId === destId) {
+      // The updated origin/dest already matches our custom manual optimization legs, skip reset
+      return;
+    }
+
     setLegs([
       { originId: originId || 3, destId: destId || 4, type: 'capture' }
     ])
@@ -529,6 +536,23 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
       }, 0)
     }
   }, [globalTimeRef])
+
+  const legsKey = JSON.stringify(legs.map(l => ({ originId: l.originId, destId: l.destId, type: l.type })));
+
+  // Automatically recalculate trajectory when any configuration or leg changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      run();
+    }, 200); // 200ms debounce to prevent freezing the worker while sliding
+    return () => clearTimeout(timeoutId);
+  }, [legsKey, optGoal, searchYears, maxFlightYears, autoMode, originId, destId, run]);
+
+  // Automatically apply calculated results to the flight navigation computer in real-time
+  useEffect(() => {
+    if (result && onApply) {
+      onApply(result);
+    }
+  }, [result, onApply]);
 
   const apply = () => { if (result) onApply(result) }
 
