@@ -708,14 +708,23 @@ int main(int argc, char* argv[]) {
                 }
             }
 
+            double launchTime = globalTime;
+            auto lt = input.find("\"launchTime\"");
+            if (lt != std::string::npos) {
+                auto c = input.find(":", lt);
+                if (c != std::string::npos) {
+                    try { launchTime = std::stod(input.substr(c + 1)); } catch (...) {}
+                }
+            }
+
             const KeplerianElements* earth = &table[2]; // Default Earth
             for (auto& p : table) if (p.name == launchPlanet) { earth = &p; break; }
 
             const KeplerianElements* tgt = &table[3]; // Default Mars
             for (auto& p : table) if (p.name == targetPlanet) { tgt = &p; break; }
 
-            Eigen::Vector3d earth_pos = propagate_orbit(*earth, globalTime);
-            Eigen::Vector3d earth_vel = get_orbital_velocity(*earth, globalTime);
+            Eigen::Vector3d earth_pos = propagate_orbit(*earth, launchTime);
+            Eigen::Vector3d earth_vel = get_orbital_velocity(*earth, launchTime);
 
             // Coarse parameter approximation for Lambert
             double a_transfer = (earth->a + tgt->a) / 2.0;
@@ -762,8 +771,8 @@ int main(int argc, char* argv[]) {
                     double t1_frac = 0.4 + 1.4 * (double)i / (grid_size_1 - 1);
                     double tof1_seconds = t1_frac * hoh_tof1;
                     
-                    Eigen::Vector3d jup_pos_flyby_can = propagate_orbit(*flyby_el, globalTime + tof1_seconds);
-                    Eigen::Vector3d jup_vel_flyby_can = get_orbital_velocity(*flyby_el, globalTime + tof1_seconds);
+                    Eigen::Vector3d jup_pos_flyby_can = propagate_orbit(*flyby_el, launchTime + tof1_seconds);
+                    Eigen::Vector3d jup_vel_flyby_can = get_orbital_velocity(*flyby_el, launchTime + tof1_seconds);
 
                     Eigen::Vector3d v_sc1_dep, v_sc1_arr;
                     try {
@@ -780,8 +789,8 @@ int main(int argc, char* argv[]) {
                         double t2_frac = 0.4 + 1.4 * (double)j / (grid_size_2 - 1);
                         double tof2_seconds = t2_frac * hoh_tof2;
 
-                        Eigen::Vector3d tgt_pos_arr = propagate_orbit(*tgt, globalTime + tof1_seconds + tof2_seconds);
-                        Eigen::Vector3d tgt_vel_arr = get_orbital_velocity(*tgt, globalTime + tof1_seconds + tof2_seconds);
+                        Eigen::Vector3d tgt_pos_arr = propagate_orbit(*tgt, launchTime + tof1_seconds + tof2_seconds);
+                        Eigen::Vector3d tgt_vel_arr = get_orbital_velocity(*tgt, launchTime + tof1_seconds + tof2_seconds);
 
                         Eigen::Vector3d v_sc2_dep, v_sc2_arr;
                         try {
@@ -842,12 +851,12 @@ int main(int argc, char* argv[]) {
                 best_tof = ga_tof1 + ga_tof2;
                 min_dv = dv_depart;
 
-                Eigen::Vector3d jup_pos_flyby = propagate_orbit(*flyby_el, globalTime + ga_tof1);
-                Eigen::Vector3d jup_vel_flyby = get_orbital_velocity(*flyby_el, globalTime + ga_tof1);
+                Eigen::Vector3d jup_pos_flyby = propagate_orbit(*flyby_el, launchTime + ga_tof1);
+                Eigen::Vector3d jup_vel_flyby = get_orbital_velocity(*flyby_el, launchTime + ga_tof1);
                 
                 // Get arrival / departure excess velocities for optimal transfer
                 Eigen::Vector3d v_sc1_arr = gc.solve_lambert_full(earth_pos, jup_pos_flyby, ga_tof1, MU_SUN).second;
-                Eigen::Vector3d tgt_pos_arr = propagate_orbit(*tgt, globalTime + ga_tof1 + ga_tof2);
+                Eigen::Vector3d tgt_pos_arr = propagate_orbit(*tgt, launchTime + ga_tof1 + ga_tof2);
                 Eigen::Vector3d v_sc2_dep = gc.solve_lambert_full(jup_pos_flyby, tgt_pos_arr, ga_tof2, MU_SUN).first;
 
                 Eigen::Vector3d v_inf_in = v_sc1_arr - jup_vel_flyby;
@@ -944,7 +953,7 @@ int main(int argc, char* argv[]) {
                 
                 for (double d = d_min; d <= d_max; d += 5.0) {
                     double tof_seconds = d * 86400.0;
-                    Eigen::Vector3d tgt_pos = propagate_orbit(*tgt, globalTime + tof_seconds);
+                    Eigen::Vector3d tgt_pos = propagate_orbit(*tgt, launchTime + tof_seconds);
                     try {
                         Eigen::Vector3d v_lambert = gc.solve_lambert(earth_pos, tgt_pos, tof_seconds, MU_SUN);
                         double dv = (v_lambert - earth_vel).norm();
@@ -958,7 +967,7 @@ int main(int argc, char* argv[]) {
                 dv_depart = min_dv;
             }
 
-            Eigen::Vector3d tgt_vel = get_orbital_velocity(*tgt, globalTime + best_tof);
+            Eigen::Vector3d tgt_vel = get_orbital_velocity(*tgt, launchTime + best_tof);
 
             Spacecraft probe;
             if (is_gravity_assist) {
@@ -974,8 +983,8 @@ int main(int argc, char* argv[]) {
                     flyby_el->mu,
                     flyby_el->a,
                     flyby_el->period,
-                    propagate_orbit(*flyby_el, globalTime + ga_tof1),
-                    get_orbital_velocity(*flyby_el, globalTime + ga_tof1)
+                    propagate_orbit(*flyby_el, launchTime + ga_tof1),
+                    get_orbital_velocity(*flyby_el, launchTime + ga_tof1)
                 };
 
                 std::vector<Planet> leg1_planets = { jupiter_body };
@@ -993,8 +1002,8 @@ int main(int argc, char* argv[]) {
                     tgt->mu,
                     tgt->a,
                     tgt->period,
-                    propagate_orbit(*tgt, globalTime + ga_tof1 + ga_tof2),
-                    get_orbital_velocity(*tgt, globalTime + ga_tof1 + ga_tof2)
+                    propagate_orbit(*tgt, launchTime + ga_tof1 + ga_tof2),
+                    get_orbital_velocity(*tgt, launchTime + ga_tof1 + ga_tof2)
                 };
 
                 std::vector<Planet> leg2_planets = { target_body };
@@ -1013,7 +1022,7 @@ int main(int argc, char* argv[]) {
                     tgt->mu, 
                     tgt->a, 
                     tgt->period,
-                    propagate_orbit(*tgt, globalTime + best_tof),
+                    propagate_orbit(*tgt, launchTime + best_tof),
                     tgt_vel
                 };
                 std::vector<Planet> sys_planets = { target_body };
@@ -1055,7 +1064,7 @@ int main(int argc, char* argv[]) {
                 tgt->mu,
                 tgt->a,
                 tgt->period,
-                propagate_orbit(*tgt, globalTime + best_tof),
+                propagate_orbit(*tgt, launchTime + best_tof),
                 tgt_vel
             };
 
@@ -1084,7 +1093,7 @@ int main(int argc, char* argv[]) {
                 std::cout << "[" << ghost_path[i].x()/1000.0 << "," << ghost_path[i].y()/1000.0 << "," << ghost_path[i].z()/1000.0 << "]";
             }
             std::cout << "],"
-                      << "\"arrivalTime\":"        << (globalTime + best_tof) << ","
+                      << "\"arrivalTime\":"        << (launchTime + best_tof) << ","
                       << "\"reachedTarget\":"      << (reached_target ? "true" : "false") << ","
                       << "\"capturePossible\":"    << (capture_possible ? "true" : "false") << ","
                       << "\"missionStatus\":\""     << mission_status << "\","

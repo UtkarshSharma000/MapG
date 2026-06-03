@@ -15,6 +15,7 @@ export interface MissionLeg {
   originId: number
   destId: number
   type: 'transfer' | 'flyby' | 'capture'
+  launchDay_j2000?: number
   tof_days?: number
   dv1_kms?: number
   dv2_kms?: number
@@ -361,14 +362,14 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
         } else if (type === 'AUTO_RESULT') {
           if (wResult && wResult.flybyId !== -1) {
             setAutoResult(wResult)
-            const initialLeg = wResult.legs[0]
+            const returnedLegs = wResult.legs;
             setResult({
-              dv1_kms: initialLeg.dv1_kms!,
-              dv2_kms: initialLeg.dv2_kms!,
-              tof_days: initialLeg.tof_days!,
-              launchDay_j2000: (globalTimeRef.current / 86400) * 86400,
-              v1_ecl: initialLeg.v1_ecl!,
-              legs: wResult.legs
+              dv1_kms: returnedLegs[0].dv1_kms!,
+              dv2_kms: returnedLegs[returnedLegs.length - 1].dv2_kms!,
+              tof_days: returnedLegs.reduce((sum: number, l: any) => sum + (l.tof_days || 0), 0),
+              launchDay_j2000: returnedLegs[0].launchDay_j2000 || (globalTimeRef.current),
+              v1_ecl: returnedLegs[0].v1_ecl!,
+              legs: returnedLegs
             })
           } else {
             setAutoResult(null)
@@ -382,7 +383,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
               dv1_kms: returnedLegs[0].dv1_kms!,
               dv2_kms: returnedLegs[returnedLegs.length - 1].dv2_kms!,
               tof_days: returnedLegs.reduce((sum: number, l: any) => sum + (l.tof_days || 0), 0),
-              launchDay_j2000: (globalTimeRef.current / 86400) * 86400,
+              launchDay_j2000: returnedLegs[0].launchDay_j2000 || (globalTimeRef.current),
               v1_ecl: returnedLegs[0].v1_ecl!,
               legs: returnedLegs
             })

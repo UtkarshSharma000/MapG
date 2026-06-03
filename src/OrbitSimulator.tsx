@@ -713,7 +713,7 @@ function GhostPath({
     if (!targetPlanet) return;
     
     try {
-      const payload = { launchPlanet, targetPlanet: targetName, globalTime: time };
+      const payload = { launchPlanet, targetPlanet: targetName, globalTime: time, launchTime: (launchParams.launchDay_j2000 || time) };
       const response = await fetch('/api/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -723,8 +723,8 @@ function GhostPath({
       const data = await response.json();
       
       requiredDVRef.current = data.dvLabel;
-      transferTimeRef.current = data.arrivalTime - time;
-      simDurationRef.current = data.usedDuration || (data.arrivalTime - time);
+      transferTimeRef.current = data.arrivalTime - payload.launchTime;
+      simDurationRef.current = data.usedDuration || (data.arrivalTime - payload.launchTime);
       captureInfoRef.current = { 
           status: data.missionStatus, 
           altitude: data.captureAltitude, 
