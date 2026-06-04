@@ -31,6 +31,7 @@ import ScrollReveal from "./components/ScrollReveal";
 import Waves from "./components/Waves";
 import GradualBlur from "./components/GradualBlur";
 import TextPressure from "./components/TextPressure";
+import CardSwap, { Card } from "./components/CardSwap";
 
 function InteractiveGlobe({ url, color }: { url: string, color: string }) {
   const meshRef = React.useRef<THREE.Mesh>(null);
@@ -745,8 +746,14 @@ export default function App() {
     <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-transparent">
       {isSimulatorRunning && (
         <div className="absolute inset-0 z-0">
-          <Galaxy transparent={false} />
+          <Galaxy transparent={false} mouseInteraction={false} />
         </div>
+      )}
+      {!isSimulatorRunning && (
+        <>
+          <GradualBlur position="top" height="6rem" strength={4} zIndex={50} target="page" />
+          <GradualBlur position="bottom" height="6rem" strength={4} zIndex={50} target="page" />
+        </>
       )}
       {showMobileBlock && (
         <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#03060f] text-white p-6 text-center select-none pointer-events-auto">
@@ -836,7 +843,7 @@ export default function App() {
           {/* Hero Section */}
           <section className="relative min-h-[90vh] flex items-center px-8 md:px-[32px] overflow-hidden z-20">
             <div className="absolute inset-0 z-0 pointer-events-none">
-              <Galaxy transparent={false} />
+              <Galaxy transparent={false} mouseInteraction={false} />
             </div>
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
@@ -1006,9 +1013,135 @@ export default function App() {
                 </ScrollFloat>
               </div>
 
-              <div className="flex justify-center items-center gap-2 text-white/50 mb-14 group cursor-default">
+              <div className="flex justify-center items-center gap-2 text-white/50 mb-8 group cursor-default">
                 <Heart className="text-primary fill-primary animate-bounce group-hover:scale-125 transition-transform" size={24} />
                 <span className="font-mono text-sm tracking-wide">Building the future of orbital optimization together</span>
+              </div>
+
+              {/* Mathematics & Physics Engine Showcase with CardSwap */}
+              <div className="my-16 max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center text-left min-h-[480px]">
+                <div className="lg:col-span-5 flex flex-col justify-center">
+                  <div className="font-mono text-[9px] tracking-[0.3em] uppercase text-primary mb-3">CONCURRENT SOLVERS</div>
+                  <h3 className="font-display-lg text-2xl lg:text-3xl font-bold tracking-tight text-white mb-4">
+                    The Mathematics of Propagating Gravity
+                  </h3>
+                  <p className="text-white/60 text-xs font-light leading-relaxed mb-6">
+                    Our trajectory solver uses high-performance Newtonian vectors and numerical integrations. Stacked panels on the right showcase the actual mathematical equations operating under the hood of MapG.
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="glass-panel p-3 border border-white/5 bg-white/1">
+                      <span className="block text-[10px] font-mono text-primary uppercase tracking-wider">TIMESTEP</span>
+                      <span className="text-xs font-sans text-white font-medium">Adaptive dt Precision</span>
+                    </div>
+                    <div className="glass-panel p-3 border border-white/5 bg-white/1">
+                      <span className="block text-[10px] font-mono text-primary uppercase tracking-wider">CONVERGENCE</span>
+                      <span className="text-xs font-sans text-white font-medium">Newton-Raphson 1e-12</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="lg:col-span-7 flex justify-center items-center h-[380px] relative overflow-visible mt-8 lg:mt-0">
+                  <CardSwap
+                    width={330}
+                    height={230}
+                    cardDistance={25}
+                    verticalDistance={25}
+                    delay={4500}
+                    pauseOnHover={true}
+                    skewAmount={4}
+                    easing="elastic"
+                  >
+                    <Card className="flex flex-col justify-between select-none">
+                      <div className="w-full">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+                          <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_01 // VECTOR ACCELERATIONS</span>
+                          <span className="px-1.5 py-0.5 font-mono text-[8px] border border-primary/40 text-primary uppercase rounded bg-primary/5">N-Body</span>
+                        </div>
+                        <h4 className="font-display-lg text-xs font-bold text-white mb-2 uppercase tracking-wide">
+                          Newtonian Perturbations
+                        </h4>
+                        <p className="text-[10px] text-white/50 leading-relaxed font-light mb-3">
+                          Accumulates direct gravitational fields exerted by Jovian and terrestrial masses acting upon Keplerian flight vectors.
+                        </p>
+                      </div>
+                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-primary/90 text-center select-all">
+                        a = -G·M/r² + ∑ [G·m_p·(r_p-r)/|r_p-r|³]
+                      </div>
+                    </Card>
+
+                    <Card className="flex flex-col justify-between select-none">
+                      <div className="w-full">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+                          <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_02 // SYSTEM STATES</span>
+                          <span className="px-1.5 py-0.5 font-mono text-[8px] border border-emerald-450/40 text-emerald-400 uppercase rounded bg-emerald-500/5">RK4 INTL</span>
+                        </div>
+                        <h4 className="font-display-lg text-xs font-bold text-white mb-2 uppercase tracking-wide">
+                          Fourth-Order Integrator
+                        </h4>
+                        <p className="text-[10px] text-white/50 leading-relaxed font-light mb-3">
+                          Integrates full State-Space vectors (position, velocity) with adaptive error limits and dynamical timesteps inside planet SOIs.
+                        </p>
+                      </div>
+                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-emerald-400 text-center select-all">
+                        s_next = s + (h/6)·(k₁ + 2k₂ + 2k₃ + k₄)
+                      </div>
+                    </Card>
+
+                    <Card className="flex flex-col justify-between select-none">
+                      <div className="w-full">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+                          <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_03 // CONICS TRANSCENDENTAL</span>
+                          <span className="px-1.5 py-0.5 font-mono text-[8px] border border-blue-400/40 text-blue-400 uppercase rounded bg-blue-500/5">Keplerian</span>
+                        </div>
+                        <h4 className="font-display-lg text-xs font-bold text-white mb-2 uppercase tracking-wide">
+                          Kepler Equation Solver
+                        </h4>
+                        <p className="text-[10px] text-white/50 leading-relaxed font-light mb-3">
+                          Maps Mean Anomaly (time-domain parameter) to Eccentric Anomaly using high-precision Newton-Raphson iteration.
+                        </p>
+                      </div>
+                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-blue-400 text-center select-all">
+                        E_next = E - (E - e·sinE - M) / (1 - e·cosE)
+                      </div>
+                    </Card>
+
+                    <Card className="flex flex-col justify-between select-none">
+                      <div className="w-full">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+                          <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_04 // BOUNDARY OPTIMIZER</span>
+                          <span className="px-1.5 py-0.5 font-mono text-[8px] border border-amber-400/40 text-amber-400 uppercase rounded bg-amber-500/5">Lambert</span>
+                        </div>
+                        <h4 className="font-display-lg text-xs font-bold text-white mb-2 uppercase tracking-wide">
+                          Lambert Target Solver
+                        </h4>
+                        <p className="text-[10px] text-white/50 leading-relaxed font-light mb-3">
+                          Constructs transfer trajectories between position vectors r₁ and r₂ across specific Flight Durations using bisection.
+                        </p>
+                      </div>
+                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-amber-400 text-center select-all">
+                        t_tof = [x³·S(z) + A·√y] / √μ
+                      </div>
+                    </Card>
+
+                    <Card className="flex flex-col justify-between select-none">
+                      <div className="w-full">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+                          <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_05 // INTERCEPTION BURNS</span>
+                          <span className="px-1.5 py-0.5 font-mono text-[8px] border border-purple-400/40 text-purple-400 uppercase rounded bg-purple-500/5">Delta-V</span>
+                        </div>
+                        <h4 className="font-display-lg text-xs font-bold text-white mb-2 uppercase tracking-wide">
+                          Vis-Viva Velocity States
+                        </h4>
+                        <p className="text-[10px] text-white/50 leading-relaxed font-light mb-3">
+                          Models hyperbolic arrival velocity states and computes retro-burn insertion delta-V into planetary orbit.
+                        </p>
+                      </div>
+                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-purple-400 text-center select-all">
+                        v² = μ · ( 2 / r - 1 / a )
+                      </div>
+                    </Card>
+                  </CardSwap>
+                </div>
               </div>
 
               {/* Bento Grid CTAs */}
