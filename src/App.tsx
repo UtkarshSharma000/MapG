@@ -773,8 +773,19 @@ export default function App() {
           accentColor="#00ffff"
           onLaunchCore={() => setIsSimulatorRunning(true)}
           items={[
-            { label: 'Launch Simulator', ariaLabel: 'Launch Simulator', link: '#', onClick: () => setIsSimulatorRunning(true) },
-            { label: 'GitHub Repo', ariaLabel: 'GitHub MapG', link: 'https://github.com/UtkarshSharma000/MapG' },
+            { 
+              label: 'Launch Simulator', 
+              ariaLabel: 'Launch Simulator', 
+              link: '#', 
+              onClick: () => setIsSimulatorRunning(true),
+              image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop'
+            },
+            { 
+              label: 'GitHub Repo', 
+              ariaLabel: 'GitHub MapG', 
+              link: 'https://github.com/UtkarshSharma000/MapG',
+              image: 'https://images.unsplash.com/photo-1618477247222-ac60c7477123?q=80&w=2064&auto=format&fit=crop'
+            },
           ]}
           socialItems={[]}
         />

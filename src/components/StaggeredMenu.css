@@ -283,7 +283,6 @@
 }
 
 .sm-panel-item {
-  position: relative;
   color: #ffffff; 
   font-weight: 600;
   font-size: 2.5rem; 
@@ -294,9 +293,6 @@
   transition:
     background 0.25s,
     color 0.25s;
-  display: inline-block;
-  text-decoration: none;
-  padding-right: 1.4em;
 }
 
 .staggered-menu-panel .sm-socials-list .sm-socials-link {
