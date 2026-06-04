@@ -19,10 +19,13 @@ import {
   Move,
 } from "lucide-react";
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
-import TrajectoryOptimizer, { OptimizeResult, scanPorkchop } from "./TrajectoryOptimizer";
+import TrajectoryOptimizer, { OptimizeResult } from "./TrajectoryOptimizer";
+import { scanPorkchop } from "./workers/trajectory.worker";
 import { TelemetryPanel } from "./components/TelemetryPanel";
 import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
+import FlyingPosters from "./components/FlyingPosters";
+import FlowingMenu from "./components/FlowingMenu";
 
 function InteractiveGlobe({ url, color }: { url: string, color: string }) {
   const meshRef = React.useRef<THREE.Mesh>(null);
@@ -966,6 +969,27 @@ export default function App() {
                 <button className="px-12 py-4 glass-panel border border-outline text-on-surface-variant font-label-caps tracking-widest hover:scale-105 active:scale-95 transition-all rounded font-bold cursor-pointer">
                   SYSTEM STATUS
                 </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="px-8 md:px-[32px] py-12 relative border-t border-white/5">
+            <h3 className="font-display-lg text-3xl font-bold mb-8 text-center tracking-tighter text-white">Visual Artifacts</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto h-[600px]">
+              <div className="relative border border-white/10 rounded-2xl overflow-hidden glass-panel h-full">
+                <FlowingMenu items={[
+                  { link: '#', text: 'Mojave', image: 'https://picsum.photos/600/400?random=1' },
+                  { link: '#', text: 'Sonoma', image: 'https://picsum.photos/600/400?random=2' },
+                  { link: '#', text: 'Monterey', image: 'https://picsum.photos/600/400?random=3' },
+                  { link: '#', text: 'Sequoia', image: 'https://picsum.photos/600/400?random=4' }
+                ]} bgColor="transparent" />
+              </div>
+              <div className="relative border border-white/10 rounded-2xl overflow-hidden glass-panel h-full">
+                <FlyingPosters items={[
+                  'https://picsum.photos/500/500?grayscale', 
+                  'https://picsum.photos/600/600?grayscale', 
+                  'https://picsum.photos/400/400?grayscale'
+                ]} />
               </div>
             </div>
           </section>
