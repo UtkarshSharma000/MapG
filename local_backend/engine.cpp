@@ -1033,7 +1033,7 @@ int main(int argc, char* argv[]) {
                 double safety_margin = flyby_el->radius + 150000.0;
                 if (rp < safety_margin) rp = safety_margin;
 
-                Eigen::Vector3d pos_dir = -(S_in + S_out).normalized();
+                Eigen::Vector3d pos_dir = (S_in + S_out).normalized();
                 Eigen::Vector3d vel_dir = (S_out - S_in).normalized();
                 double v_p_mag = std::sqrt(v_avg * v_avg + 2.0 * flyby_el->mu / rp);
 
@@ -1082,6 +1082,28 @@ int main(int argc, char* argv[]) {
                 for (size_t i = 0; i < path2.size(); ++i) {
                     if (i * dt2 > t_bound) ghost_path.push_back(path2[i]);
                 }
+                
+                // --- INSTRUMENTATION FOR DEBUGGING ---
+                std::cerr << "--- HYPERBOLIC FLYBY INSTRUMENTATION ---\n";
+                std::cerr << "Periapsis distance (rp): " << rp << " m (" << rp/1000.0 << " km)\n";
+                std::cerr << "Eccentricity (e_hyp): " << e_hyp << "\n";
+                std::cerr << "Incoming V_inf: " << v_in_mag << " m/s\n";
+                std::cerr << "Outgoing V_inf: " << v_out_mag << " m/s\n";
+                std::cerr << "Turning Angle (delta_geom): " << delta * 180.0 / M_PI << " deg\n";
+                std::cerr << "Path1 size: " << path1.size() << ", Path2 size: " << path2.size() << "\n";
+                std::cerr << "Total target output path size: " << ghost_path.size() << "\n";
+                std::cerr << "First 10 points (from Earth departure -> deep space):\n";
+                for (size_t i = 0; i < std::min((size_t)10, ghost_path.size()); ++i) {
+                    std::cerr << "Pt " << i << ": [" << ghost_path[i].x() << ", " << ghost_path[i].y() << ", " << ghost_path[i].z() << "]\n";
+                }
+                // Closest approach will be the midpoint of the hyperbolic section
+                // We know flyby_steps = 100, so step 50 is F=0 (periapsis)
+                double F_zero = 0;
+                double xp_zero = a_pos * (e_hyp - std::cosh(F_zero));
+                double yp_zero = a_pos * std::sqrt(e_hyp * e_hyp - 1.0) * std::sinh(F_zero);
+                Eigen::Vector3d p_peri = propagate_orbit(*flyby_el, launchTime + ga_tof1) + (xp_zero * pos_dir + yp_zero * vel_dir);
+                std::cerr << "Closest-approach coords: [" << p_peri.x() << ", " << p_peri.y() << ", " << p_peri.z() << "]\n";
+                std::cerr << "----------------------------------------\n";
             }
 
             NUM_POINTS = ghost_path.size();
