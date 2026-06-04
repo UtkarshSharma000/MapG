@@ -5,7 +5,6 @@ import { Play, Github } from "lucide-react";
 import { InteractiveGlobe } from "./InteractiveGlobe";
 import ScrollFloat from "./ScrollFloat";
 import ScrollReveal from "./ScrollReveal";
-import GradualBlur from "./GradualBlur";
 
 interface LandingHeroProps {
   isSimulatorRunning: boolean;
@@ -96,18 +95,6 @@ export default function LandingHero({
           <div className="absolute inset-0 bg-gradient-to-l from-[#050505]/60 to-transparent pointer-events-none"></div>
         </div>
       </motion.div>
-      
-      {/* Gradual Blur for a seamless smooth division transition */}
-      <GradualBlur
-        target="parent"
-        position="bottom"
-        height="8rem"
-        strength={3}
-        divCount={6}
-        curve="bezier"
-        exponential={true}
-        opacity={1}
-      />
     </section>
   );
 }

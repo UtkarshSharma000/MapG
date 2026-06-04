@@ -15,7 +15,6 @@ import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
 import Galaxy from "./components/Galaxy";
 import StaggeredMenu from "./components/StaggeredMenu";
-import GradualBlur from "./components/GradualBlur";
 
 // Modular Extracted Components
 import { InteractiveGlobe } from "./components/InteractiveGlobe";
@@ -733,8 +732,6 @@ export default function App() {
           <div className="fixed inset-0 z-0 pointer-events-none">
             <Galaxy transparent={false} mouseInteraction={false} scrollProgress={scrollProgress} />
           </div>
-          <GradualBlur position="top" height="6rem" strength={4} zIndex={100} target="page" style={{ top: "5rem" }} />
-          <GradualBlur position="bottom" height="6rem" strength={4} zIndex={100} target="page" />
         </>
       )}
       {showMobileBlock && (

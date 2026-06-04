@@ -2,5 +2,5 @@
   "name": "Interplanetary Orbit Simulator",
   "description": "An interactive 3D interplanetary orbit simulator implementing Porkchop optimization scans, custom gravity assist legs, and launch trajectory planning.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }
