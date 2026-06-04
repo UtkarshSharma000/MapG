@@ -1,24 +1,81 @@
 import React from "react";
 import { Heart, Terminal, Download, Github } from "lucide-react";
 import CardSwap, { Card } from "./CardSwap";
+import Waves from "./Waves";
+import ScrollFloat from "./ScrollFloat";
 
 interface MathPhysicsShowcaseProps {
   setIsSimulatorRunning: (running: boolean) => void;
+  landingScrollRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export default function MathPhysicsShowcase({
   setIsSimulatorRunning,
+  landingScrollRef,
 }: MathPhysicsShowcaseProps) {
   return (
     <>
-      <div className="max-w-4xl mx-auto text-center relative z-10 flex flex-col justify-center pb-12">
-        <div className="flex justify-center items-center gap-2 text-white/50 mb-8 group cursor-default">
-          <Heart className="text-primary fill-primary animate-bounce group-hover:scale-125 transition-transform" size={24} />
-          <span className="font-mono text-sm tracking-wide">Building the future of orbital optimization together</span>
+      <section className="px-8 md:px-[32px] py-16 md:py-24 relative bg-transparent overflow-hidden min-h-[120vh] flex flex-col justify-center w-full">
+        {/* Shared Interactive Waves Component for the Entire Combined Block */}
+        <Waves
+          lineColor="rgba(255, 255, 255, 0.1)"
+          backgroundColor="transparent"
+          waveSpeedX={0.02}
+          waveSpeedY={0.01}
+          waveAmpX={40}
+          waveAmpY={20}
+          friction={0.9}
+          tension={0.01}
+          maxCursorMove={120}
+          xGap={12}
+          yGap={36}
+        />
+
+        {/* Shared Space Glow */}
+        <div className="absolute top-[25%] left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#00f0ff]/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+        {/* Unified Open Source Heading Content */}
+        <div className="max-w-4xl mx-auto text-center relative z-10 flex flex-col justify-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 mb-6 self-center">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_var(--color-primary)]"></span>
+            <span className="font-mono text-[9px] text-primary tracking-widest uppercase">MAP G CORE PROJECT</span>
+          </div>
+          
+          <div className="mb-6">
+            <ScrollFloat
+              animationDuration={3}
+              ease="back.out(1.5)"
+              scrollStart="top bottom-=5%"
+              scrollEnd="bottom center+=10%"
+              stagger={0.05}
+              scrub={4}
+              scrollContainerRef={landingScrollRef}
+              textClassName="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2 block"
+            >
+              MAP G is
+            </ScrollFloat>
+            <ScrollFloat
+              animationDuration={3.5}
+              ease="back.out(1.5)"
+              scrollStart="top bottom-=15%"
+              scrollEnd="bottom center-=5%"
+              stagger={0.05}
+              scrub={4}
+              scrollContainerRef={landingScrollRef}
+              textClassName="font-display-lg text-primary glow-primary text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight block"
+            >
+              Completely Open Source!
+            </ScrollFloat>
+          </div>
+
+          <div className="flex justify-center items-center gap-2 text-white/50 mb-0 group cursor-default">
+            <Heart className="text-primary fill-primary animate-bounce group-hover:scale-125 transition-transform" size={24} />
+            <span className="font-mono text-sm tracking-wide">Building the future of orbital optimization together</span>
+          </div>
         </div>
 
         {/* Mathematics & Physics Engine Showcase with CardSwap */}
-        <div className="my-16 max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center text-left min-h-[480px]">
+        <div className="my-16 max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center text-left min-h-[480px] relative z-10 w-full mb-12">
           <div className="lg:col-span-5 flex flex-col justify-center">
             <div className="font-mono text-[9px] tracking-[0.3em] uppercase text-primary mb-3">CONCURRENT SOLVERS</div>
             <h3 className="font-display-lg text-2xl lg:text-3xl font-bold tracking-tight text-white mb-4">
@@ -194,7 +251,7 @@ export default function MathPhysicsShowcase({
             </a>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* CTA Section */}
       <section className="px-8 md:px-[32px] py-24 relative overflow-hidden bg-[#030611] w-full">

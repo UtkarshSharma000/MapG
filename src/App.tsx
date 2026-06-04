@@ -838,6 +838,7 @@ export default function App() {
 
           <MathPhysicsShowcase
             setIsSimulatorRunning={setIsSimulatorRunning}
+            landingScrollRef={landingScrollRef}
           />
         </main>
       </div>
