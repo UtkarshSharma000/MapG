@@ -983,8 +983,8 @@ export default function App() {
                 <ScrollFloat
                   animationDuration={1.8}
                   ease='back.out(1.5)'
-                  scrollStart='top bottom-=5%'
-                  scrollEnd='bottom center+=10%'
+                  scrollStart='top bottom'
+                  scrollEnd='bottom top+=30%'
                   stagger={0.03}
                   scrollContainerRef={landingScrollRef}
                   textClassName="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2"
@@ -994,8 +994,8 @@ export default function App() {
                 <ScrollFloat
                   animationDuration={2.2}
                   ease='back.out(1.5)'
-                  scrollStart='top bottom-=15%'
-                  scrollEnd='bottom center-=5%'
+                  scrollStart='top bottom-=10%'
+                  scrollEnd='bottom top+=15%'
                   stagger={0.03}
                   scrollContainerRef={landingScrollRef}
                   textClassName="font-display-lg text-primary glow-primary text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight"
