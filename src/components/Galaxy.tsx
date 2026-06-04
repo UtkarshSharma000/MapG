@@ -35,6 +35,7 @@ uniform float uRepulsionStrength;
 uniform float uMouseActiveFactor;
 uniform float uAutoCenterRepulsion;
 uniform bool uTransparent;
+uniform float uScrollProgress;
 
 varying vec2 vUv;
 
@@ -144,6 +145,10 @@ void main() {
     uv += mouseOffset;
   }
 
+  // Camera Zoom Out cinematic effect as you scroll
+  float zoom = 1.0 + uScrollProgress * 4.5;
+  uv *= zoom;
+
   float autoRotAngle = uTime * uRotationSpeed;
   mat2 autoRot = mat2(cos(autoRotAngle), -sin(autoRotAngle), sin(autoRotAngle), cos(autoRotAngle));
   uv = autoRot * uv;
@@ -152,12 +157,93 @@ void main() {
 
   vec3 col = vec3(0.0);
 
+  // Render original layered nebula starfield
   for (float i = 0.0; i < 1.0; i += 1.0 / NUM_LAYER) {
     float depth = fract(i + uStarSpeed * uSpeed);
     float scale = mix(20.0 * uDensity, 0.5 * uDensity, depth);
     float fade = depth * smoothstep(1.0, 0.9, depth);
     col += StarLayer(uv * scale + i * 453.32) * fade;
   }
+
+  // Render Interactive Solar System
+  vec3 solarCol = vec3(0.0);
+  float sProgress = uScrollProgress;
+  if (sProgress > 0.01) {
+    float d = length(uv);
+    
+    // 1. Central Core Sun
+    float sunGlow = 0.12 / (d + 0.04);
+    solarCol += vec3(1.0, 0.82, 0.35) * sunGlow * smoothstep(0.0, 0.3, sProgress);
+    
+    // Orbit 1 (Mercury)
+    {
+      float r = 0.35;
+      float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.001);
+      solarCol += vec3(0.4, 0.65, 1.0) * ring * 0.35 * sProgress;
+      
+      float angle = uTime * 1.5 + 1.2;
+      vec2 pPos = vec2(cos(angle), sin(angle)) * r;
+      float pGlow = 0.005 / (length(uv - pPos) + 0.004);
+      solarCol += vec3(0.5, 0.75, 1.0) * pGlow * sProgress;
+    }
+    
+    // Orbit 2 (Venus)
+    {
+      float r = 0.7;
+      float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.001);
+      solarCol += vec3(0.85, 0.55, 0.3) * ring * 0.3 * sProgress;
+      
+      float angle = uTime * 0.95 + 2.8;
+      vec2 pPos = vec2(cos(angle), sin(angle)) * r;
+      float pGlow = 0.007 / (length(uv - pPos) + 0.005);
+      solarCol += vec3(0.9, 0.6, 0.4) * pGlow * sProgress;
+    }
+    
+    // Orbit 3 (Earth & Moon)
+    {
+      float r = 1.1;
+      float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.0012);
+      solarCol += vec3(0.0, 0.65, 1.0) * ring * 0.4 * sProgress;
+      
+      float angle = uTime * 0.55 + 4.5;
+      vec2 pPos = vec2(cos(angle), sin(angle)) * r;
+      float pGlow = 0.012 / (length(uv - pPos) + 0.008);
+      
+      // Orbiting Moon
+      float mAngle = uTime * 2.8;
+      vec2 mPos = pPos + vec2(cos(mAngle), sin(mAngle)) * 0.055;
+      float mGlow = 0.0035 / (length(uv - mPos) + 0.003);
+      
+      solarCol += vec3(0.2, 0.75, 1.0) * pGlow * sProgress;
+      solarCol += vec3(0.85, 0.85, 0.88) * mGlow * sProgress;
+    }
+    
+    // Orbit 4 (Mars)
+    {
+      float r = 1.6;
+      float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.001);
+      solarCol += vec3(1.0, 0.4, 0.2) * ring * 0.35 * sProgress;
+      
+      float angle = uTime * 0.35 + 0.5;
+      vec2 pPos = vec2(cos(angle), sin(angle)) * r;
+      float pGlow = 0.007 / (length(uv - pPos) + 0.005);
+      solarCol += vec3(1.0, 0.42, 0.25) * pGlow * sProgress;
+    }
+    
+    // Orbit 5 (Jupiter)
+    {
+      float r = 2.2;
+      float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.0015);
+      solarCol += vec3(0.9, 0.75, 0.5) * ring * 0.25 * sProgress;
+      
+      float angle = uTime * 0.18 + 3.1;
+      vec2 pPos = vec2(cos(angle), sin(angle)) * r;
+      float pGlow = 0.015 / (length(uv - pPos) + 0.01);
+      solarCol += vec3(0.9, 0.75, 0.5) * pGlow * sProgress;
+    }
+  }
+  
+  col += solarCol;
 
   if (uTransparent) {
     float alpha = length(col);
@@ -187,6 +273,7 @@ export default function Galaxy({
   rotationSpeed = 0.1,
   autoCenterRepulsion = 0,
   transparent = true,
+  scrollProgress = 0,
   ...rest
 }: any) {
   const ctnDom = useRef<HTMLDivElement>(null);
@@ -194,6 +281,11 @@ export default function Galaxy({
   const smoothMousePos = useRef({ x: 0.5, y: 0.5 });
   const targetMouseActive = useRef(0.0);
   const smoothMouseActive = useRef(0.0);
+  const scrollProgressRef = useRef(scrollProgress);
+
+  useEffect(() => {
+    scrollProgressRef.current = scrollProgress;
+  }, [scrollProgress]);
 
   useEffect(() => {
     if (!ctnDom.current) return;
@@ -254,7 +346,8 @@ export default function Galaxy({
         uRepulsionStrength: { value: repulsionStrength },
         uMouseActiveFactor: { value: 0.0 },
         uAutoCenterRepulsion: { value: autoCenterRepulsion },
-        uTransparent: { value: transparent }
+        uTransparent: { value: transparent },
+        uScrollProgress: { value: 0 }
       }
     });
 
@@ -263,6 +356,9 @@ export default function Galaxy({
 
     function update(t: number) {
       animateId = requestAnimationFrame(update);
+      if (program) {
+        program.uniforms.uScrollProgress.value = scrollProgressRef.current;
+      }
       if (!disableAnimation) {
         program.uniforms.uTime.value = t * 0.001;
         program.uniforms.uStarSpeed.value = (t * 0.001 * starSpeed) / 10.0;

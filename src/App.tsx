@@ -206,6 +206,32 @@ export default function App() {
   // Time Ref for jumping simulation
   const globalTimeRef = React.useRef<number>(Date.now() / 1000);
   const landingScrollRef = React.useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const scroller = landingScrollRef.current;
+    if (!scroller) return;
+
+    const handleScroll = () => {
+      const scrollTop = scroller.scrollTop;
+      const scrollHeight = scroller.scrollHeight - scroller.clientHeight;
+      if (scrollHeight > 0) {
+        setScrollProgress(scrollTop / scrollHeight);
+      }
+    };
+
+    scroller.addEventListener('scroll', handleScroll, { passive: true });
+    // Run once initially
+    handleScroll();
+
+    const handleResize = () => handleScroll();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      scroller.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [isSimulatorRunning]);
 
   // Prevention guard for duplicate TEI execution calls
   const teiAppliedRef = React.useRef(false);
@@ -751,8 +777,11 @@ export default function App() {
       )}
       {!isSimulatorRunning && (
         <>
-          <GradualBlur position="top" height="6rem" strength={4} zIndex={50} target="page" />
-          <GradualBlur position="bottom" height="6rem" strength={4} zIndex={50} target="page" />
+          <div className="fixed inset-0 z-0 pointer-events-none">
+            <Galaxy transparent={false} mouseInteraction={false} scrollProgress={scrollProgress} />
+          </div>
+          <GradualBlur position="top" height="6rem" strength={4} zIndex={100} target="page" />
+          <GradualBlur position="bottom" height="6rem" strength={4} zIndex={100} target="page" />
         </>
       )}
       {showMobileBlock && (
@@ -842,9 +871,6 @@ export default function App() {
         <main className="pt-20">
           {/* Hero Section */}
           <section className="relative min-h-[90vh] flex items-center px-8 md:px-[32px] overflow-hidden z-20">
-            <div className="absolute inset-0 z-0 pointer-events-none">
-              <Galaxy transparent={false} mouseInteraction={false} />
-            </div>
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
               animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1, y: 0 }}
@@ -958,7 +984,7 @@ export default function App() {
           </section>
 
           {/* Open Source Section */}
-          <section className="px-8 md:px-[32px] py-48 relative bg-black overflow-hidden min-h-[140vh] flex flex-col justify-center">
+          <section className="px-8 md:px-[32px] py-48 relative bg-transparent overflow-hidden min-h-[140vh] flex flex-col justify-center">
             {/* React Bits Waves Component */}
             <Waves
               lineColor="rgba(255, 255, 255, 0.1)"
@@ -1040,12 +1066,12 @@ export default function App() {
                   </div>
                 </div>
                 
-                <div className="lg:col-span-7 flex justify-center items-center h-[380px] relative overflow-visible mt-8 lg:mt-0">
+                <div className="lg:col-span-7 flex justify-center items-center h-[460px] relative overflow-visible mt-8 lg:mt-0">
                   <CardSwap
-                    width={330}
-                    height={230}
-                    cardDistance={25}
-                    verticalDistance={25}
+                    width={480}
+                    height={320}
+                    cardDistance={32}
+                    verticalDistance={32}
                     delay={4500}
                     pauseOnHover={true}
                     skewAmount={4}
@@ -1057,14 +1083,14 @@ export default function App() {
                           <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_01 // VECTOR ACCELERATIONS</span>
                           <span className="px-1.5 py-0.5 font-mono text-[8px] border border-primary/40 text-primary uppercase rounded bg-primary/5">N-Body</span>
                         </div>
-                        <h4 className="font-display-lg text-xs font-bold text-white mb-2 uppercase tracking-wide">
+                        <h4 className="font-display-lg text-sm font-semibold text-white mb-2 uppercase tracking-wide">
                           Newtonian Perturbations
                         </h4>
-                        <p className="text-[10px] text-white/50 leading-relaxed font-light mb-3">
+                        <p className="text-xs text-white/50 leading-relaxed font-light mb-3">
                           Accumulates direct gravitational fields exerted by Jovian and terrestrial masses acting upon Keplerian flight vectors.
                         </p>
                       </div>
-                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-primary/90 text-center select-all">
+                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-xs md:text-sm text-primary/90 text-center select-all">
                         a = -G·M/r² + ∑ [G·m_p·(r_p-r)/|r_p-r|³]
                       </div>
                     </Card>
@@ -1073,16 +1099,16 @@ export default function App() {
                       <div className="w-full">
                         <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
                           <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_02 // SYSTEM STATES</span>
-                          <span className="px-1.5 py-0.5 font-mono text-[8px] border border-emerald-450/40 text-emerald-400 uppercase rounded bg-emerald-500/5">RK4 INTL</span>
+                          <span className="px-1.5 py-0.5 font-mono text-[8px] border border-emerald-400/40 text-emerald-400 uppercase rounded bg-emerald-500/5">RK4 INTL</span>
                         </div>
-                        <h4 className="font-display-lg text-xs font-bold text-white mb-2 uppercase tracking-wide">
+                        <h4 className="font-display-lg text-sm font-semibold text-white mb-2 uppercase tracking-wide">
                           Fourth-Order Integrator
                         </h4>
-                        <p className="text-[10px] text-white/50 leading-relaxed font-light mb-3">
+                        <p className="text-xs text-white/50 leading-relaxed font-light mb-3">
                           Integrates full State-Space vectors (position, velocity) with adaptive error limits and dynamical timesteps inside planet SOIs.
                         </p>
                       </div>
-                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-emerald-400 text-center select-all">
+                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-xs md:text-sm text-emerald-400 text-center select-all">
                         s_next = s + (h/6)·(k₁ + 2k₂ + 2k₃ + k₄)
                       </div>
                     </Card>
@@ -1093,14 +1119,14 @@ export default function App() {
                           <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_03 // CONICS TRANSCENDENTAL</span>
                           <span className="px-1.5 py-0.5 font-mono text-[8px] border border-blue-400/40 text-blue-400 uppercase rounded bg-blue-500/5">Keplerian</span>
                         </div>
-                        <h4 className="font-display-lg text-xs font-bold text-white mb-2 uppercase tracking-wide">
+                        <h4 className="font-display-lg text-sm font-semibold text-white mb-2 uppercase tracking-wide">
                           Kepler Equation Solver
                         </h4>
-                        <p className="text-[10px] text-white/50 leading-relaxed font-light mb-3">
+                        <p className="text-xs text-white/50 leading-relaxed font-light mb-3">
                           Maps Mean Anomaly (time-domain parameter) to Eccentric Anomaly using high-precision Newton-Raphson iteration.
                         </p>
                       </div>
-                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-blue-400 text-center select-all">
+                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-xs md:text-sm text-blue-400 text-center select-all">
                         E_next = E - (E - e·sinE - M) / (1 - e·cosE)
                       </div>
                     </Card>
@@ -1111,14 +1137,14 @@ export default function App() {
                           <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_04 // BOUNDARY OPTIMIZER</span>
                           <span className="px-1.5 py-0.5 font-mono text-[8px] border border-amber-400/40 text-amber-400 uppercase rounded bg-amber-500/5">Lambert</span>
                         </div>
-                        <h4 className="font-display-lg text-xs font-bold text-white mb-2 uppercase tracking-wide">
+                        <h4 className="font-display-lg text-sm font-semibold text-white mb-2 uppercase tracking-wide">
                           Lambert Target Solver
                         </h4>
-                        <p className="text-[10px] text-white/50 leading-relaxed font-light mb-3">
+                        <p className="text-xs text-white/50 leading-relaxed font-light mb-3">
                           Constructs transfer trajectories between position vectors r₁ and r₂ across specific Flight Durations using bisection.
                         </p>
                       </div>
-                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-amber-400 text-center select-all">
+                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-xs md:text-sm text-amber-400 text-center select-all">
                         t_tof = [x³·S(z) + A·√y] / √μ
                       </div>
                     </Card>
@@ -1129,14 +1155,14 @@ export default function App() {
                           <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_05 // INTERCEPTION BURNS</span>
                           <span className="px-1.5 py-0.5 font-mono text-[8px] border border-purple-400/40 text-purple-400 uppercase rounded bg-purple-500/5">Delta-V</span>
                         </div>
-                        <h4 className="font-display-lg text-xs font-bold text-white mb-2 uppercase tracking-wide">
+                        <h4 className="font-display-lg text-sm font-semibold text-white mb-2 uppercase tracking-wide">
                           Vis-Viva Velocity States
                         </h4>
-                        <p className="text-[10px] text-white/50 leading-relaxed font-light mb-3">
+                        <p className="text-xs text-white/50 leading-relaxed font-light mb-3">
                           Models hyperbolic arrival velocity states and computes retro-burn insertion delta-V into planetary orbit.
                         </p>
                       </div>
-                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-[10px] text-purple-400 text-center select-all">
+                      <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-xs md:text-sm text-purple-400 text-center select-all">
                         v² = μ · ( 2 / r - 1 / a )
                       </div>
                     </Card>
