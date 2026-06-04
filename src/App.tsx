@@ -834,7 +834,7 @@ export default function App() {
 
         <main className="pt-20">
           {/* Hero Section */}
-          <section className="relative min-h-[90vh] flex items-center px-8 md:px-[32px] overflow-hidden">
+          <section className="relative min-h-[90vh] flex items-center px-8 md:px-[32px] overflow-hidden z-20">
             <div className="absolute inset-0 z-0 pointer-events-none">
               <Galaxy transparent={false} />
             </div>
@@ -981,22 +981,24 @@ export default function App() {
               
               <div className="mb-8">
                 <ScrollFloat
-                  animationDuration={1.8}
+                  animationDuration={3}
                   ease='back.out(1.5)'
-                  scrollStart='top bottom'
-                  scrollEnd='bottom top+=30%'
-                  stagger={0.03}
+                  scrollStart='top bottom-=5%'
+                  scrollEnd='bottom center+=10%'
+                  stagger={0.05}
+                  scrub={4}
                   scrollContainerRef={landingScrollRef}
                   textClassName="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2"
                 >
                   MAP G is
                 </ScrollFloat>
                 <ScrollFloat
-                  animationDuration={2.2}
+                  animationDuration={3.5}
                   ease='back.out(1.5)'
-                  scrollStart='top bottom-=10%'
-                  scrollEnd='bottom top+=15%'
-                  stagger={0.03}
+                  scrollStart='top bottom-=15%'
+                  scrollEnd='bottom center-=5%'
+                  stagger={0.05}
+                  scrub={4}
                   scrollContainerRef={landingScrollRef}
                   textClassName="font-display-lg text-primary glow-primary text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight"
                 >

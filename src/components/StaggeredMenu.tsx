@@ -385,13 +385,6 @@ export const StaggeredMenu = ({
         
         <div className="flex items-center gap-4">
           <button
-            onClick={() => onLaunchCore && onLaunchCore()}
-            className="hidden md:block px-6 py-2 rounded-none border border-primary/50 text-primary hover:bg-primary/10 transition-colors uppercase cursor-crosshair font-bold tracking-widest"
-          >
-            Launch Core
-          </button>
-          
-          <button
             ref={toggleBtnRef}
             className="sm-toggle"
             aria-label={open ? 'Close menu' : 'Open menu'}

@@ -10,7 +10,7 @@
 }
 
 .gradual-blur {
-  isolation: isolate;
+  /* Allow backdrop-filter to access layers behind the container */
 }
 
 @supports not (backdrop-filter: blur(1px)) {
