@@ -951,10 +951,10 @@ export default function App() {
           </section>
 
           {/* Open Source Section */}
-          <section className="px-8 md:px-[32px] py-48 relative bg-[#030611] overflow-hidden min-h-[140vh] flex flex-col justify-center">
+          <section className="px-8 md:px-[32px] py-48 relative bg-black overflow-hidden min-h-[140vh] flex flex-col justify-center">
             {/* React Bits Waves Component */}
             <Waves
-              lineColor="rgba(0, 255, 255, 0.15)"
+              lineColor="rgba(255, 255, 255, 0.1)"
               backgroundColor="transparent"
               waveSpeedX={0.02}
               waveSpeedY={0.01}
@@ -968,7 +968,7 @@ export default function App() {
             />
 
             {/* Subtle glow behind the heart */}
-            <div className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-primary/5 rounded-full blur-[80px] pointer-events-none"></div>
+            <div className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-white/5 rounded-full blur-[80px] pointer-events-none"></div>
 
             {/* Scroll Spacer to drag out scrolling duration */}
             <div className="h-[15vh] w-full pointer-events-none"></div>
