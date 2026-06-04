@@ -284,10 +284,10 @@ export default function Galaxy({
     ctn.appendChild(gl.canvas);
 
     function handleMouseMove(e: any) {
-      const rect = ctn.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width;
-      const y = 1.0 - (e.clientY - rect.top) / rect.height;
-      targetMousePos.current = { x, y };
+      targetMousePos.current = {
+         x: e.clientX / window.innerWidth,
+         y: 1.0 - (e.clientY / window.innerHeight)
+      };
       targetMouseActive.current = 1.0;
     }
 
@@ -296,16 +296,18 @@ export default function Galaxy({
     }
 
     if (mouseInteraction) {
-      ctn.addEventListener('mousemove', handleMouseMove);
-      ctn.addEventListener('mouseleave', handleMouseLeave);
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseleave', handleMouseLeave);
+      window.addEventListener('mouseout', handleMouseLeave);
     }
 
     return () => {
       cancelAnimationFrame(animateId);
       window.removeEventListener('resize', resize);
       if (mouseInteraction) {
-        ctn.removeEventListener('mousemove', handleMouseMove);
-        ctn.removeEventListener('mouseleave', handleMouseLeave);
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseleave', handleMouseLeave);
+        window.removeEventListener('mouseout', handleMouseLeave);
       }
       if (ctn.contains(gl.canvas)) {
          ctn.removeChild(gl.canvas);

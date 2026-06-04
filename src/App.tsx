@@ -773,16 +773,10 @@ export default function App() {
           accentColor="#00ffff"
           onLaunchCore={() => setIsSimulatorRunning(true)}
           items={[
-            { label: 'Mission', ariaLabel: 'Go to Mission', link: '#' },
-            { label: 'Technology', ariaLabel: 'Explore Technology', link: '#' },
-            { label: 'Fleet', ariaLabel: 'View Fleet', link: '#' },
-            { label: 'News', ariaLabel: 'View News', link: '#' },
+            { label: 'Launch Simulator', ariaLabel: 'Launch Simulator', link: '#', onClick: () => setIsSimulatorRunning(true) },
+            { label: 'GitHub Repo', ariaLabel: 'GitHub MapG', link: 'https://github.com/UtkarshSharma000/MapG' },
           ]}
-          socialItems={[
-            { label: 'Documentation', link: '#' },
-            { label: 'GitHub', link: '#' },
-            { label: 'Status', link: '#' }
-          ]}
+          socialItems={[]}
         />
 
         <main className="pt-20">
@@ -799,7 +793,7 @@ export default function App() {
                 <span className="font-label-caps text-[10px] text-primary tracking-widest">SYSTEMS NOMINAL // ORBITAL SECTOR 7</span>
               </div>
               <h2 className="font-display-lg text-5xl md:text-[64px] font-bold mb-6 leading-none tracking-tighter">
-                MISSION:<br/><span className="text-primary text-6xl md:text-[80px]">ODYSSEY 2026</span>
+                MISSION:<br/><span className="text-primary text-6xl md:text-[80px]">MAP G</span>
               </h2>
               <p className="font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 max-w-2xl font-light">
                 Pioneering the Next Frontier of Satellite Logistics and Orbital Infrastructure.
@@ -811,9 +805,14 @@ export default function App() {
                 >
                   <Play size={16} fill="currentColor" /> LAUNCH TERMINAL
                 </button>
-                <button className="px-10 py-4 glass-panel border border-tertiary/40 text-tertiary font-label-caps text-label-caps tracking-widest glow-blue hover:scale-105 hover:bg-white/5 active:scale-95 transition-all rounded-full cursor-pointer">
-                  VIEW ROADMAP
-                </button>
+                <a 
+                  href="https://github.com/UtkarshSharma000/MapG"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-10 py-4 glass-panel border border-tertiary/40 text-tertiary font-label-caps text-label-caps tracking-widest glow-blue hover:scale-105 hover:bg-white/5 active:scale-95 transition-all rounded-full cursor-pointer inline-flex items-center gap-2"
+                >
+                  <Github size={16} /> VIEW SOURCE
+                </a>
               </div>
             </motion.div>
             {/* Side Floating Visual */}
@@ -885,11 +884,11 @@ export default function App() {
             <div className="max-w-4xl mx-auto text-center relative z-10">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 mb-6">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_var(--color-primary)]"></span>
-                <span className="font-mono text-[9px] text-primary tracking-widest uppercase">GRENINJA CORE PROJECT</span>
+                <span className="font-mono text-[9px] text-primary tracking-widest uppercase">MAP G CORE PROJECT</span>
               </div>
               
               <h3 className="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6">
-                GRENINJA is <br/>
+                MAP G is <br/>
                 <span className="text-primary glow-primary">Completely Open Source!</span>
               </h3>
 
@@ -933,13 +932,13 @@ export default function App() {
                       </div>
                       <span className="font-mono text-[10px] text-white/40">GUI REPO</span>
                     </div>
-                    <h4 className="font-display-lg text-lg font-bold text-white mb-2">ILikeToCode-dev / MapG</h4>
+                    <h4 className="font-display-lg text-lg font-bold text-white mb-2">UtkarshSharma000/MapG</h4>
                     <p className="text-white/60 text-xs font-light leading-relaxed mb-6">
                       Fully interactive 3D solar system rendering engine, Three.js simulation views, and trajectory visualization dashboards on GitHub.
                     </p>
                   </div>
                   <a 
-                    href="https://github.com/ILikeToCode-dev/MapG" 
+                    href="https://github.com/UtkarshSharma000/MapG" 
                     target="_blank" 
                     rel="noreferrer"
                     className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-mono font-bold text-xs uppercase px-6 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] pointer-events-auto"
@@ -967,9 +966,14 @@ export default function App() {
                 >
                   INITIALIZE CONNECTION
                 </button>
-                <button className="px-12 py-4 glass-panel border border-outline text-on-surface-variant font-label-caps tracking-widest hover:scale-105 active:scale-95 transition-all rounded font-bold cursor-pointer">
-                  SYSTEM STATUS
-                </button>
+                <a 
+                  href="https://github.com/UtkarshSharma000/MapG"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-12 py-4 glass-panel border border-outline text-on-surface-variant font-label-caps tracking-widest hover:scale-105 active:scale-95 transition-all rounded font-bold cursor-pointer inline-block"
+                >
+                  GITHUB REPOSITORY
+                </a>
               </div>
             </div>
           </section>
@@ -978,16 +982,13 @@ export default function App() {
           <footer className="w-full py-[32px] px-8 md:px-[32px] flex flex-col md:flex-row justify-between items-center gap-[16px] bg-[#170b08]/90 backdrop-blur-md border-t border-outline-variant/20">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>target</span>
-              <span className="font-display-lg text-lg text-primary tracking-tighter font-bold">ODYSSEY 2026</span>
+              <span className="font-display-lg text-lg text-primary tracking-tighter font-bold">MAP G</span>
             </div>
             <div className="flex gap-8">
-              <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="#">Privacy Policy</a>
-              <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="#">Terms of Service</a>
-              <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="#">Orbital Legal</a>
-              <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="#">Social Feeds</a>
+              <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="https://github.com/UtkarshSharma000/MapG" target="_blank" rel="noreferrer">GitHub</a>
             </div>
             <div className="text-right">
-              <p className="font-label-caps text-[10px] text-tertiary tracking-widest">© 2026 MISSION ODYSSEY. ALL SYSTEMS OPERATIONAL.</p>
+              <p className="font-label-caps text-[10px] text-tertiary tracking-widest">© 2026 MAP G. ALL SYSTEMS OPERATIONAL.</p>
             </div>
           </footer>
         </main>

@@ -379,7 +379,7 @@ export const StaggeredMenu = ({
             className="sm-logo-img w-12 h-12 relative -top-0.5"
             draggable={false}
           />
-          <h1 className="font-display-lg text-[22px] md:text-headline-md font-bold tracking-tighter text-[#00ffff] hidden sm:block m-0">PROJECT GRENINJA</h1>
+          <h1 className="font-display-lg text-[22px] md:text-headline-md font-bold tracking-tighter text-[#00ffff] hidden sm:block m-0">MAP G</h1>
         </div>
         
         <div className="flex items-center gap-4">
@@ -422,7 +422,13 @@ export const StaggeredMenu = ({
             {items && items.length ? (
               items.map((it: any, idx: number) => (
                 <li className="sm-panel-itemWrap" key={it.label + idx}>
-                  <a className="sm-panel-item" href={it.link} onClick={closeMenu} aria-label={it.ariaLabel} data-index={idx + 1}>
+                  <a className="sm-panel-item" href={it.link} onClick={(e) => {
+                    if (it.onClick) {
+                      e.preventDefault();
+                      it.onClick();
+                    }
+                    closeMenu();
+                  }} aria-label={it.ariaLabel} data-index={idx + 1}>
                     <span className="sm-panel-itemLabel">{it.label}</span>
                   </a>
                 </li>
