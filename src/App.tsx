@@ -168,6 +168,7 @@ export default function App() {
 
   // Time Ref for jumping simulation
   const globalTimeRef = React.useRef<number>(Date.now() / 1000);
+  const landingScrollRef = React.useRef<HTMLDivElement>(null);
 
   // Prevention guard for duplicate TEI execution calls
   const teiAppliedRef = React.useRef(false);
@@ -762,6 +763,7 @@ export default function App() {
 
       {/* Landing Page Content */}
       <div
+        ref={landingScrollRef}
         className={`absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
       >
         {/* TopNavBar */}
@@ -806,36 +808,12 @@ export default function App() {
                 <span className="font-label-caps text-[10px] text-primary tracking-widest">SYSTEMS NOMINAL // ORBITAL SECTOR 7</span>
               </div>
               
-              <ScrollFloat
-                animationDuration={1}
-                ease='back.inOut(2)'
-                scrollStart='center bottom+=50%'
-                scrollEnd='bottom bottom-=40%'
-                stagger={0.02}
-                textClassName="font-display-lg text-5xl md:text-[64px] font-bold mb-2 leading-none tracking-tighter block text-left"
-              >
-                MISSION:
-              </ScrollFloat>
-              <ScrollFloat
-                animationDuration={1.2}
-                ease='back.inOut(2)'
-                scrollStart='center bottom+=50%'
-                scrollEnd='bottom bottom-=40%'
-                stagger={0.03}
-                textClassName="font-display-lg text-primary glow-primary text-6xl md:text-[80px] font-bold mb-6 leading-none tracking-tighter block text-left"
-              >
-                MAP G
-              </ScrollFloat>
-              
-              <ScrollReveal
-                baseOpacity={0}
-                enableBlur={true}
-                baseRotation={5}
-                blurStrength={10}
-                textClassName="font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 max-w-2xl font-light text-left"
-              >
+              <h2 className="font-display-lg text-5xl md:text-[64px] font-bold mb-6 leading-none tracking-tighter">
+                MISSION:<br/><span className="text-primary text-6xl md:text-[80px]">MAP G</span>
+              </h2>
+              <p className="font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 max-w-2xl font-light">
                 Pioneering the Next Frontier of Satellite Logistics and Orbital Infrastructure.
-              </ScrollReveal>
+              </p>
               
               <div className="flex flex-wrap gap-4">
                 <button 
@@ -870,51 +848,6 @@ export default function App() {
             </motion.div>
           </section>
 
-          {/* Stats HUD */}
-          <motion.section 
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="px-8 md:px-[32px] py-12"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-[16px]">
-              <motion.div whileHover={{ scale: 1.02 }} className="glossy-panel p-[32px] rounded-3xl flex flex-col gap-2 group border border-white/10 cursor-default shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Activity size={48} />
-                </div>
-                <span className="font-label-caps text-[10px] tracking-widest text-tertiary relative z-10">CURRENT ALTITUDE</span>
-                <div className="flex items-baseline gap-2 relative z-10">
-                  <span className="font-data-lg text-4xl md:text-5xl leading-none group-hover:text-primary transition-colors font-bold">102.4</span>
-                  <span className="font-label-caps text-xl text-on-surface-variant font-bold">KM</span>
-                </div>
-                <div className="h-px bg-gradient-to-r from-transparent via-primary to-transparent w-full opacity-20 mt-2 relative z-10"></div>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.02 }} className="glossy-panel p-[32px] rounded-3xl flex flex-col gap-2 group border border-white/10 cursor-default shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Satellite size={48} />
-                </div>
-                <span className="font-label-caps text-[10px] tracking-widest text-tertiary relative z-10">RELATIVE VELOCITY</span>
-                <div className="flex items-baseline gap-2 relative z-10">
-                  <span className="font-data-lg text-4xl md:text-5xl leading-none group-hover:text-primary transition-colors font-bold">7.8</span>
-                  <span className="font-label-caps text-xl text-on-surface-variant font-bold">KM/S</span>
-                </div>
-                <div className="h-px bg-gradient-to-r from-transparent via-primary to-transparent w-full opacity-20 mt-2 relative z-10"></div>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.02 }} className="glossy-panel p-[32px] rounded-3xl flex flex-col gap-2 group border border-white/10 cursor-default shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Globe size={48} />
-                </div>
-                <span className="font-label-caps text-[10px] tracking-widest text-tertiary relative z-10">SIGNAL STRENGTH</span>
-                <div className="flex items-baseline gap-2 relative z-10">
-                  <span className="font-data-lg text-4xl md:text-5xl leading-none group-hover:text-primary transition-colors font-bold">98</span>
-                  <span className="font-label-caps text-xl text-on-surface-variant font-bold">%</span>
-                </div>
-                <div className="h-px bg-gradient-to-r from-transparent via-primary to-transparent w-full opacity-20 mt-2 relative z-10"></div>
-              </motion.div>
-            </div>
-          </motion.section>
-
           {/* Open Source Section */}
           <section className="px-8 md:px-[32px] py-20 border-t border-white/5 relative bg-transparent">
             {/* Subtle glow behind the heart */}
@@ -932,6 +865,7 @@ export default function App() {
                 scrollStart='top bottom'
                 scrollEnd='center bottom-=10%'
                 stagger={0.03}
+                scrollContainerRef={landingScrollRef}
                 textClassName="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2"
               >
                 MAP G is
@@ -942,6 +876,7 @@ export default function App() {
                 scrollStart='top bottom+=20%'
                 scrollEnd='center bottom-=20%'
                 stagger={0.02}
+                scrollContainerRef={landingScrollRef}
                 textClassName="font-display-lg text-primary glow-primary text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6"
               >
                 Completely Open Source!
