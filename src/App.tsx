@@ -3,7 +3,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { useTexture, OrbitControls } from "@react-three/drei";
 import * as THREE from 'three';
 import Draggable from 'react-draggable';
-import { motion } from "motion/react";
+import { motion, useScroll, useTransform } from "motion/react";
 import {
   Play,
   Activity,
@@ -29,13 +29,22 @@ import StaggeredMenu from "./components/StaggeredMenu";
 import ScrollFloat from "./components/ScrollFloat";
 import ScrollReveal from "./components/ScrollReveal";
 
-function InteractiveGlobe({ url, color }: { url: string, color: string }) {
+function InteractiveGlobe({ url, color, scrollContainer }: { url: string, color: string, scrollContainer?: React.RefObject<HTMLElement> }) {
   const meshRef = React.useRef<THREE.Mesh>(null);
   const tex = useTexture(url);
-  useFrame(() => {
+  
+  const { scrollYProgress } = useScroll(scrollContainer ? { container: scrollContainer } : {});
+  const cameraZ = useTransform(scrollYProgress, [0, 1], [3, 8]);
+  const cameraY = useTransform(scrollYProgress, [0, 1], [0, 4]);
+
+  useFrame((state) => {
     if (meshRef.current) {
       meshRef.current.rotation.y += 0.005;
     }
+    // Bind scroll wheel directly to Three.js camera smoothly
+    state.camera.position.z += (cameraZ.get() - state.camera.position.z) * 0.1;
+    state.camera.position.y += (cameraY.get() - state.camera.position.y) * 0.1;
+    state.camera.lookAt(0, 0, 0);
   });
 
   const [hovered, setHover] = useState(false);
@@ -764,7 +773,7 @@ export default function App() {
       {/* Landing Page Content */}
       <div
         ref={landingScrollRef}
-        className={`absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
+        className={`landing-scroller absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
       >
         {/* TopNavBar */}
         <StaggeredMenu
@@ -808,12 +817,39 @@ export default function App() {
                 <span className="font-label-caps text-[10px] text-primary tracking-widest">SYSTEMS NOMINAL // ORBITAL SECTOR 7</span>
               </div>
               
-              <h2 className="font-display-lg text-5xl md:text-[64px] font-bold mb-6 leading-none tracking-tighter">
-                MISSION:<br/><span className="text-primary text-6xl md:text-[80px]">MAP G</span>
-              </h2>
-              <p className="font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 max-w-2xl font-light">
+              <ScrollFloat
+                animationDuration={1}
+                ease='back.inOut(2)'
+                scrollStart='center bottom+=50%'
+                scrollEnd='bottom bottom-=40%'
+                stagger={0.02}
+                scrollContainerRef={landingScrollRef}
+                textClassName="font-display-lg text-5xl md:text-[64px] font-bold mb-2 leading-none tracking-tighter block text-left"
+              >
+                MISSION:
+              </ScrollFloat>
+              <ScrollFloat
+                animationDuration={1.2}
+                ease='back.inOut(2)'
+                scrollStart='center bottom+=50%'
+                scrollEnd='bottom bottom-=40%'
+                stagger={0.03}
+                scrollContainerRef={landingScrollRef}
+                textClassName="font-display-lg text-primary glow-primary text-6xl md:text-[80px] font-bold mb-6 leading-none tracking-tighter block text-left"
+              >
+                MAP G
+              </ScrollFloat>
+              
+              <ScrollReveal
+                baseOpacity={0}
+                enableBlur={true}
+                baseRotation={5}
+                blurStrength={10}
+                scrollContainerRef={landingScrollRef}
+                textClassName="font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 max-w-2xl font-light text-left"
+              >
                 Pioneering the Next Frontier of Satellite Logistics and Orbital Infrastructure.
-              </p>
+              </ScrollReveal>
               
               <div className="flex flex-wrap gap-4">
                 <button 
@@ -841,7 +877,7 @@ export default function App() {
             >
               <div className="relative w-full h-full cursor-grab active:cursor-grabbing opacity-90 transition-opacity duration-500">
                 <Canvas camera={{ position: [0, 0, 3] }}>
-                  <InteractiveGlobe url="/textures/2k_mars.jpg" color="#c1440e" />
+                  <InteractiveGlobe url="/textures/2k_mars.jpg" color="#c1440e" scrollContainer={landingScrollRef} />
                 </Canvas>
                 <div className="absolute inset-0 bg-gradient-to-l from-[#050505]/60 to-transparent pointer-events-none"></div>
               </div>

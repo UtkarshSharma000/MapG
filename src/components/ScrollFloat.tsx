@@ -32,7 +32,8 @@ const ScrollFloat = ({
     const el = containerRef.current;
     if (!el) return;
 
-    const scroller = scrollContainerRef && scrollContainerRef.current ? scrollContainerRef.current : window;
+    // Default to a specific class if provided otherwise window
+    const scroller = scrollContainerRef?.current || document.querySelector('.landing-scroller') || window;
 
     const charElements = el.querySelectorAll('.char');
 

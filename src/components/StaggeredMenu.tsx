@@ -1,7 +1,6 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import './StaggeredMenu.css';
-import FlowingMenu from './FlowingMenu';
 
 export const StaggeredMenu = ({
 
@@ -420,29 +419,29 @@ export const StaggeredMenu = ({
 
       <aside id="staggered-menu-panel" ref={panelRef} className="staggered-menu-panel" aria-hidden={!open}>
         <div className="sm-panel-inner flex flex-col h-full">
-          {items && items.length > 0 ? (
-            <div className="flex-1 min-h-[300px] sm-panel-list">
-              <FlowingMenu 
-                items={items.map((it: any) => ({
-                  text: it.label,
-                  link: it.link,
-                  image: it.image || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop',
-                  onClick: it.onClick ? () => {
-                       it.onClick();
-                       closeMenu();
-                  } : () => closeMenu()
-                }))}
-              />
-            </div>
-          ) : (
-            <ul className="sm-panel-list" role="list">
+          <ul className="sm-panel-list" role="list" data-numbering={displayItemNumbering || undefined}>
+            {items && items.length > 0 ? (
+              items.map((it: any, idx: number) => (
+                <li className="sm-panel-itemWrap" key={it.label + idx}>
+                  <a className="sm-panel-item" href={it.link} onClick={(e) => {
+                    if (it.onClick) {
+                      e.preventDefault();
+                      it.onClick();
+                    }
+                    closeMenu();
+                  }} aria-label={it.ariaLabel} data-index={idx + 1}>
+                    <span className="sm-panel-itemLabel">{it.label}</span>
+                  </a>
+                </li>
+              ))
+            ) : (
               <li className="sm-panel-itemWrap" aria-hidden="true">
                 <span className="sm-panel-item">
                   <span className="sm-panel-itemLabel">No items</span>
                 </span>
               </li>
-            </ul>
-          )}
+            )}
+          </ul>
           {displaySocials && socialItems && socialItems.length > 0 && (
             <div className="sm-socials" aria-label="Social links">
               <h3 className="sm-socials-title">Links</h3>

@@ -36,7 +36,7 @@ const ScrollReveal = ({
     const el = containerRef.current;
     if (!el) return;
 
-    const scroller = scrollContainerRef && scrollContainerRef.current ? scrollContainerRef.current : window;
+    const scroller = scrollContainerRef?.current || document.querySelector('.landing-scroller') || window;
 
     gsap.fromTo(
       el,
