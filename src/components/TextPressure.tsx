@@ -58,7 +58,7 @@ const TextPressure: React.FC<TextPressureProps> = ({
   className = '',
 
   minFontSize = 24,
-  scrollDriven = true
+  scrollDriven = false
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
