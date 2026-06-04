@@ -18,6 +18,7 @@ import {
   Terminal,
   Move,
 } from "lucide-react";
+import { useLocation, useNavigate } from 'react-router-dom';
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
 import TrajectoryOptimizer, { OptimizeResult } from "./TrajectoryOptimizer";
 import { scanPorkchop } from "./workers/trajectory.worker";
@@ -109,7 +110,16 @@ export default function App() {
     };
   }, []);
 
-  const [isSimulatorRunning, setIsSimulatorRunning] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isSimulatorRunning = location.pathname.startsWith('/engine');
+  const setIsSimulatorRunning = (running: boolean) => {
+    if (running) {
+      navigate('/engine');
+    } else {
+      navigate('/');
+    }
+  };
   const [selectedTarget, setSelectedTarget] = useState<
     (typeof PLANETS)[0] | null
   >(PLANETS[2]); // Earth
