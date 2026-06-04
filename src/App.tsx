@@ -804,7 +804,7 @@ export default function App() {
           <div className="fixed inset-0 z-0 pointer-events-none">
             <Galaxy transparent={false} mouseInteraction={false} scrollProgress={scrollProgress} />
           </div>
-          <GradualBlur position="top" height="6rem" strength={4} zIndex={100} target="page" />
+          <GradualBlur position="top" height="6rem" strength={4} zIndex={100} target="page" style={{ top: "5rem" }} />
           <GradualBlur position="bottom" height="6rem" strength={4} zIndex={100} target="page" />
         </>
       )}
