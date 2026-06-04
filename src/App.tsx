@@ -792,7 +792,7 @@ export default function App() {
       {!isSimulatorRunning && (
         <>
           <div className="fixed inset-0 z-0 pointer-events-none">
-            <Galaxy transparent={false} mouseInteraction={false} scrollProgress={scrollProgress} />
+            <Galaxy transparent={false} mouseInteraction={false} scrollProgress={0} />
           </div>
           <GradualBlur position="top" height="6rem" strength={4} zIndex={100} target="page" />
           <GradualBlur position="bottom" height="6rem" strength={4} zIndex={100} target="page" />
@@ -1002,8 +1002,13 @@ export default function App() {
             {/* Sticky viewport content container */}
             <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden pointer-events-none">
               
+              {/* Local zooming galaxy background panel */}
+              <div className="absolute inset-0 z-0 pointer-events-none">
+                <Galaxy transparent={false} mouseInteraction={false} scrollProgress={scrollProgress} />
+              </div>
+
               {/* Subtle tech background grids exclusively visible here */}
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,180,255,0.03)_0%,transparent_70%)] pointer-events-none"></div>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,180,255,0.03)_0%,transparent_70%)] pointer-events-none z-10"></div>
               
               {/* Telemetry and HUD Readouts Overlay */}
               <div className="absolute inset-0 p-8 md:p-[32px] flex flex-col justify-between pointer-events-none z-10">

@@ -283,6 +283,11 @@ export default function Galaxy({
   const smoothMouseActive = useRef(0.0);
   const scrollProgressRef = useRef(scrollProgress);
 
+  const focalX = focal && focal.length === 2 ? focal[0] : 0.5;
+  const focalY = focal && focal.length === 2 ? focal[1] : 0.5;
+  const rotX = rotation && rotation.length === 2 ? rotation[0] : 1.0;
+  const rotY = rotation && rotation.length === 2 ? rotation[1] : 0.0;
+
   useEffect(() => {
     scrollProgressRef.current = scrollProgress;
   }, [scrollProgress]);
@@ -329,8 +334,8 @@ export default function Galaxy({
         uResolution: {
           value: new Color(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height)
         },
-        uFocal: { value: new Float32Array(focal) },
-        uRotation: { value: new Float32Array(rotation) },
+        uFocal: { value: new Float32Array([focalX, focalY]) },
+        uRotation: { value: new Float32Array([rotX, rotY]) },
         uStarSpeed: { value: starSpeed },
         uDensity: { value: density },
         uHueShift: { value: hueShift },
@@ -411,8 +416,10 @@ export default function Galaxy({
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
   }, [
-    focal,
-    rotation,
+    focalX,
+    focalY,
+    rotX,
+    rotY,
     starSpeed,
     density,
     hueShift,
