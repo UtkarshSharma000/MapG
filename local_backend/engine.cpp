@@ -1033,12 +1033,12 @@ int main(int argc, char* argv[]) {
                 double safety_margin = flyby_el->radius + 150000.0;
                 if (rp < safety_margin) rp = safety_margin;
 
-                Eigen::Vector3d P_dir = (S_in + S_out).normalized();
-                Eigen::Vector3d V_dir = (S_out - S_in).normalized();
+                Eigen::Vector3d pos_dir = (S_in - S_out).normalized();
+                Eigen::Vector3d vel_dir = (S_in + S_out).normalized();
                 double v_p_mag = std::sqrt(v_avg * v_avg + 2.0 * flyby_el->mu / rp);
 
-                ga_pos_p = jup_pos_flyby + rp * P_dir;
-                ga_vel_p = jup_vel_flyby + v_p_mag * V_dir;
+                ga_pos_p = jup_pos_flyby + rp * pos_dir;
+                ga_vel_p = jup_vel_flyby + v_p_mag * vel_dir;
                 ga_v2_dep = v_sc2_dep;
 
                 ghost_path.clear();
@@ -1051,18 +1051,29 @@ int main(int argc, char* argv[]) {
                     if (i * dt1 < ga_tof1 - t_bound) ghost_path.push_back(path1[i]);
                 }
                 
-                // Add high resolution hyperbolic flyby using planetocentric frame
+                // Add high resolution hyperbolic flyby using exact Keplerian orbit equation
+                double a_pos = flyby_el->mu / (v_avg * v_avg);
+                double e_hyp = 1.0 + rp / a_pos;
+                double n_hyp = std::sqrt(flyby_el->mu / (a_pos * a_pos * a_pos));
+                
+                double F_guess = std::log(2.0 * n_hyp * t_bound / e_hyp);
+                if (F_guess < 0.0) F_guess = 0.0;
+                for (int iter = 0; iter < 10; ++iter) {
+                    double f_val = e_hyp * std::sinh(F_guess) - F_guess - n_hyp * t_bound;
+                    double f_der = e_hyp * std::cosh(F_guess) - 1.0;
+                    F_guess = F_guess - f_val / f_der;
+                }
+                double F_bound = F_guess;
+                
                 int flyby_steps = 100;
                 for (int i = 0; i <= flyby_steps; ++i) {
-                    double t_encounter = -t_bound + 2.0 * t_bound * ((double)i / flyby_steps);
+                    double F_current = -F_bound + (2.0 * F_bound * i) / flyby_steps;
+                    double t_encounter = (e_hyp * std::sinh(F_current) - F_current) / n_hyp;
                     
-                    Eigen::Vector3d current_pos_rel = rp * P_dir;
-                    if (t_encounter < 0) {
-                        current_pos_rel = (rp * P_dir) - (-t_encounter * v_inf_in);
-                    } else {
-                        current_pos_rel = (rp * P_dir) + (t_encounter * v_inf_out);
-                    }
+                    double x_p = a_pos * (e_hyp - std::cosh(F_current));
+                    double y_p = a_pos * std::sqrt(e_hyp * e_hyp - 1.0) * std::sinh(F_current);
                     
+                    Eigen::Vector3d current_pos_rel = x_p * pos_dir + y_p * vel_dir;
                     Eigen::Vector3d p_planet = propagate_orbit(*flyby_el, launchTime + ga_tof1 + t_encounter);
                     ghost_path.push_back(p_planet + current_pos_rel);
                 }
