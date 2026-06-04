@@ -32,38 +32,40 @@ const ScrollFloat = ({
     const el = containerRef.current;
     if (!el) return;
 
-    // Default to a specific class if provided otherwise window
-    const scroller = scrollContainerRef?.current || document.querySelector('.landing-scroller') || window;
+    const timer = setTimeout(() => {
+      const scroller = scrollContainerRef?.current || document.querySelector('.landing-scroller') || window;
+      const charElements = el.querySelectorAll('.char');
 
-    const charElements = el.querySelectorAll('.char');
-
-    gsap.fromTo(
-      charElements,
-      {
-        willChange: 'opacity, transform',
-        opacity: 0,
-        yPercent: 120,
-        scaleY: 2.3,
-        scaleX: 0.7,
-        transformOrigin: '50% 0%'
-      },
-      {
-        duration: animationDuration,
-        ease: ease,
-        opacity: 1,
-        yPercent: 0,
-        scaleY: 1,
-        scaleX: 1,
-        stagger: stagger,
-        scrollTrigger: {
-          trigger: el,
-          scroller: scroller as any,
-          start: scrollStart,
-          end: scrollEnd,
-          scrub: true
+      gsap.fromTo(
+        charElements,
+        {
+          willChange: 'opacity, transform',
+          opacity: 0,
+          yPercent: 120,
+          scaleY: 2.3,
+          scaleX: 0.7,
+          transformOrigin: '50% 0%'
+        },
+        {
+          duration: animationDuration,
+          ease: ease,
+          opacity: 1,
+          yPercent: 0,
+          scaleY: 1,
+          scaleX: 1,
+          stagger: stagger,
+          scrollTrigger: {
+            trigger: el,
+            scroller: scroller as any,
+            start: scrollStart,
+            end: scrollEnd,
+            scrub: true
+          }
         }
-      }
-    );
+      );
+    }, 150);
+
+    return () => clearTimeout(timer);
   }, [scrollContainerRef, animationDuration, ease, scrollStart, scrollEnd, stagger]);
 
   return (

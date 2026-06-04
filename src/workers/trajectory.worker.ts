@@ -6,6 +6,7 @@ export interface OptimizeResult {
   tof_days: number
   launchDay_j2000: number
   v1_ecl: [number, number, number]
+  legs?: any[]
 }
 
 const PLANETS: Record<number, {

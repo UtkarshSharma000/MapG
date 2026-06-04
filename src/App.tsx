@@ -28,22 +28,47 @@ import Galaxy from "./components/Galaxy";
 import StaggeredMenu from "./components/StaggeredMenu";
 import ScrollFloat from "./components/ScrollFloat";
 import ScrollReveal from "./components/ScrollReveal";
+import Waves from "./components/Waves";
 
-function InteractiveGlobe({ url, color, scrollContainer }: { url: string, color: string, scrollContainer?: React.RefObject<HTMLElement> }) {
+function InteractiveGlobe({ url, color }: { url: string, color: string }) {
   const meshRef = React.useRef<THREE.Mesh>(null);
   const tex = useTexture(url);
   
-  const { scrollYProgress } = useScroll(scrollContainer ? { container: scrollContainer } : {});
-  const cameraZ = useTransform(scrollYProgress, [0, 1], [3, 8]);
-  const cameraY = useTransform(scrollYProgress, [0, 1], [0, 4]);
+  const scrollProgressRef = React.useRef(0);
+
+  useEffect(() => {
+    const scroller = document.querySelector('.landing-scroller');
+    if (!scroller) return;
+
+    const handleScroll = () => {
+      const scrollTop = scroller.scrollTop;
+      const scrollHeight = scroller.scrollHeight - scroller.clientHeight;
+      if (scrollHeight > 0) {
+        scrollProgressRef.current = scrollTop / scrollHeight;
+      }
+    };
+
+    scroller.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      scroller.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   useFrame((state) => {
     if (meshRef.current) {
       meshRef.current.rotation.y += 0.005;
     }
-    // Bind scroll wheel directly to Three.js camera smoothly
-    state.camera.position.z += (cameraZ.get() - state.camera.position.z) * 0.1;
-    state.camera.position.y += (cameraY.get() - state.camera.position.y) * 0.1;
+    const p = scrollProgressRef.current;
+    // Smoothed spring coordinates mapped from scroll progress
+    const targetZ = 3 + p * 15;
+    const targetY = p * 6;
+    const targetX = Math.sin(p * Math.PI) * 4;
+
+    state.camera.position.z += (targetZ - state.camera.position.z) * 0.1;
+    state.camera.position.y += (targetY - state.camera.position.y) * 0.1;
+    state.camera.position.x += (targetX - state.camera.position.x) * 0.1;
     state.camera.lookAt(0, 0, 0);
   });
 
@@ -877,7 +902,7 @@ export default function App() {
             >
               <div className="relative w-full h-full cursor-grab active:cursor-grabbing opacity-90 transition-opacity duration-500">
                 <Canvas camera={{ position: [0, 0, 3] }}>
-                  <InteractiveGlobe url="/textures/2k_mars.jpg" color="#c1440e" scrollContainer={landingScrollRef} />
+                  <InteractiveGlobe url="/textures/2k_mars.jpg" color="#c1440e" />
                 </Canvas>
                 <div className="absolute inset-0 bg-gradient-to-l from-[#050505]/60 to-transparent pointer-events-none"></div>
               </div>
@@ -885,7 +910,22 @@ export default function App() {
           </section>
 
           {/* Open Source Section */}
-          <section className="px-8 md:px-[32px] py-20 border-t border-white/5 relative bg-transparent">
+          <section className="px-8 md:px-[32px] py-32 border-t border-white/5 relative bg-[#030611] overflow-hidden min-h-[90vh] flex flex-col justify-center">
+            {/* React Bits Waves Component */}
+            <Waves
+              lineColor="rgba(0, 255, 255, 0.15)"
+              backgroundColor="transparent"
+              waveSpeedX={0.02}
+              waveSpeedY={0.01}
+              waveAmpX={40}
+              waveAmpY={20}
+              friction={0.9}
+              tension={0.01}
+              maxCursorMove={120}
+              xGap={12}
+              yGap={36}
+            />
+
             {/* Subtle glow behind the heart */}
             <div className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-primary/5 rounded-full blur-[80px] pointer-events-none"></div>
 
@@ -896,10 +936,10 @@ export default function App() {
               </div>
               
               <ScrollFloat
-                animationDuration={1}
+                animationDuration={1.5}
                 ease='back.inOut(2)'
-                scrollStart='top bottom'
-                scrollEnd='center bottom-=10%'
+                scrollStart='top bottom-=10%'
+                scrollEnd='center center+=20%'
                 stagger={0.03}
                 scrollContainerRef={landingScrollRef}
                 textClassName="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2"
@@ -907,11 +947,11 @@ export default function App() {
                 MAP G is
               </ScrollFloat>
               <ScrollFloat
-                animationDuration={1.2}
+                animationDuration={1.8}
                 ease='back.inOut(2)'
-                scrollStart='top bottom+=20%'
-                scrollEnd='center bottom-=20%'
-                stagger={0.02}
+                scrollStart='top bottom-=20%'
+                scrollEnd='center center+=10%'
+                stagger={0.03}
                 scrollContainerRef={landingScrollRef}
                 textClassName="font-display-lg text-primary glow-primary text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6"
               >
@@ -978,7 +1018,7 @@ export default function App() {
           </section>
 
           {/* CTA Section */}
-          <section className="px-8 md:px-[32px] py-24 relative overflow-hidden">
+          <section className="px-8 md:px-[32px] py-24 relative overflow-hidden bg-[#030611]">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-primary/5 rounded-full pointer-events-none"></div>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-primary/10 rounded-full pointer-events-none"></div>
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-primary/20 rounded-full pointer-events-none"></div>
@@ -1005,7 +1045,7 @@ export default function App() {
           </section>
 
           {/* Footer */}
-          <footer className="w-full py-[32px] px-8 md:px-[32px] flex flex-col md:flex-row justify-between items-center gap-[16px] bg-[#170b08]/90 backdrop-blur-md border-t border-outline-variant/20">
+          <footer className="w-full py-[32px] px-8 md:px-[32px] flex flex-col md:flex-row justify-between items-center gap-[16px] bg-[#030611] backdrop-blur-md border-t border-white/10">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>target</span>
               <span className="font-display-lg text-lg text-primary tracking-tighter font-bold">MAP G</span>
