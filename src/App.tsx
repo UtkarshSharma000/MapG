@@ -25,6 +25,7 @@ import { TelemetryPanel } from "./components/TelemetryPanel";
 import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
 import Galaxy from "./components/Galaxy";
+import StaggeredMenu from "./components/StaggeredMenu";
 
 function InteractiveGlobe({ url, color }: { url: string, color: string }) {
   const meshRef = React.useRef<THREE.Mesh>(null);
@@ -762,24 +763,27 @@ export default function App() {
         className={`absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
       >
         {/* TopNavBar */}
-        <header className="fixed top-0 w-full z-50 flex justify-between items-center px-8 md:px-[32px] h-20 bg-background/50 backdrop-blur-xl border-b border-outline-variant/30">
-          <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="Project Greninja" className="w-12 h-12 relative -top-0.5" />
-            <h1 className="font-display-lg text-headline-md font-bold tracking-tighter text-primary">PROJECT GRENINJA</h1>
-          </div>
-          <nav className="hidden md:flex gap-8">
-            <a className="font-label-caps text-label-caps text-primary font-bold border-b-2 border-primary pb-1 hover:text-tertiary transition-colors duration-300" href="#">Mission</a>
-            <a className="font-label-caps text-label-caps text-on-surface-variant font-medium hover:text-tertiary transition-colors duration-300" href="#">Technology</a>
-            <a className="font-label-caps text-label-caps text-on-surface-variant font-medium hover:text-tertiary transition-colors duration-300" href="#">Fleet</a>
-            <a className="font-label-caps text-label-caps text-on-surface-variant font-medium hover:text-tertiary transition-colors duration-300" href="#">News</a>
-          </nav>
-          <button 
-            onClick={() => setIsSimulatorRunning(true)}
-            className="px-6 py-2 bg-primary-container text-on-primary-container font-label-caps text-label-caps tracking-widest hover:scale-95 transition-transform duration-200 cursor-pointer rounded"
-          >
-            LAUNCH TERMINAL
-          </button>
-        </header>
+        <StaggeredMenu
+          isFixed={true}
+          position="right"
+          colors={['#082f49', '#0c4a6e', '#164e63']}
+          logoUrl="/logo.svg"
+          menuButtonColor="#00ffff"
+          openMenuButtonColor="#ffffff"
+          accentColor="#00ffff"
+          onLaunchCore={() => setIsSimulatorRunning(true)}
+          items={[
+            { label: 'Mission', ariaLabel: 'Go to Mission', link: '#' },
+            { label: 'Technology', ariaLabel: 'Explore Technology', link: '#' },
+            { label: 'Fleet', ariaLabel: 'View Fleet', link: '#' },
+            { label: 'News', ariaLabel: 'View News', link: '#' },
+          ]}
+          socialItems={[
+            { label: 'Documentation', link: '#' },
+            { label: 'GitHub', link: '#' },
+            { label: 'Status', link: '#' }
+          ]}
+        />
 
         <main className="pt-20">
           {/* Hero Section */}
