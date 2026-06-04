@@ -1033,8 +1033,8 @@ int main(int argc, char* argv[]) {
                 double safety_margin = flyby_el->radius + 150000.0;
                 if (rp < safety_margin) rp = safety_margin;
 
-                Eigen::Vector3d pos_dir = (S_in - S_out).normalized();
-                Eigen::Vector3d vel_dir = (S_in + S_out).normalized();
+                Eigen::Vector3d pos_dir = -(S_in + S_out).normalized();
+                Eigen::Vector3d vel_dir = (S_out - S_in).normalized();
                 double v_p_mag = std::sqrt(v_avg * v_avg + 2.0 * flyby_el->mu / rp);
 
                 ga_pos_p = jup_pos_flyby + rp * pos_dir;

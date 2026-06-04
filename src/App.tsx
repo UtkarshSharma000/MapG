@@ -217,6 +217,7 @@ export default function App() {
     };
   }, []);
 
+  // Return trajectory worker
   useEffect(() => {
     const planetIds: Record<string, number> = {
       'Mercury': 1,
@@ -228,28 +229,25 @@ export default function App() {
       'Uranus': 7,
       'Neptune': 8
     };
-    if (selectedTarget && selectedTarget.name !== "Sun" && selectedTarget.name !== "Earth" && !isLaunched) {
-      const originId = 3; // Earth
-      const destId = planetIds[selectedTarget.name] || 4;
-      const t0_days = globalTimeRef.current / 86400;
-      
-      const res = scanPorkchop(originId, destId, t0_days);
-      if (res) {
-        const legs = [
-          {
-            originId,
-            destId,
-            type: 'transfer' as const,
-            tof_days: res.tof_days,
-            dv1_kms: res.dv1_kms,
-            dv2_kms: res.dv2_kms,
-            v1_ecl: res.v1_ecl
+    if (selectedTarget && selectedTarget.name !== "Sun" && selectedTarget.name !== "Earth") {
+      returnDestIdRef.current = planetIds[selectedTarget.name] || 4;
+      if (returnWorkerRef.current) {
+        returnWorkerRef.current.postMessage({
+          type: "SCAN",
+          payload: {
+            originId: returnDestIdRef.current,
+            destId: 3,
+            t0_days: globalTimeRef.current / 86400,
+            searchDays: 800,
+            tofMin: 50,
+            tofMax: 400,
+            steps: 30,
+            optGoal: "Time-Optimal (Fast-Transit)"
           }
-        ];
-        handleApply({ ...res, legs });
+        });
       }
     }
-  }, [selectedTarget, isLaunched]);
+  }, [selectedTarget]);
 
   const handleTimeMultChange = (newMult: number) => {
     setTimeMult(newMult);
