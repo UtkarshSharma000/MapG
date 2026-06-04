@@ -24,8 +24,7 @@ import { scanPorkchop } from "./workers/trajectory.worker";
 import { TelemetryPanel } from "./components/TelemetryPanel";
 import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
-import FlyingPosters from "./components/FlyingPosters";
-import FlowingMenu from "./components/FlowingMenu";
+import Galaxy from "./components/Galaxy";
 
 function InteractiveGlobe({ url, color }: { url: string, color: string }) {
   const meshRef = React.useRef<THREE.Mesh>(null);
@@ -703,7 +702,10 @@ export default function App() {
   }, [activeReplay, activeReplayStartTime]);
 
   return (
-    <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-[#03060f]">
+    <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-transparent">
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <Galaxy transparent={false} />
+      </div>
       {showMobileBlock && (
         <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#03060f] text-white p-6 text-center select-none pointer-events-auto">
           <div className="max-w-xs flex flex-col items-center">
@@ -757,11 +759,10 @@ export default function App() {
 
       {/* Landing Page Content */}
       <div
-        className={`absolute inset-0 z-20 flex flex-col bg-background transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
-        style={{ backgroundColor: '#050505' }}
+        className={`absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
       >
         {/* TopNavBar */}
-        <header className="fixed top-0 w-full z-50 flex justify-between items-center px-8 md:px-[32px] h-20 bg-background/80 backdrop-blur-xl border-b border-outline-variant/30">
+        <header className="fixed top-0 w-full z-50 flex justify-between items-center px-8 md:px-[32px] h-20 bg-background/50 backdrop-blur-xl border-b border-outline-variant/30">
           <div className="flex items-center gap-3">
             <img src="/logo.svg" alt="Project Greninja" className="w-12 h-12 relative -top-0.5" />
             <h1 className="font-display-lg text-headline-md font-bold tracking-tighter text-primary">PROJECT GRENINJA</h1>
@@ -783,10 +784,6 @@ export default function App() {
         <main className="pt-20">
           {/* Hero Section */}
           <section className="relative min-h-[90vh] flex items-center px-8 md:px-[32px] overflow-hidden">
-            <div className="absolute inset-0 z-0">
-              <img alt="Atmospheric planetary background" className="w-full h-full object-cover opacity-20 mix-blend-screen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBACplwpq98Rkmgv4zvxb0eAEhIsizmNlJTC2jsQBeMtvZnFYMnCJHR6TAhNJ9sfdEr6k_qaF1jw4HuGWKSNZ1nLjHMBWSml5Pfcat6Fvkkaqj3c3JB-Lku9XZXTymKJOzxULcF7cBYsQhH_FC0LOHV6VFeXFn-5Omy3eEJ1a4hAJ5Txfm3dfZA-dKXoSqeNxCa2_yE5V8DhGfuqoeckWsY-xTNWEWCVaobE57lK5IlDNUKTEQ53H_Qy75i26W4xFsKIJcbnR1z87NM" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent"></div>
-            </div>
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
               animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1, y: 0 }}
@@ -877,7 +874,7 @@ export default function App() {
           </motion.section>
 
           {/* Open Source Section */}
-          <section className="px-8 md:px-[32px] py-20 border-t border-white/5 relative bg-gradient-to-b from-[#020202] via-[#040812] to-[#020202]">
+          <section className="px-8 md:px-[32px] py-20 border-t border-white/5 relative bg-transparent">
             {/* Subtle glow behind the heart */}
             <div className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-primary/5 rounded-full blur-[80px] pointer-events-none"></div>
 
@@ -969,27 +966,6 @@ export default function App() {
                 <button className="px-12 py-4 glass-panel border border-outline text-on-surface-variant font-label-caps tracking-widest hover:scale-105 active:scale-95 transition-all rounded font-bold cursor-pointer">
                   SYSTEM STATUS
                 </button>
-              </div>
-            </div>
-          </section>
-
-          <section className="px-8 md:px-[32px] py-12 relative border-t border-white/5">
-            <h3 className="font-display-lg text-3xl font-bold mb-8 text-center tracking-tighter text-white">Visual Artifacts</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto h-[600px]">
-              <div className="relative border border-white/10 rounded-2xl overflow-hidden glass-panel h-full">
-                <FlowingMenu items={[
-                  { link: '#', text: 'Mojave', image: 'https://picsum.photos/600/400?random=1' },
-                  { link: '#', text: 'Sonoma', image: 'https://picsum.photos/600/400?random=2' },
-                  { link: '#', text: 'Monterey', image: 'https://picsum.photos/600/400?random=3' },
-                  { link: '#', text: 'Sequoia', image: 'https://picsum.photos/600/400?random=4' }
-                ]} bgColor="transparent" />
-              </div>
-              <div className="relative border border-white/10 rounded-2xl overflow-hidden glass-panel h-full">
-                <FlyingPosters items={[
-                  'https://picsum.photos/500/500?grayscale', 
-                  'https://picsum.photos/600/600?grayscale', 
-                  'https://picsum.photos/400/400?grayscale'
-                ]} />
               </div>
             </div>
           </section>
