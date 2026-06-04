@@ -29,6 +29,7 @@ import StaggeredMenu from "./components/StaggeredMenu";
 import ScrollFloat from "./components/ScrollFloat";
 import ScrollReveal from "./components/ScrollReveal";
 import Waves from "./components/Waves";
+import GradualBlur from "./components/GradualBlur";
 
 function InteractiveGlobe({ url, color }: { url: string, color: string }) {
   const meshRef = React.useRef<THREE.Mesh>(null);
@@ -741,9 +742,11 @@ export default function App() {
 
   return (
     <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-transparent">
-      <div className="absolute inset-0 z-0">
-        <Galaxy transparent={false} />
-      </div>
+      {isSimulatorRunning && (
+        <div className="absolute inset-0 z-0">
+          <Galaxy transparent={false} />
+        </div>
+      )}
       {showMobileBlock && (
         <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#03060f] text-white p-6 text-center select-none pointer-events-auto">
           <div className="max-w-xs flex flex-col items-center">
@@ -831,6 +834,9 @@ export default function App() {
         <main className="pt-20">
           {/* Hero Section */}
           <section className="relative min-h-[90vh] flex items-center px-8 md:px-[32px] overflow-hidden">
+            <div className="absolute inset-0 z-0 pointer-events-none">
+              <Galaxy transparent={false} />
+            </div>
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
               animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1, y: 0 }}
@@ -907,10 +913,22 @@ export default function App() {
                 <div className="absolute inset-0 bg-gradient-to-l from-[#050505]/60 to-transparent pointer-events-none"></div>
               </div>
             </motion.div>
+            
+            {/* Gradual Blur for a seamless smooth division transition */}
+            <GradualBlur
+              target="parent"
+              position="bottom"
+              height="8rem"
+              strength={3}
+              divCount={6}
+              curve="bezier"
+              exponential={true}
+              opacity={1}
+            />
           </section>
 
           {/* Open Source Section */}
-          <section className="px-8 md:px-[32px] py-32 border-t border-white/5 relative bg-[#030611] overflow-hidden min-h-[90vh] flex flex-col justify-center">
+          <section className="px-8 md:px-[32px] py-48 border-t border-white/5 relative bg-[#030611] overflow-hidden min-h-[140vh] flex flex-col justify-center">
             {/* React Bits Waves Component */}
             <Waves
               lineColor="rgba(0, 255, 255, 0.15)"
@@ -929,36 +947,41 @@ export default function App() {
             {/* Subtle glow behind the heart */}
             <div className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-primary/5 rounded-full blur-[80px] pointer-events-none"></div>
 
-            <div className="max-w-4xl mx-auto text-center relative z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 mb-6">
+            {/* Scroll Spacer to drag out scrolling duration */}
+            <div className="h-[15vh] w-full pointer-events-none"></div>
+
+            <div className="max-w-4xl mx-auto text-center relative z-10 flex-grow flex flex-col justify-center">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 mb-8 self-center">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_var(--color-primary)]"></span>
                 <span className="font-mono text-[9px] text-primary tracking-widest uppercase">MAP G CORE PROJECT</span>
               </div>
               
-              <ScrollFloat
-                animationDuration={1.5}
-                ease='back.inOut(2)'
-                scrollStart='top bottom-=10%'
-                scrollEnd='center center+=20%'
-                stagger={0.03}
-                scrollContainerRef={landingScrollRef}
-                textClassName="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2"
-              >
-                MAP G is
-              </ScrollFloat>
-              <ScrollFloat
-                animationDuration={1.8}
-                ease='back.inOut(2)'
-                scrollStart='top bottom-=20%'
-                scrollEnd='center center+=10%'
-                stagger={0.03}
-                scrollContainerRef={landingScrollRef}
-                textClassName="font-display-lg text-primary glow-primary text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6"
-              >
-                Completely Open Source!
-              </ScrollFloat>
+              <div className="mb-8">
+                <ScrollFloat
+                  animationDuration={1.8}
+                  ease='back.out(1.5)'
+                  scrollStart='top bottom-=5%'
+                  scrollEnd='bottom center+=10%'
+                  stagger={0.03}
+                  scrollContainerRef={landingScrollRef}
+                  textClassName="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2"
+                >
+                  MAP G is
+                </ScrollFloat>
+                <ScrollFloat
+                  animationDuration={2.2}
+                  ease='back.out(1.5)'
+                  scrollStart='top bottom-=15%'
+                  scrollEnd='bottom center-=5%'
+                  stagger={0.03}
+                  scrollContainerRef={landingScrollRef}
+                  textClassName="font-display-lg text-primary glow-primary text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight"
+                >
+                  Completely Open Source!
+                </ScrollFloat>
+              </div>
 
-              <div className="flex justify-center items-center gap-2 text-white/50 mb-10 group cursor-default">
+              <div className="flex justify-center items-center gap-2 text-white/50 mb-14 group cursor-default">
                 <Heart className="text-primary fill-primary animate-bounce group-hover:scale-125 transition-transform" size={24} />
                 <span className="font-mono text-sm tracking-wide">Building the future of orbital optimization together</span>
               </div>
