@@ -26,6 +26,8 @@ import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
 import Galaxy from "./components/Galaxy";
 import StaggeredMenu from "./components/StaggeredMenu";
+import ScrollFloat from "./components/ScrollFloat";
+import ScrollReveal from "./components/ScrollReveal";
 
 function InteractiveGlobe({ url, color }: { url: string, color: string }) {
   const meshRef = React.useRef<THREE.Mesh>(null);
@@ -704,7 +706,7 @@ export default function App() {
 
   return (
     <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-transparent">
-      <div className="absolute inset-0 z-0 pointer-events-none">
+      <div className="absolute inset-0 z-0">
         <Galaxy transparent={false} />
       </div>
       {showMobileBlock && (
@@ -803,12 +805,38 @@ export default function App() {
                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
                 <span className="font-label-caps text-[10px] text-primary tracking-widest">SYSTEMS NOMINAL // ORBITAL SECTOR 7</span>
               </div>
-              <h2 className="font-display-lg text-5xl md:text-[64px] font-bold mb-6 leading-none tracking-tighter">
-                MISSION:<br/><span className="text-primary text-6xl md:text-[80px]">MAP G</span>
-              </h2>
-              <p className="font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 max-w-2xl font-light">
+              
+              <ScrollFloat
+                animationDuration={1}
+                ease='back.inOut(2)'
+                scrollStart='center bottom+=50%'
+                scrollEnd='bottom bottom-=40%'
+                stagger={0.02}
+                textClassName="font-display-lg text-5xl md:text-[64px] font-bold mb-2 leading-none tracking-tighter block text-left"
+              >
+                MISSION:
+              </ScrollFloat>
+              <ScrollFloat
+                animationDuration={1.2}
+                ease='back.inOut(2)'
+                scrollStart='center bottom+=50%'
+                scrollEnd='bottom bottom-=40%'
+                stagger={0.03}
+                textClassName="font-display-lg text-primary glow-primary text-6xl md:text-[80px] font-bold mb-6 leading-none tracking-tighter block text-left"
+              >
+                MAP G
+              </ScrollFloat>
+              
+              <ScrollReveal
+                baseOpacity={0}
+                enableBlur={true}
+                baseRotation={5}
+                blurStrength={10}
+                textClassName="font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 max-w-2xl font-light text-left"
+              >
                 Pioneering the Next Frontier of Satellite Logistics and Orbital Infrastructure.
-              </p>
+              </ScrollReveal>
+              
               <div className="flex flex-wrap gap-4">
                 <button 
                   onClick={() => setIsSimulatorRunning(true)}
@@ -898,10 +926,26 @@ export default function App() {
                 <span className="font-mono text-[9px] text-primary tracking-widest uppercase">MAP G CORE PROJECT</span>
               </div>
               
-              <h3 className="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6">
-                MAP G is <br/>
-                <span className="text-primary glow-primary">Completely Open Source!</span>
-              </h3>
+              <ScrollFloat
+                animationDuration={1}
+                ease='back.inOut(2)'
+                scrollStart='top bottom'
+                scrollEnd='center bottom-=10%'
+                stagger={0.03}
+                textClassName="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2"
+              >
+                MAP G is
+              </ScrollFloat>
+              <ScrollFloat
+                animationDuration={1.2}
+                ease='back.inOut(2)'
+                scrollStart='top bottom+=20%'
+                scrollEnd='center bottom-=20%'
+                stagger={0.02}
+                textClassName="font-display-lg text-primary glow-primary text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6"
+              >
+                Completely Open Source!
+              </ScrollFloat>
 
               <div className="flex justify-center items-center gap-2 text-white/50 mb-10 group cursor-default">
                 <Heart className="text-primary fill-primary animate-bounce group-hover:scale-125 transition-transform" size={24} />
