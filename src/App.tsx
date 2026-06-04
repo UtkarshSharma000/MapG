@@ -216,7 +216,19 @@ export default function App() {
       const scrollTop = scroller.scrollTop;
       const scrollHeight = scroller.scrollHeight - scroller.clientHeight;
       if (scrollHeight > 0) {
-        setScrollProgress(scrollTop / scrollHeight);
+        const rawProgress = scrollTop / scrollHeight;
+        // The spiral background of Galaxy dominates the top section.
+        // We only trigger solar system camera zooming (zoom-out & show planets)
+        // when the user scrolls past the spiral background (approx 20% scroll depth limit).
+        const threshold = 0.20;
+        if (rawProgress < threshold) {
+          setScrollProgress(0);
+        } else {
+          const mapped = (rawProgress - threshold) / (1.0 - threshold);
+          // Apply a nice cubic or sine ease-out to make zoom transition cinematic
+          const eased = Math.sin((mapped * Math.PI) / 2);
+          setScrollProgress(eased);
+        }
       }
     };
 
