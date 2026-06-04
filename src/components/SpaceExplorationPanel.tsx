@@ -143,7 +143,7 @@ export default function SpaceExplorationPanel({
       </section>
 
       {/* Open Source Section */}
-      <section className="px-8 md:px-[32px] py-48 relative bg-transparent overflow-hidden min-h-[140vh] flex flex-col justify-center">
+      <section className="px-8 md:px-[32px] py-16 md:py-24 relative bg-transparent overflow-hidden min-h-[50vh] flex flex-col justify-center">
         {/* React Bits Waves Component */}
         <Waves
           lineColor="rgba(255, 255, 255, 0.1)"
@@ -160,18 +160,15 @@ export default function SpaceExplorationPanel({
         />
 
         {/* Subtle glow behind the heart */}
-        <div className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-white/5 rounded-full blur-[80px] pointer-events-none"></div>
+        <div className="absolute top-[35%] left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-[#00f0ff]/5 rounded-full blur-[80px] pointer-events-none"></div>
 
-        {/* Scroll Spacer to drag out scrolling duration */}
-        <div className="h-[15vh] w-full pointer-events-none"></div>
-
-        <div className="max-w-4xl mx-auto text-center relative z-10 flex-grow flex flex-col justify-center">
+        <div className="max-w-4xl mx-auto text-center relative z-10 flex flex-col justify-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 mb-8 self-center">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_var(--color-primary)]"></span>
             <span className="font-mono text-[9px] text-primary tracking-widest uppercase">MAP G CORE PROJECT</span>
           </div>
           
-          <div className="mb-8">
+          <div className="mb-0">
             <ScrollFloat
               animationDuration={3}
               ease="back.out(1.5)"
@@ -180,7 +177,7 @@ export default function SpaceExplorationPanel({
               stagger={0.05}
               scrub={4}
               scrollContainerRef={landingScrollRef}
-              textClassName="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2"
+              textClassName="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2 block"
             >
               MAP G is
             </ScrollFloat>
@@ -192,7 +189,7 @@ export default function SpaceExplorationPanel({
               stagger={0.05}
               scrub={4}
               scrollContainerRef={landingScrollRef}
-              textClassName="font-display-lg text-primary glow-primary text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight"
+              textClassName="font-display-lg text-primary glow-primary text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight block"
             >
               Completely Open Source!
             </ScrollFloat>
