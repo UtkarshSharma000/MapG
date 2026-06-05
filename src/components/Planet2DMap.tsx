@@ -71,14 +71,14 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, launchPlane
   const getTexture = () => {
     const query = "?map2d=true";
     switch (planetName) {
-      case "Mercury": return `/textures/2k_mercury.jpg${query}`;
-      case "Venus": return `/textures/2k_venus_atmosphere.jpg${query}`;
-      case "Earth": return `/textures/2k_earth_daymap.jpg${query}`;
-      case "Mars": return `/textures/2k_mars.jpg${query}`;
-      case "Jupiter": return `/textures/2k_jupiter.jpg${query}`;
-      case "Saturn": return `/textures/2k_saturn.jpg${query}`;
-      case "Uranus": return `/textures/2k_uranus.jpg${query}`;
-      case "Neptune": return `/textures/2k_neptune.jpg${query}`;
+      case "Mercury": return `textures/2k_mercury.jpg${query}`;
+      case "Venus": return `textures/2k_venus_atmosphere.jpg${query}`;
+      case "Earth": return `textures/2k_earth_daymap.jpg${query}`;
+      case "Mars": return `textures/2k_mars.jpg${query}`;
+      case "Jupiter": return `textures/2k_jupiter.jpg${query}`;
+      case "Saturn": return `textures/2k_saturn.jpg${query}`;
+      case "Uranus": return `textures/2k_uranus.jpg${query}`;
+      case "Neptune": return `textures/2k_neptune.jpg${query}`;
       default: return "";
     }
   };

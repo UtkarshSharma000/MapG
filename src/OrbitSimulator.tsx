@@ -17,7 +17,7 @@ export const MOONS: Record<string, any[]> = {
     {
       name: "Moon",
       radius: 1737,
-      texture: "/textures/2k_moon.jpg",
+      texture: "textures/2k_moon.jpg",
       color: "#dddddd",
       elements: {
         a: 384400 * 1000, 
@@ -34,7 +34,7 @@ export const MOONS: Record<string, any[]> = {
     {
       name: "Phobos",
       radius: 11,
-      texture: "/textures/2k_mercury.jpg",
+      texture: "textures/2k_mercury.jpg",
       color: "#888888",
       elements: {
         a: 9376 * 1000,
@@ -49,7 +49,7 @@ export const MOONS: Record<string, any[]> = {
     {
       name: "Deimos",
       radius: 6,
-      texture: "/textures/2k_mercury.jpg",
+      texture: "textures/2k_mercury.jpg",
       color: "#aaaaaa",
       elements: {
         a: 23463 * 1000,
@@ -66,7 +66,7 @@ export const MOONS: Record<string, any[]> = {
     {
       name: "Io",
       radius: 1821,
-      texture: "/textures/2k_mercury.jpg",
+      texture: "textures/2k_mercury.jpg",
       color: "#ffff00",
       elements: {
         a: 421700 * 1000,
@@ -81,7 +81,7 @@ export const MOONS: Record<string, any[]> = {
     {
       name: "Ganymede",
       radius: 2634,
-      texture: "/textures/2k_mercury.jpg",
+      texture: "textures/2k_mercury.jpg",
       color: "#88ccff",
       elements: {
         a: 1070400 * 1000,
@@ -98,7 +98,7 @@ export const MOONS: Record<string, any[]> = {
     {
       name: "Titan",
       radius: 2574,
-      texture: "/textures/2k_mercury.jpg",
+      texture: "textures/2k_mercury.jpg",
       color: "#ffa500",
       elements: {
         a: 1221870 * 1000,
@@ -124,7 +124,7 @@ export const PLANETS = [
   {
     name: "Mercury",
     radius: 2439,
-    texture: "/textures/2k_mercury.jpg",
+    texture: "textures/2k_mercury.jpg",
     color: "#a8a8a8",
     siderealDay: 58.646 * 24 * 3600,
     elements: {
@@ -140,7 +140,7 @@ export const PLANETS = [
   {
     name: "Venus",
     radius: 6051,
-    texture: "/textures/2k_venus_atmosphere.jpg",
+    texture: "textures/2k_venus_atmosphere.jpg",
     color: "#e0c080",
     siderealDay: -243.02 * 24 * 3600, // Retrograde
     elements: {
@@ -156,7 +156,7 @@ export const PLANETS = [
   {
     name: "Earth",
     radius: 6371,
-    texture: "/textures/2k_earth_daymap.jpg",
+    texture: "textures/2k_earth_daymap.jpg",
     color: "#2b82c9",
     siderealDay: 0.997269 * 24 * 3600,
     elements: {
@@ -172,7 +172,7 @@ export const PLANETS = [
   {
     name: "Mars",
     radius: 3389,
-    texture: "/textures/2k_mars.jpg",
+    texture: "textures/2k_mars.jpg",
     color: "#c1440e",
     siderealDay: 1.025957 * 24 * 3600,
     elements: {
@@ -188,7 +188,7 @@ export const PLANETS = [
   {
     name: "Jupiter",
     radius: 69911,
-    texture: "/textures/2k_jupiter.jpg",
+    texture: "textures/2k_jupiter.jpg",
     color: "#e3dccb",
     siderealDay: 0.41354 * 24 * 3600,
     elements: {
@@ -204,7 +204,7 @@ export const PLANETS = [
   {
     name: "Saturn",
     radius: 58232,
-    texture: "/textures/2k_saturn.jpg",
+    texture: "textures/2k_saturn.jpg",
     color: "#eaddb8",
     siderealDay: 0.444 * 24 * 3600,
     elements: {
@@ -220,7 +220,7 @@ export const PLANETS = [
   {
     name: "Uranus",
     radius: 25362,
-    texture: "/textures/2k_uranus.jpg",
+    texture: "textures/2k_uranus.jpg",
     color: "#d1e7e7",
     siderealDay: -0.71833 * 24 * 3600, // Retrograde
     elements: {
@@ -236,7 +236,7 @@ export const PLANETS = [
   {
     name: "Neptune",
     radius: 24622,
-    texture: "/textures/2k_neptune.jpg",
+    texture: "textures/2k_neptune.jpg",
     color: "#5b5ddf",
     siderealDay: 0.67125 * 24 * 3600,
     elements: {
@@ -445,7 +445,7 @@ function LoadedMaterial({
 }
 
 function EarthClouds({ radius }: { radius: number }) {
-  const cloudsTexture = useLoader(THREE.TextureLoader, "/textures/2k_earth_clouds.jpg", (loader) => {
+  const cloudsTexture = useLoader(THREE.TextureLoader, "textures/2k_earth_clouds.jpg", (loader) => {
     loader.setCrossOrigin('anonymous');
   });
   return (
@@ -661,7 +661,7 @@ function Planet({
           <mesh rotation={[(90 * Math.PI) / 180, 0, 0]}>
             <ringGeometry args={[radius * 1.2, radius * 2.2, 64]} />
             <SafeTexture
-              url="/textures/2k_saturn_ring_alpha.png"
+              url="textures/2k_saturn_ring_alpha.png"
               fallbackColor="#ffffff"
               transparent
               opacity={0.9}

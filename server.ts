@@ -138,6 +138,10 @@ async function startServer() {
   function startPythonBridge() {
     console.log("Starting Python FastAPI bridge...");
     try {
+      try {
+        execSync("fuser -k 8000/tcp || true");
+      } catch (e) {}
+
       const pythonProcess = spawn("python3", ["-m", "uvicorn", "main:app", "--port", "8000"], {
         cwd: path.join(projectRoot, "local_backend"),
       });
