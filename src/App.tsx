@@ -22,6 +22,7 @@ import LandingHero from "./components/LandingHero";
 import InteractiveBridge from "./components/InteractiveBridge";
 import SpaceExplorationPanel from "./components/SpaceExplorationPanel";
 import MathPhysicsShowcase from "./components/MathPhysicsShowcase";
+import UnimpressedBlackhole from "./components/UnimpressedBlackhole";
 
 export default function App() {
   const [showMobileBlock, setShowMobileBlock] = useState(false);
@@ -836,6 +837,10 @@ export default function App() {
           <MathPhysicsShowcase
             setIsSimulatorRunning={setIsSimulatorRunning}
             landingScrollRef={landingScrollRef}
+          />
+
+          <UnimpressedBlackhole
+            setIsSimulatorRunning={setIsSimulatorRunning}
           />
         </main>
       </div>
