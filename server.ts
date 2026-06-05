@@ -1,36 +1,13 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { spawn, execSync } from "child_process";
+import { spawn, execSync, exec } from "child_process";
 import fs from "fs";
 import engineApi from "./engineApi";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
-
-  // Compile C++ Engine and Install Python Deps conditionally to ensure near-instant startup
-  console.log("Ensuring environment is ready...");
-  try {
-    const enginePath = path.join(process.cwd(), "local_backend/odyssey_engine");
-    if (!fs.existsSync(enginePath)) {
-      console.log("C++ engine binary not found. Compiling engine...");
-      execSync("bash local_backend/build.sh", { stdio: "inherit" });
-    } else {
-      console.log("C++ engine binary found. Skipping compilation to keep startup instant.");
-    }
-
-    const pipFlagPath = path.join(process.cwd(), "local_backend/.pip_installed");
-    if (!fs.existsSync(pipFlagPath)) {
-      console.log("First-time setup: installing Python dependencies...");
-      execSync("python3 -m pip install -r local_backend/requirements.txt", { stdio: "inherit" });
-      fs.writeFileSync(pipFlagPath, "installed_at_" + Date.now());
-    } else {
-      console.log("Python dependencies already satisfied. Skipping pip to keep startup instant.");
-    }
-  } catch (error) {
-    console.error("Setup warning (non-fatal, continuing):", error);
-  }
 
   let latestTelemetry: any = { status: "waiting_for_engine" };
 
@@ -60,14 +37,9 @@ async function startServer() {
   // Dedicated C++ engine API
   app.use("/api", engineApi);
 
-  // Start the Python FastAPI Bridge
-  console.log("Starting Python FastAPI bridge...");
-  const pythonProcess = spawn("python3", ["-m", "uvicorn", "main:app", "--port", "8000"], {
-    cwd: path.join(process.cwd(), "local_backend"),
-  });
-
-  pythonProcess.stdout.on("data", (data) => console.log("Python:", data.toString()));
-  pythonProcess.stderr.on("data", (data) => console.error("Python Error:", data.toString()));
+  // Serve textures from public folder explicitly as a fallback to ensure they always load
+  const publicPath = path.join(process.cwd(), "public");
+  app.use("/textures", express.static(path.join(publicPath, "textures")));
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
@@ -77,15 +49,70 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    app.use("/textures", express.static(path.join(distPath, "textures")));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
     });
+  }
+
+  function startPythonBridge() {
+    console.log("Starting Python FastAPI bridge...");
+    try {
+      const pythonProcess = spawn("python3", ["-m", "uvicorn", "main:app", "--port", "8000"], {
+        cwd: path.join(process.cwd(), "local_backend"),
+      });
+
+      pythonProcess.stdout.on("data", (data) => console.log("Python:", data.toString()));
+      pythonProcess.stderr.on("data", (data) => console.error("Python Error:", data.toString()));
+    } catch (err) {
+      console.error("Failed to start Python bridge:", err);
+    }
   }
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+
+    // Perform environment preparation asynchronously in the background so the port is active immediately!
+    setTimeout(() => {
+      console.log("Running background preparation...");
+      try {
+        const enginePath = path.join(process.cwd(), "local_backend/odyssey_engine");
+        if (!fs.existsSync(enginePath)) {
+          console.log("C++ engine binary not found. Compiling in background...");
+          exec("bash local_backend/build.sh", (err, stdout, stderr) => {
+            if (err) {
+              console.error("Failed to compile C++ engine:", err);
+            } else {
+              console.log("C++ engine compiled successfully.");
+            }
+          });
+        } else {
+          console.log("C++ engine binary found. Skipping compilation.");
+        }
+
+        const pipFlagPath = path.join(process.cwd(), "local_backend/.pip_installed");
+        if (!fs.existsSync(pipFlagPath)) {
+          console.log("Installing Python dependencies in background...");
+          exec("python3 -m pip install -r local_backend/requirements.txt", (err, stdout, stderr) => {
+            if (err) {
+              console.error("Setup warning: pip install error in background (continuing):", err);
+            } else {
+              console.log("Python dependencies verified/installed.");
+              fs.writeFileSync(pipFlagPath, "installed_at_" + Date.now());
+            }
+            startPythonBridge();
+          });
+        } else {
+          console.log("Python dependencies already satisfied.");
+          startPythonBridge();
+        }
+      } catch (error) {
+        console.error("Setup background error:", error);
+        startPythonBridge();
+      }
+    }, 501);
   });
 }
 
