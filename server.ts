@@ -37,9 +37,11 @@ async function startServer() {
   // Dedicated C++ engine API
   app.use("/api", engineApi);
 
-  // Serve textures from public/dist folder explicitly with robust Cache-Control and CORS Headers
-  const publicPath = path.join(process.cwd(), "public");
-  const distPath = path.join(process.cwd(), "dist");
+  // robust resolution of project root and dist
+  const isCompiled = __dirname.endsWith(path.sep + "dist") || __dirname.endsWith("/dist");
+  const projectRoot = isCompiled ? path.join(__dirname, "..") : __dirname;
+  const distPath = path.join(projectRoot, "dist");
+  const publicPath = path.join(projectRoot, "public");
 
   const texturesOptions = {
     maxAge: "30d",
@@ -63,7 +65,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
+    // distPath is already defined above as __dirname
     app.use(express.static(distPath));
     app.use("/textures", express.static(path.join(distPath, "textures"), texturesOptions));
     app.get("*", (req, res) => {
@@ -75,7 +77,7 @@ async function startServer() {
     console.log("Starting Python FastAPI bridge...");
     try {
       const pythonProcess = spawn("python3", ["-m", "uvicorn", "main:app", "--port", "8000"], {
-        cwd: path.join(process.cwd(), "local_backend"),
+        cwd: path.join(projectRoot, "local_backend"),
       });
 
       pythonProcess.stdout.on("data", (data) => console.log("Python:", data.toString()));
@@ -92,10 +94,10 @@ async function startServer() {
     setTimeout(() => {
       console.log("Running background preparation...");
       try {
-        const enginePath = path.join(process.cwd(), "local_backend/odyssey_engine");
+        const enginePath = path.join(projectRoot, "local_backend/odyssey_engine");
         if (!fs.existsSync(enginePath)) {
           console.log("C++ engine binary not found. Compiling in background...");
-          exec("bash local_backend/build.sh", (err, stdout, stderr) => {
+          exec("bash local_backend/build.sh", { cwd: projectRoot }, (err, stdout, stderr) => {
             if (err) {
               console.error("Failed to compile C++ engine:", err);
             } else {
@@ -106,10 +108,10 @@ async function startServer() {
           console.log("C++ engine binary found. Skipping compilation.");
         }
 
-        const pipFlagPath = path.join(process.cwd(), "local_backend/.pip_installed");
+        const pipFlagPath = path.join(projectRoot, "local_backend/.pip_installed");
         if (!fs.existsSync(pipFlagPath)) {
           console.log("Installing Python dependencies in background...");
-          exec("python3 -m pip install -r local_backend/requirements.txt", (err, stdout, stderr) => {
+          exec("python3 -m pip install -r local_backend/requirements.txt", { cwd: projectRoot }, (err, stdout, stderr) => {
             if (err) {
               console.error("Setup warning: pip install error in background (continuing):", err);
             } else {
