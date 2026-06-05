@@ -30,7 +30,7 @@ interface InteractiveGlobeProps {
 
 function LoadedGlobeMaterial({ url, color, hovered }: { url: string; color: string; hovered: boolean }) {
   const tex = useLoader(THREE.TextureLoader, url, (loader) => {
-    loader.setCrossOrigin('use-credentials');
+    loader.crossOrigin = undefined;
   });
   return (
     <meshStandardMaterial 
