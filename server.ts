@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import http from "http";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { spawn, execSync, exec } from "child_process";
@@ -9,6 +10,7 @@ import engineApi from "./engineApi";
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  const httpServer = http.createServer(app);
 
   let latestTelemetry: any = { status: "waiting_for_engine" };
 
@@ -81,7 +83,12 @@ async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        hmr: {
+          server: httpServer
+        }
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);
@@ -108,7 +115,7 @@ async function startServer() {
     }
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
 
     // Perform environment preparation asynchronously in the background so the port is active immediately!
