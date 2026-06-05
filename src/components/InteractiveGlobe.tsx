@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useFrame } from "@react-three/fiber";
-import { useTexture, OrbitControls } from "@react-three/drei";
+import { useFrame, useLoader } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
 import * as THREE from 'three';
 
 class TextureErrorBoundary extends React.Component<
@@ -29,7 +29,9 @@ interface InteractiveGlobeProps {
 }
 
 function LoadedGlobeMaterial({ url, color, hovered }: { url: string; color: string; hovered: boolean }) {
-  const tex = useTexture(url);
+  const tex = useLoader(THREE.TextureLoader, url, (loader) => {
+    loader.setCrossOrigin('');
+  });
   return (
     <meshStandardMaterial 
       map={tex} 

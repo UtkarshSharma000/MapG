@@ -41,14 +41,7 @@ async function startServer() {
   app.use("/api", engineApi);
 
   // robust resolution of project root and dist
-  let currentDirname: string;
-  if (typeof __dirname !== "undefined") {
-    currentDirname = __dirname;
-  } else {
-    // Use square bracket notation to bypass static compiler warnings regarding import.meta.url in CJS format
-    const metaUrl = (import.meta as any)["url"] || `file://${process.cwd()}/server.ts`;
-    currentDirname = path.dirname(fileURLToPath(metaUrl));
-  }
+  const currentDirname = typeof __dirname !== "undefined" ? __dirname : process.cwd();
 
   const isCompiled = currentDirname.endsWith(path.sep + "dist") || currentDirname.endsWith("/dist");
   const projectRoot = isCompiled ? path.join(currentDirname, "..") : currentDirname;
