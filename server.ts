@@ -37,9 +37,23 @@ async function startServer() {
   // Dedicated C++ engine API
   app.use("/api", engineApi);
 
-  // Serve textures from public folder explicitly as a fallback to ensure they always load
+  // Serve textures from public/dist folder explicitly with robust Cache-Control and CORS Headers
   const publicPath = path.join(process.cwd(), "public");
-  app.use("/textures", express.static(path.join(publicPath, "textures")));
+  const distPath = path.join(process.cwd(), "dist");
+
+  const texturesOptions = {
+    maxAge: "30d",
+    immutable: true,
+    setHeaders: (res: any) => {
+      res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+    }
+  };
+
+  app.use("/textures", express.static(path.join(publicPath, "textures"), texturesOptions));
+  if (fs.existsSync(path.join(distPath, "textures"))) {
+    app.use("/textures", express.static(path.join(distPath, "textures"), texturesOptions));
+  }
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
@@ -51,7 +65,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.use("/textures", express.static(path.join(distPath, "textures")));
+    app.use("/textures", express.static(path.join(distPath, "textures"), texturesOptions));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });

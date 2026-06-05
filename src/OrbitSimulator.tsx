@@ -378,6 +378,26 @@ function OortCloud({ timeMult }: { timeMult: number }) {
   );
 }
 
+class TextureErrorBoundary extends React.Component<
+  { fallback: React.ReactNode; children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(err: any) {
+    console.warn("Simulator texture loading failed gracefully. Falling back to clean colors.", err);
+  }
+  render() {
+    if (this.state.hasError) return this.props.fallback;
+    return this.props.children;
+  }
+}
+
 function FallbackMaterial({
   fallbackColor,
   basic,
@@ -448,17 +468,27 @@ function SafeTexture({
   [key: string]: any;
 }) {
   return (
-    <React.Suspense
+    <TextureErrorBoundary
       fallback={
         <FallbackMaterial
-          fallbackColor={fallbackColor}
+          fallbackColor={fallbackColor || "#ffffff"}
           basic={basic}
           props={props}
         />
       }
     >
-      <LoadedMaterial url={url} basic={basic} props={props} />
-    </React.Suspense>
+      <React.Suspense
+        fallback={
+          <FallbackMaterial
+            fallbackColor={fallbackColor || "#ffffff"}
+            basic={basic}
+            props={props}
+          />
+        }
+      >
+        <LoadedMaterial url={url} basic={basic} props={props} />
+      </React.Suspense>
+    </TextureErrorBoundary>
   );
 }
 
@@ -616,9 +646,11 @@ function Planet({
         </mesh>
 
         {data.name === "Earth" && (
-          <React.Suspense fallback={null}>
-            <EarthClouds radius={radius} />
-          </React.Suspense>
+          <TextureErrorBoundary fallback={null}>
+            <React.Suspense fallback={null}>
+              <EarthClouds radius={radius} />
+            </React.Suspense>
+          </TextureErrorBoundary>
         )}
 
         {data.name === "Saturn" && (
