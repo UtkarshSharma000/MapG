@@ -19,7 +19,6 @@ export default defineConfig(() => {
       // Update this section right here:
       hmr: {
         host: 'greninja.2bd.net',
-        clientPort: 80, // Forces the WebSocket to connect through standard web traffic
       },
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
