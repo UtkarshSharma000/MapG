@@ -253,6 +253,46 @@ export default function MathPhysicsShowcase({
         </div>
       </section>
 
+      {/* CTA Section */}
+      <section className="px-8 md:px-[32px] py-24 relative overflow-hidden bg-[#030611] w-full">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-primary/5 rounded-full pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-primary/10 rounded-full pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-primary/20 rounded-full pointer-events-none"></div>
+        <div className="max-w-4xl mx-auto text-center relative z-10 glass-panel p-12 border border-primary/10 rounded-3xl">
+          <h3 className="font-display-lg text-4xl md:text-5xl font-bold mb-4 relative z-10 tracking-tighter text-white">READY FOR DEPLOYMENT?</h3>
+          <p className="text-on-surface-variant font-light mb-10 max-w-xl mx-auto relative z-10 text-white/50">Access real-time telemetry data, satellite control systems, and mission logs via the secure terminal interface.</p>
+          <div className="flex flex-col md:flex-row justify-center gap-4 relative z-10">
+            <button 
+              onClick={() => setIsSimulatorRunning(true)}
+              className="px-12 py-4 bg-primary text-black font-label-caps tracking-widest glow-primary hover:scale-105 active:scale-95 transition-all rounded font-bold cursor-pointer"
+            >
+              INITIALIZE CONNECTION
+            </button>
+            <a 
+              href="https://github.com/UtkarshSharma000/MapG"
+              target="_blank"
+              rel="noreferrer"
+              className="px-12 py-4 glass-panel border border-outline text-on-surface-variant font-label-caps tracking-widest hover:scale-105 active:scale-95 transition-all rounded font-bold cursor-pointer inline-block text-white"
+            >
+              GITHUB REPOSITORY
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="w-full py-[32px] px-8 md:px-[32px] flex flex-col md:flex-row justify-between items-center gap-[16px] bg-[#030611] backdrop-blur-md border-t border-white/10">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>target</span>
+          <span className="font-display-lg text-lg text-primary tracking-tighter font-bold">MAP G</span>
+        </div>
+        <div className="flex gap-8">
+          <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="https://github.com/UtkarshSharma000/MapG" target="_blank" rel="noreferrer">GitHub</a>
+        </div>
+        <div className="text-right">
+          <p className="font-label-caps text-[10px] text-tertiary tracking-widest">© 2026 MAP G. ALL SYSTEMS OPERATIONAL.</p>
+        </div>
+      </footer>
     </>
   );
 }
