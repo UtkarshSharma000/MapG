@@ -1,0 +1,34 @@
+# Odyssey 2026 App Scan & Bug Detection Report
+
+## 1. File: /src/TrajectoryOptimizer.tsx
+- **[CRITICAL / LINTER ERROR]**: Mismatch in `scanPorkchop` function arguments on Line 486.
+  - *Detail*: Called with 8 arguments: `scanPorkchop(leg.originId, leg.destId, currentT0, sDays, undefined, currentTofMax, 50, currentOptGoal)`
+  - *Declaration*: Only declares 7 parameters: `export function scanPorkchop(originId, destId, t0_days, searchDays?, tofMin?, tofMax?, steps = 50)`
+  - *Effect*: Prevents compilation completely (`npm run lint` / `npm run build` fails).
+  - *Fix*: Extend the definition of `scanPorkchop` in `/src/TrajectoryOptimizer.tsx` to accept the 8th parameter `optGoal` (and implement similar logic to the web worker if needed, or simply declare it to maintain compatibility).
+
+## 2. File: /src/workers/trajectory.worker.ts
+- **No compilation errors**: The worker compiles perfectly and matches physics models.
+
+## 3. File: /src/physics.ts
+- **No compilation errors**: The primary analytical orbit propagator, Lambert solver, and RK4 simulator compile successfully and are internally consistent.
+
+## 4. File: /local_backend/engine.cpp
+- **Formatting and C++17 compliance**: Built successfully and executes fine via `build.sh` under g++/clang++.
+- **Safety check**: Double conversion and types are consistent, including planetary orbit definitions, JacobiSVD solvers, and slingshot formulas.
+
+## 5. File: /local_backend/GuidanceComputer.hpp
+- **Formatting**: SVD solvers and Lambert logic are clean and compile correctly.
+
+## 6. File: /local_backend/main.py (FastAPI Bridge)
+- **Warning**: Refers to some Kepler elements using slightly different values/constants from those in `/src/physics.ts` or `/src/workers/trajectory.worker.ts`.
+- **Note**: This acts as a secondary/sandbox backup bridge, so its main routes proxy successfully, but consistency across math constants is recommended.
+
+## 7. File: /src/components/LaunchHUD.tsx
+- No compilation/linter errors. React dynamic states and local storage settings are correct.
+
+## 8. File: /src/components/Planet2DMap.tsx
+- No errors. Supports projection calculations and coordinates rendering perfectly.
+
+## 9. File: /src/components/TelemetryPanel.tsx
+- No errors. Keeps active transponder polling on an interval.

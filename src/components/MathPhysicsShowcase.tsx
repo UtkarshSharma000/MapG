@@ -70,7 +70,7 @@ export default function MathPhysicsShowcase({
 
           <div className="flex justify-center items-center gap-2 text-white/50 mb-0 group cursor-default">
             <Heart className="text-primary fill-primary animate-bounce group-hover:scale-125 transition-transform" size={24} />
-            <span className="font-mono text-sm tracking-wide">Building the future of orbital optimization together</span>
+            <span className="font-mono text-sm tracking-wide">Learning how planets orbit around the Sun</span>
           </div>
         </div>
 
@@ -79,19 +79,19 @@ export default function MathPhysicsShowcase({
           <div className="lg:col-span-5 flex flex-col justify-center">
             <div className="font-mono text-[9px] tracking-[0.3em] uppercase text-primary mb-3">CONCURRENT SOLVERS</div>
             <h3 className="font-display-lg text-2xl lg:text-3xl font-bold tracking-tight text-white mb-4">
-              The Mathematics of Propagating Gravity
+              How Gravity and Orbits Work
             </h3>
             <p className="text-white/60 text-xs font-light leading-relaxed mb-6">
-              Our trajectory solver uses high-performance Newtonian vectors and numerical integrations. Stacked panels on the right showcase the actual mathematical equations operating under the hood of MapG.
+              We use simple math formulas to calculate how planets pull on each other and how paths between planets are drawn. Click the cards on the right to see the math formulas we use.
             </p>
             <div className="grid grid-cols-2 gap-4">
               <div className="glass-panel p-3 border border-white/5 bg-white/1">
-                <span className="block text-[10px] font-mono text-primary uppercase tracking-wider">TIMESTEP</span>
-                <span className="text-xs font-sans text-white font-medium">Adaptive dt Precision</span>
+                <span className="block text-[10px] font-mono text-primary uppercase tracking-wider">TIME STEP</span>
+                <span className="text-xs font-sans text-white font-medium">Smooth calculations</span>
               </div>
               <div className="glass-panel p-3 border border-white/5 bg-white/1">
-                <span className="block text-[10px] font-mono text-primary uppercase tracking-wider">CONVERGENCE</span>
-                <span className="text-xs font-sans text-white font-medium">Newton-Raphson 1e-12</span>
+                <span className="block text-[10px] font-mono text-primary uppercase tracking-wider">PRECISION</span>
+                <span className="text-xs font-sans text-white font-medium">High accuracy</span>
               </div>
             </div>
           </div>
@@ -110,14 +110,14 @@ export default function MathPhysicsShowcase({
               <Card className="flex flex-col justify-between select-none">
                 <div className="w-full">
                   <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_01 // VECTOR ACCELERATIONS</span>
-                    <span className="px-1.5 py-0.5 font-mono text-[8px] border border-primary/40 text-primary uppercase rounded bg-primary/5">N-Body</span>
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_01 // GRAVITY FORCE</span>
+                    <span className="px-1.5 py-0.5 font-mono text-[8px] border border-primary/40 text-primary uppercase rounded bg-primary/5">Gravity</span>
                   </div>
                   <h4 className="font-display-lg text-sm font-semibold text-white mb-2 uppercase tracking-wide">
-                    Newtonian Perturbations
+                    Force of Gravity
                   </h4>
                   <p className="text-xs text-white/50 leading-relaxed font-light mb-3">
-                    Accumulates direct gravitational fields exerted by Jovian and terrestrial masses acting upon Keplerian flight vectors.
+                    Calculates the gravitational pull between the sun and different planets to place them correctly in 3D space.
                   </p>
                 </div>
                 <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-xs md:text-sm text-primary/90 text-center select-all">
@@ -128,14 +128,14 @@ export default function MathPhysicsShowcase({
               <Card className="flex flex-col justify-between select-none">
                 <div className="w-full">
                   <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_02 // SYSTEM STATES</span>
-                    <span className="px-1.5 py-0.5 font-mono text-[8px] border border-emerald-400/40 text-emerald-400 uppercase rounded bg-emerald-500/5">RK4 INTL</span>
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_02 // PATH STEPPER</span>
+                    <span className="px-1.5 py-0.5 font-mono text-[8px] border border-emerald-400/40 text-emerald-400 uppercase rounded bg-emerald-500/5">RK4 STEP</span>
                   </div>
                   <h4 className="font-display-lg text-sm font-semibold text-white mb-2 uppercase tracking-wide">
-                    Fourth-Order Integrator
+                    Path Predictor (RK4)
                   </h4>
                   <p className="text-xs text-white/50 leading-relaxed font-light mb-3">
-                    Integrates full State-Space vectors (position, velocity) with adaptive error limits and dynamical timesteps inside planet SOIs.
+                    Calculates how a rocket or a probe moves through space step-by-step using speed and direction over time.
                   </p>
                 </div>
                 <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-xs md:text-sm text-emerald-400 text-center select-all">
@@ -146,14 +146,14 @@ export default function MathPhysicsShowcase({
               <Card className="flex flex-col justify-between select-none">
                 <div className="w-full">
                   <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_03 // CONICS TRANSCENDENTAL</span>
-                    <span className="px-1.5 py-0.5 font-mono text-[8px] border border-blue-400/40 text-blue-400 uppercase rounded bg-blue-500/5">Keplerian</span>
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_03 // ORBITS</span>
+                    <span className="px-1.5 py-0.5 font-mono text-[8px] border border-blue-400/40 text-blue-400 uppercase rounded bg-blue-500/5">Kepler</span>
                   </div>
                   <h4 className="font-display-lg text-sm font-semibold text-white mb-2 uppercase tracking-wide">
-                    Kepler Equation Solver
+                    Planet Orbit Calculator
                   </h4>
                   <p className="text-xs text-white/50 leading-relaxed font-light mb-3">
-                    Maps Mean Anomaly (time-domain parameter) to Eccentric Anomaly using high-precision Newton-Raphson iteration.
+                    Finds exactly where a planet is along its oval-shaped path around the Sun at any given date.
                   </p>
                 </div>
                 <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-xs md:text-sm text-blue-400 text-center select-all">
@@ -164,14 +164,14 @@ export default function MathPhysicsShowcase({
               <Card className="flex flex-col justify-between select-none">
                 <div className="w-full">
                   <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_04 // BOUNDARY OPTIMIZER</span>
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_04 // ROUTE PLANNER</span>
                     <span className="px-1.5 py-0.5 font-mono text-[8px] border border-amber-400/40 text-amber-400 uppercase rounded bg-amber-500/5">Lambert</span>
                   </div>
                   <h4 className="font-display-lg text-sm font-semibold text-white mb-2 uppercase tracking-wide">
-                    Lambert Target Solver
+                    Flight Path Planner
                   </h4>
                   <p className="text-xs text-white/50 leading-relaxed font-light mb-3">
-                    Constructs transfer trajectories between position vectors r₁ and r₂ across specific Flight Durations using bisection.
+                    Calculates the most efficient speed and path needed to fly from Earth to Mars.
                   </p>
                 </div>
                 <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-xs md:text-sm text-amber-400 text-center select-all">
@@ -182,14 +182,14 @@ export default function MathPhysicsShowcase({
               <Card className="flex flex-col justify-between select-none">
                 <div className="w-full">
                   <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_05 // INTERCEPTION BURNS</span>
-                    <span className="px-1.5 py-0.5 font-mono text-[8px] border border-purple-400/40 text-purple-400 uppercase rounded bg-purple-500/5">Delta-V</span>
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-primary font-bold">SOLVER_05 // SPEED STATES</span>
+                    <span className="px-1.5 py-0.5 font-mono text-[8px] border border-purple-400/40 text-purple-400 uppercase rounded bg-purple-500/5">Speed</span>
                   </div>
                   <h4 className="font-display-lg text-sm font-semibold text-white mb-2 uppercase tracking-wide">
-                    Vis-Viva Velocity States
+                    Speed at Any Point
                   </h4>
                   <p className="text-xs text-white/50 leading-relaxed font-light mb-3">
-                    Models hyperbolic arrival velocity states and computes retro-burn insertion delta-V into planetary orbit.
+                    Calculates how fast a spacecraft is moving based on its distance from the sun or planet.
                   </p>
                 </div>
                 <div className="w-full bg-white/5 p-2 rounded-lg border border-white/10 font-mono text-xs md:text-sm text-purple-400 text-center select-all">
@@ -211,9 +211,9 @@ export default function MathPhysicsShowcase({
                 </div>
                 <span className="font-mono text-[10px] text-white/40">C++ ENGINE</span>
               </div>
-              <h4 className="font-display-lg text-lg font-bold text-white mb-2">Local Compute Server</h4>
+              <h4 className="font-display-lg text-lg font-bold text-white mb-2">C++ Backend Engine</h4>
               <p className="text-white/60 text-xs font-light leading-relaxed mb-6">
-                An optimize-compiled trajectory core with custom guidance computers and porkchop scanners. Perfect for low-latency batch analysis.
+                A fast C++ engine that handles all the heavy orbital math for the simulation.
               </p>
             </div>
             <a 
@@ -237,7 +237,7 @@ export default function MathPhysicsShowcase({
               </div>
               <h4 className="font-display-lg text-lg font-bold text-white mb-2">UtkarshSharma000/MapG</h4>
               <p className="text-white/60 text-xs font-light leading-relaxed mb-6">
-                Fully interactive 3D solar system rendering engine, Three.js simulation views, and trajectory visualization dashboards on GitHub.
+                Interactive 3D solar system simulation using WebGL, Three.js, and orbit planning UI on GitHub.
               </p>
             </div>
             <a 
@@ -259,14 +259,14 @@ export default function MathPhysicsShowcase({
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-primary/10 rounded-full pointer-events-none"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-primary/20 rounded-full pointer-events-none"></div>
         <div className="max-w-4xl mx-auto text-center relative z-10 glass-panel p-12 border border-primary/10 rounded-3xl">
-          <h3 className="font-display-lg text-4xl md:text-5xl font-bold mb-4 relative z-10 tracking-tighter text-white">READY FOR DEPLOYMENT?</h3>
-          <p className="text-on-surface-variant font-light mb-10 max-w-xl mx-auto relative z-10 text-white/50">Access real-time telemetry data, satellite control systems, and mission logs via the secure terminal interface.</p>
+          <h3 className="font-display-lg text-4xl md:text-5xl font-bold mb-4 relative z-10 tracking-tighter text-white">READY TO EXPLORE THE SYSTEM?</h3>
+          <p className="text-on-surface-variant font-light mb-10 max-w-xl mx-auto relative z-10 text-white/50">See the planets in real-time, simulate cosmic paths, and plan rocket launches with our interactive physics simulator.</p>
           <div className="flex flex-col md:flex-row justify-center gap-4 relative z-10">
             <button 
               onClick={() => setIsSimulatorRunning(true)}
               className="px-12 py-4 bg-primary text-black font-label-caps tracking-widest glow-primary hover:scale-105 active:scale-95 transition-all rounded font-bold cursor-pointer"
             >
-              INITIALIZE CONNECTION
+              OPEN SIMULATOR
             </button>
             <a 
               href="https://github.com/UtkarshSharma000/MapG"

@@ -27,7 +27,7 @@ export default function LandingHero({
       >
         <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 glass-panel border border-primary/30 rounded">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-          <span className="font-label-caps text-[10px] text-primary tracking-widest">SYSTEMS NOMINAL // ORBITAL SECTOR 7</span>
+          <span className="font-label-caps text-[10px] text-primary tracking-widest">SCIENCE PROJECT // GRADE 10</span>
         </div>
         
         <ScrollFloat
@@ -61,7 +61,7 @@ export default function LandingHero({
           scrollContainerRef={landingScrollRef}
           textClassName="font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 max-w-2xl font-light text-left"
         >
-          Pioneering the Next Frontier of Satellite Logistics and Orbital Infrastructure.
+          A simple 3D simulation of our solar system, gravity, and flight planning between planets.
         </ScrollReveal>
         
         <div className="flex flex-wrap gap-4">
@@ -69,7 +69,7 @@ export default function LandingHero({
             onClick={() => setIsSimulatorRunning(true)}
             className="px-10 py-4 bg-primary-container text-on-primary-container font-label-caps text-label-caps tracking-widest glow-primary hover:scale-105 active:scale-95 transition-all cursor-pointer rounded-full flex items-center gap-2"
           >
-            <Play size={16} fill="currentColor" /> LAUNCH TERMINAL
+            <Play size={16} fill="currentColor" /> START SIMULATION
           </button>
           <a 
             href="https://github.com/UtkarshSharma000/MapG"
