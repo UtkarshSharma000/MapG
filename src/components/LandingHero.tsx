@@ -90,7 +90,7 @@ export default function LandingHero({
       >
         <div className="relative w-full h-full cursor-grab active:cursor-grabbing opacity-90 transition-opacity duration-500">
           <Canvas camera={{ position: [0, 0, 3] }}>
-            <InteractiveGlobe url="/textures/2k_mars.jpg" color="#c1440e" />
+            <InteractiveGlobe url="textures/2k_mars.jpg" color="#c1440e" />
           </Canvas>
           <div className="absolute inset-0 bg-gradient-to-l from-[#050505]/60 to-transparent pointer-events-none"></div>
         </div>
