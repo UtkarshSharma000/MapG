@@ -862,7 +862,7 @@ int main(int argc, char* argv[]) {
 
             std::cout << std::fixed << std::setprecision(3);
             std::cout << "{\"points\":[";
-            for (int i = 0; i < NUM_POINTS; i++) {
+            for (size_t i = 0; i < ghost_path.size(); ++i) {
                 if (i) std::cout << ",";
                 std::cout << "[" << ghost_path[i].x()/1000.0 << "," << ghost_path[i].y()/1000.0 << "," << ghost_path[i].z()/1000.0 << "]";
             }

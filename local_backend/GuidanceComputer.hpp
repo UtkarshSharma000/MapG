@@ -29,10 +29,11 @@ public:
         double h = r - R_planet;
         if (h > 0 && h < atm_height) {
             double rho = rho0 * exp(-h / H_scale);
-            double v = vel.norm();
-            // F_D / m = -0.5 * rho * v^2 * C_D * A / m 
-            // The velocity vector provides direction
-            return -0.5 * rho * v * CD * AM * vel * 1000.0; // 1000.0 if using km for distances and want consistent units, depends on your units
+            double v_km_s = vel.norm();
+            double v_ms = v_km_s * 1000.0;
+            Vector3d vel_ms = vel * 1000.0;
+            Vector3d a_drag_ms2 = -0.5 * rho * CD * AM * v_ms * vel_ms;
+            return a_drag_ms2 / 1000.0; // convert back to km/s^2
         }
         return Vector3d::Zero();
     }
