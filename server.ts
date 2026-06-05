@@ -42,10 +42,12 @@ async function startServer() {
 
   // robust resolution of project root and dist
   let currentDirname: string;
-  try {
+  if (typeof __dirname !== "undefined") {
     currentDirname = __dirname;
-  } catch (e) {
-    currentDirname = path.dirname(fileURLToPath(import.meta.url));
+  } else {
+    // Use square bracket notation to bypass static compiler warnings regarding import.meta.url in CJS format
+    const metaUrl = (import.meta as any)["url"] || `file://${process.cwd()}/server.ts`;
+    currentDirname = path.dirname(fileURLToPath(metaUrl));
   }
 
   const isCompiled = currentDirname.endsWith(path.sep + "dist") || currentDirname.endsWith("/dist");
@@ -59,6 +61,17 @@ async function startServer() {
     res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "*");
     res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+    
+    const targetFile = path.join(publicPath, "textures", req.path);
+    const targetDistFile = path.join(distPath, "textures", req.path);
+    const existsInPublic = fs.existsSync(targetFile);
+    const existsInDist = fs.existsSync(targetDistFile);
+    
+    console.log(`[Texture Request] Path: ${req.path} | Public Exists: ${existsInPublic} | Dist Exists: ${existsInDist}`);
+    if (!existsInPublic && !existsInDist) {
+      console.warn(`[WARNING] Texture path not found anywhere: ${req.path}`);
+    }
+    
     if (req.method === "OPTIONS") {
       return res.sendStatus(200);
     }
