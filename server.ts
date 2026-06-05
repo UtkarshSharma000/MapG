@@ -70,46 +70,6 @@ async function startServer() {
   const distPath = path.join(projectRoot, "dist");
   const publicPath = path.join(projectRoot, "public");
 
-  // Support Preflight OPTIONS requests for textures
-  app.options("/textures/*", (req, res) => {
-    const origin = req.headers.origin;
-    res.setHeader("Access-Control-Allow-Origin", origin || "*");
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "*");
-    res.sendStatus(200);
-  });
-
-  // Serve textures explicitly and directly to bypass express.static mapping & query-string issues
-  app.get("/textures/*", (req, res) => {
-    // req.params[0] is the exact subpath within /textures/
-    const fileRelativePath = req.params[0];
-    const targetFile = path.join(publicPath, "textures", fileRelativePath);
-    const targetDistFile = path.join(distPath, "textures", fileRelativePath);
-
-    const origin = req.headers.origin;
-    const headers = {
-      "Cache-Control": "public, max-age=2592000, immutable",
-      "Access-Control-Allow-Origin": origin || "*",
-      "Access-Control-Allow-Credentials": "true",
-      "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-      "Access-Control-Allow-Headers": "*"
-    };
-
-    if (fs.existsSync(targetFile)) {
-      console.log(`[Texture Direct Serve] Serving "/textures/${fileRelativePath}" from publicPath`);
-      return res.sendFile(targetFile, { headers });
-    } else if (fs.existsSync(targetDistFile)) {
-      console.log(`[Texture Direct Serve] Serving "/textures/${fileRelativePath}" from distPath`);
-      return res.sendFile(targetDistFile, { headers });
-    } else {
-      console.warn(`[WARNING] Texture not found on disk at: ${targetFile} or ${targetDistFile}`);
-      res.setHeader("Access-Control-Allow-Origin", origin || "*");
-      res.setHeader("Access-Control-Allow-Credentials", "true");
-      return res.status(404).send("Texture Not Found");
-    }
-  });
-
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

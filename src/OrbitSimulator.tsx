@@ -428,9 +428,7 @@ function LoadedMaterial({
   basic?: boolean;
   props: any;
 }) {
-  const texture = useLoader(THREE.TextureLoader, url, (loader) => {
-    loader.setCrossOrigin('anonymous');
-  });
+  const texture = useTexture(url);
   const Material = basic ? "meshBasicMaterial" : "meshStandardMaterial";
   return (
     <Material
@@ -445,9 +443,7 @@ function LoadedMaterial({
 }
 
 function EarthClouds({ radius }: { radius: number }) {
-  const cloudsTexture = useLoader(THREE.TextureLoader, "/textures/2k_earth_clouds.jpg", (loader) => {
-    loader.setCrossOrigin('anonymous');
-  });
+  const cloudsTexture = useTexture("/textures/2k_earth_clouds.jpg");
   return (
     <mesh>
       <sphereGeometry args={[radius * 1.005, 64, 64]} />
