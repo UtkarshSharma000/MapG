@@ -645,12 +645,19 @@ def solve_lambert(r1, r2, tof, mu, prograde=True):
 
     f = 1.0 - y / norm1
     g = A * math.sqrt(y / mu)
+    g_dot = 1.0 - y / norm2
 
-    return (
+    v1 = (
         (r2[0] - f * r1[0]) / g,
         (r2[1] - f * r1[1]) / g,
         (r2[2] - f * r1[2]) / g,
     )
+    v2 = (
+        (g_dot * r2[0] - r1[0]) / g,
+        (g_dot * r2[1] - r1[1]) / g,
+        (g_dot * r2[2] - r1[2]) / g,
+    )
+    return v1, v2
 
 def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_fast=False):
     start_pos = propagate_orbit(earth_elements, current_time)
@@ -659,6 +666,7 @@ def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_
     best_tof = 0.0
     min_dv = float('inf')
     best_v = (0.0, 0.0, 0.0)
+    best_dv_req = 0.0
 
     a1 = earth_elements["a"] / AU
     a2 = target_elements["a"] / AU
@@ -681,17 +689,25 @@ def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_
         target_pos_future = propagate_orbit(target_elements, current_time + tof_seconds)
 
         try:
-            v_lambert = solve_lambert(start_pos, target_pos_future, tof_seconds, mu)
-            dv = math.sqrt(
+            v_lambert, v_arrival = solve_lambert(start_pos, target_pos_future, tof_seconds, mu)
+            tgt_vel_future = get_orbital_velocity(target_elements, current_time + tof_seconds)
+            dv_dep = math.sqrt(
                 (v_lambert[0] - start_vel_base[0])**2 +
                 (v_lambert[1] - start_vel_base[1])**2 +
                 (v_lambert[2] - start_vel_base[2])**2
             )
+            dv_arr = math.sqrt(
+                (v_arrival[0] - tgt_vel_future[0])**2 +
+                (v_arrival[1] - tgt_vel_future[1])**2 +
+                (v_arrival[2] - tgt_vel_future[2])**2
+            )
+            dv = dv_dep + dv_arr
 
             if dv < min_dv:
                 min_dv = dv
                 best_tof = tof_seconds
                 best_v = v_lambert
+                best_dv_req = dv_dep
         except Exception:
             pass
         d += coarse_step
@@ -705,21 +721,29 @@ def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_
             tof_seconds = d * 24.0 * 3600.0
             target_pos_future = propagate_orbit(target_elements, current_time + tof_seconds)
             try:
-                v_lambert = solve_lambert(start_pos, target_pos_future, tof_seconds, mu)
-                dv = math.sqrt(
+                v_lambert, v_arrival = solve_lambert(start_pos, target_pos_future, tof_seconds, mu)
+                tgt_vel_future = get_orbital_velocity(target_elements, current_time + tof_seconds)
+                dv_dep = math.sqrt(
                     (v_lambert[0] - start_vel_base[0])**2 +
                     (v_lambert[1] - start_vel_base[1])**2 +
                     (v_lambert[2] - start_vel_base[2])**2
                 )
+                dv_arr = math.sqrt(
+                    (v_arrival[0] - tgt_vel_future[0])**2 +
+                    (v_arrival[1] - tgt_vel_future[1])**2 +
+                    (v_arrival[2] - tgt_vel_future[2])**2
+                )
+                dv = dv_dep + dv_arr
                 if dv < min_dv:
                     min_dv = dv
                     best_tof = tof_seconds
                     best_v = v_lambert
+                    best_dv_req = dv_dep
             except Exception:
                 pass
             d += 0.5
 
-    return {"tof": best_tof, "vReq": best_v, "dvReq": min_dv}
+    return {"tof": best_tof, "vReq": best_v, "dvReq": best_dv_req}
 
 
 # Interplanetary trajectory calculator

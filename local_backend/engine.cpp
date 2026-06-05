@@ -750,6 +750,7 @@ int main(int argc, char* argv[]) {
             Eigen::Vector3d best_v = Eigen::Vector3d::Zero();
             
             double dv_depart = 0.0;
+            double best_dv_depart = 0.0;
 
             if (bypass_tof1 > 0) {
                 best_tof = bypass_tof1 * 86400.0;
@@ -764,16 +765,25 @@ int main(int argc, char* argv[]) {
                     double tof_seconds = d * 86400.0;
                     Eigen::Vector3d tgt_pos = propagate_orbit(*tgt, launchTime + tof_seconds);
                     try {
-                        Eigen::Vector3d v_lambert = gc.solve_lambert(earth_pos, tgt_pos, tof_seconds, MU_SUN);
-                        double dv = (v_lambert - earth_vel).norm();
+                        std::pair<Eigen::Vector3d, Eigen::Vector3d> v_lambert_pair = gc.solve_lambert_full(earth_pos, tgt_pos, tof_seconds, MU_SUN);
+                        Eigen::Vector3d v_lambert = v_lambert_pair.first;
+                        Eigen::Vector3d v_arrival = v_lambert_pair.second;
+                        
+                        Eigen::Vector3d tgt_vel_future = get_orbital_velocity(*tgt, launchTime + tof_seconds);
+                        
+                        double dv_dep = (v_lambert - earth_vel).norm();
+                        double dv_arr = (v_arrival - tgt_vel_future).norm();
+                        double dv = dv_dep + dv_arr;
+                        
                         if (dv < min_dv) {
                             min_dv = dv;
                             best_tof = tof_seconds;
                             best_v = v_lambert;
+                            best_dv_depart = dv_dep;
                         }
                     } catch (...) {}
                 }
-                dv_depart = min_dv;
+                dv_depart = best_dv_depart;
             }
 
             Eigen::Vector3d tgt_vel = get_orbital_velocity(*tgt, launchTime + best_tof);
