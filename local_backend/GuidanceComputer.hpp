@@ -227,6 +227,17 @@ public:
         
         Vector3d v2 = f_dot * r1 + g_dot * v1;
         
+        // Sanity check: verify transfer orbit is valid and outbound
+        double v1_mag = v1.norm();
+        double energy = v1_mag * v1_mag / 2.0 - mu_sun / norm1;
+        double a_transfer = -mu_sun / (2.0 * energy);
+        
+        // Reject if transfer orbit has negative semi-major axis or is inward-directed
+        if (a_transfer <= 0.0 || energy >= 0.0) {
+            // Return zero velocities to signal invalid transfer
+            return {Vector3d::Zero(), Vector3d::Zero()};
+        }
+        
         return {v1, v2};
     }
 

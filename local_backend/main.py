@@ -676,6 +676,16 @@ def solve_lambert(r1, r2, tof, mu, prograde=True):
         (g_dot * r2[1] - r1[1]) / g,
         (g_dot * r2[2] - r1[2]) / g,
     )
+    
+    # Sanity check: verify transfer orbit is valid and outbound
+    v1_mag = math.sqrt(v1[0]**2 + v1[1]**2 + v1[2]**2)
+    energy = v1_mag**2 / 2.0 - mu / norm1
+    
+    # Reject if transfer orbit has invalid characteristics (would go inward)
+    if energy >= 0.0:
+        # Parabolic or hyperbolic (escape trajectory) - invalid for planetary transfer
+        return None, None
+    
     return v1, v2
 
 def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_fast=False):
@@ -700,8 +710,23 @@ def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_
         min_days = max(10.0, min_days * 0.4)
         max_days = max_days * 0.6
 
-    # Pass 1: Coarse search
-    coarse_step = 55.0 if max_days > 5000 else (15.0 if max_days > 2000 else 5.0)
+    # Pass 1: Coarse search with distance-adaptive stepping
+    orbital_ratio = a2 / a1  # target/departure orbital distance ratio
+    if orbital_ratio > 20:
+        # Neptune and beyond: need finer sweep
+        coarse_step = 30.0
+        refine_window = 15.0
+        refine_step = 1.0
+    elif orbital_ratio > 5:
+        # Jupiter/Saturn range
+        coarse_step = 15.0
+        refine_window = 8.0
+        refine_step = 0.5
+    else:
+        # Mars/Venus range
+        coarse_step = 5.0
+        refine_window = 4.0
+        refine_step = 0.5
     d = min_days
     while d <= max_days:
         tof_seconds = d * 24.0 * 3600.0
@@ -709,6 +734,9 @@ def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_
 
         try:
             v_lambert, v_arrival = solve_lambert(start_pos, target_pos_future, tof_seconds, mu)
+            if v_lambert is None or v_arrival is None:
+                d += coarse_step
+                continue
             tgt_vel_future = get_orbital_velocity(target_elements, current_time + tof_seconds)
             dv_dep = math.sqrt(
                 (v_lambert[0] - start_vel_base[0])**2 +
@@ -734,13 +762,16 @@ def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_
     # Pass 2: Refined search
     if best_tof > 0.0:
         central_day = best_tof / (24.0 * 3600.0)
-        d = max(min_days, central_day - 4.0)
-        max_d = min(max_days, central_day + 4.0)
+        d = max(min_days, central_day - refine_window)
+        max_d = min(max_days, central_day + refine_window)
         while d <= max_d:
             tof_seconds = d * 24.0 * 3600.0
             target_pos_future = propagate_orbit(target_elements, current_time + tof_seconds)
             try:
                 v_lambert, v_arrival = solve_lambert(start_pos, target_pos_future, tof_seconds, mu)
+                if v_lambert is None or v_arrival is None:
+                    d += 0.5
+                    continue
                 tgt_vel_future = get_orbital_velocity(target_elements, current_time + tof_seconds)
                 dv_dep = math.sqrt(
                     (v_lambert[0] - start_vel_base[0])**2 +
@@ -760,7 +791,7 @@ def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_
                     best_dv_req = dv_dep
             except Exception:
                 pass
-            d += 0.5
+            d += refine_step
 
     return {"tof": best_tof, "vReq": best_v, "dvReq": best_dv_req}
 

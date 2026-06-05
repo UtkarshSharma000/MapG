@@ -213,8 +213,8 @@ struct Spacecraft {
     
     // Tsiolkovsky parameters
     double dry_mass = 1000.0; // kg
-    double fuel_mass = 8000.0; // kg
-    double isp = 350.0; // seconds
+    double fuel_mass = 25000.0; // kg — increased for Neptune and outer planet transfers
+    double isp = 450.0; // seconds — increased to ion/nuclear engine capability
 
     double required_capture_dv = 0.0;
     double closest_approach = INFINITY;
