@@ -43,6 +43,18 @@ async function startServer() {
   const distPath = path.join(projectRoot, "dist");
   const publicPath = path.join(projectRoot, "public");
 
+  // Global CORS and Cache-Control headers for any request matching /textures/*
+  app.use("/textures", (req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "*");
+    res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   const texturesOptions = {
     maxAge: "30d",
     immutable: true,
@@ -52,6 +64,7 @@ async function startServer() {
     }
   };
 
+  // Serve textures from both public and dist folders explicitly
   app.use("/textures", express.static(path.join(publicPath, "textures"), texturesOptions));
   if (fs.existsSync(path.join(distPath, "textures"))) {
     app.use("/textures", express.static(path.join(distPath, "textures"), texturesOptions));
@@ -65,9 +78,9 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    // distPath is already defined above as __dirname
-    app.use(express.static(distPath));
+    // Service static routes matching first, then fallback to SPA
     app.use("/textures", express.static(path.join(distPath, "textures"), texturesOptions));
+    app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });

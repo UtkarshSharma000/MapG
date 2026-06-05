@@ -14,6 +14,7 @@ export default defineConfig(() => {
     server: {
       host: true, // Allows network access to your Ampere server
       allowedHosts: ['greninja.2bd.net'], // Prevents the host blocking error
+      cors: true, // Guarantees proper CORS headers on dev-served public folders
       
       // Update this section right here:
       hmr: {
