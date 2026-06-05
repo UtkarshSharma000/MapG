@@ -196,7 +196,7 @@ export function getTransferBounds(originId: number, destId: number, optGoal?: st
   return { searchDays, tofMin, tofMax };
 }
 
-export function scanPorkchop(
+export function scanTrajectories(
   originId: number,
   destId: number,
   t0_days: number,
@@ -278,7 +278,7 @@ self.onmessage = (e) => {
   const { type, payload } = e.data
 
   if (type === 'SCAN') {
-    const result = scanPorkchop(
+    const result = scanTrajectories(
       payload.originId,
       payload.destId,
       payload.t0_days,
