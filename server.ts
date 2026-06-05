@@ -70,55 +70,45 @@ async function startServer() {
   const distPath = path.join(projectRoot, "dist");
   const publicPath = path.join(projectRoot, "public");
 
-  // Global CORS and Cache-Control headers for any request matching /textures/*
-  app.use("/textures", (req, res, next) => {
+  // Support Preflight OPTIONS requests for textures
+  app.options("/textures/*", (req, res) => {
     const origin = req.headers.origin;
-    if (origin) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
-    } else {
-      res.setHeader("Access-Control-Allow-Origin", "*");
-    }
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "*");
-    res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
-    
-    const targetFile = path.join(publicPath, "textures", req.path);
-    const targetDistFile = path.join(distPath, "textures", req.path);
-    const existsInPublic = fs.existsSync(targetFile);
-    const existsInDist = fs.existsSync(targetDistFile);
-    
-    console.log(`[Texture Request] Path: ${req.path} | Public Exists: ${existsInPublic} | Dist Exists: ${existsInDist}`);
-    if (!existsInPublic && !existsInDist) {
-      console.warn(`[WARNING] Texture path not found anywhere: ${req.path}`);
-    }
-    
-    if (req.method === "OPTIONS") {
-      return res.sendStatus(200);
-    }
-    next();
+    res.sendStatus(200);
   });
 
-  const texturesOptions = {
-    maxAge: "30d",
-    immutable: true,
-    setHeaders: (res: any) => {
-      res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
-      const origin = res.req ? res.req.headers.origin : null;
-      if (origin) {
-        res.setHeader("Access-Control-Allow-Origin", origin);
-      } else {
-        res.setHeader("Access-Control-Allow-Origin", "*");
-      }
-      res.setHeader("Access-Control-Allow-Credentials", "true");
-    }
-  };
+  // Serve textures explicitly and directly to bypass express.static mapping & query-string issues
+  app.get("/textures/*", (req, res) => {
+    // req.params[0] is the exact subpath within /textures/
+    const fileRelativePath = req.params[0];
+    const targetFile = path.join(publicPath, "textures", fileRelativePath);
+    const targetDistFile = path.join(distPath, "textures", fileRelativePath);
 
-  // Serve textures from both public and dist folders explicitly
-  app.use("/textures", express.static(path.join(publicPath, "textures"), texturesOptions));
-  if (fs.existsSync(path.join(distPath, "textures"))) {
-    app.use("/textures", express.static(path.join(distPath, "textures"), texturesOptions));
-  }
+    const origin = req.headers.origin;
+    const headers = {
+      "Cache-Control": "public, max-age=2592000, immutable",
+      "Access-Control-Allow-Origin": origin || "*",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+      "Access-Control-Allow-Headers": "*"
+    };
+
+    if (fs.existsSync(targetFile)) {
+      console.log(`[Texture Direct Serve] Serving "/textures/${fileRelativePath}" from publicPath`);
+      return res.sendFile(targetFile, { headers });
+    } else if (fs.existsSync(targetDistFile)) {
+      console.log(`[Texture Direct Serve] Serving "/textures/${fileRelativePath}" from distPath`);
+      return res.sendFile(targetDistFile, { headers });
+    } else {
+      console.warn(`[WARNING] Texture not found on disk at: ${targetFile} or ${targetDistFile}`);
+      res.setHeader("Access-Control-Allow-Origin", origin || "*");
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      return res.status(404).send("Texture Not Found");
+    }
+  });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
@@ -134,7 +124,6 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     // Service static routes matching first, then fallback to SPA
-    app.use("/textures", express.static(path.join(distPath, "textures"), texturesOptions));
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
