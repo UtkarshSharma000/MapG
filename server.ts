@@ -15,6 +15,28 @@ async function startServer() {
   let latestTelemetry: any = { status: "waiting_for_engine" };
 
   // API Route setup - Proxy to FastAPI bridge for legacy routes
+  app.get("/api/debug-paths", (req, res) => {
+    const currentDir = typeof __dirname !== "undefined" ? __dirname : process.cwd();
+    const isComp = currentDir.endsWith(path.sep + "dist") || currentDir.endsWith("/dist");
+    const projRoot = isComp ? path.join(currentDir, "..") : currentDir;
+    const pub = path.join(projRoot, "public");
+    const dst = path.join(projRoot, "dist");
+    
+    res.json({
+      currentDir,
+      isComp,
+      projRoot,
+      pub,
+      dst,
+      cwd: process.cwd(),
+      pubExists: fs.existsSync(pub),
+      pubTexturesExists: fs.existsSync(path.join(pub, "textures")),
+      sampleTextureExists: fs.existsSync(path.join(pub, "textures", "2k_mercury.jpg")),
+      sampleTextureStats: fs.existsSync(path.join(pub, "textures", "2k_mercury.jpg")) ? fs.statSync(path.join(pub, "textures", "2k_mercury.jpg")) : null,
+      env: process.env.NODE_ENV
+    });
+  });
+
   app.get("/api/telemetry", async (req, res) => {
     try {
       const response = await fetch("http://localhost:8000/telemetry");
@@ -50,7 +72,13 @@ async function startServer() {
 
   // Global CORS and Cache-Control headers for any request matching /textures/*
   app.use("/textures", (req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+    } else {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+    }
+    res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "*");
     res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
@@ -76,7 +104,13 @@ async function startServer() {
     immutable: true,
     setHeaders: (res: any) => {
       res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
-      res.setHeader("Access-Control-Allow-Origin", "*");
+      const origin = res.req ? res.req.headers.origin : null;
+      if (origin) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+      } else {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+      }
+      res.setHeader("Access-Control-Allow-Credentials", "true");
     }
   };
 
