@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { spawn, execSync, exec } from "child_process";
 import fs from "fs";
@@ -38,8 +39,15 @@ async function startServer() {
   app.use("/api", engineApi);
 
   // robust resolution of project root and dist
-  const isCompiled = __dirname.endsWith(path.sep + "dist") || __dirname.endsWith("/dist");
-  const projectRoot = isCompiled ? path.join(__dirname, "..") : __dirname;
+  let currentDirname: string;
+  try {
+    currentDirname = __dirname;
+  } catch (e) {
+    currentDirname = path.dirname(fileURLToPath(import.meta.url));
+  }
+
+  const isCompiled = currentDirname.endsWith(path.sep + "dist") || currentDirname.endsWith("/dist");
+  const projectRoot = isCompiled ? path.join(currentDirname, "..") : currentDirname;
   const distPath = path.join(projectRoot, "dist");
   const publicPath = path.join(projectRoot, "public");
 
