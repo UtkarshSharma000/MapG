@@ -70,6 +70,51 @@ async function startServer() {
   const distPath = path.join(projectRoot, "dist");
   const publicPath = path.join(projectRoot, "public");
 
+  // Global CORS and Cache-Control headers for any request matching /textures/*
+  app.use("/textures", (req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "*");
+    res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(200);
+    }
+
+    const cleanFileName = req.path.startsWith("/") ? req.path.slice(1) : req.path;
+    const pathInPublic = path.join(publicPath, "textures", cleanFileName);
+    const pathInDist = path.join(distPath, "textures", cleanFileName);
+
+    let resolvedAssetPath = "";
+    if (fs.existsSync(pathInDist)) {
+      resolvedAssetPath = pathInDist;
+    } else if (fs.existsSync(pathInPublic)) {
+      resolvedAssetPath = pathInPublic;
+    }
+
+    if (!resolvedAssetPath) {
+      console.warn(`[WARNING] Texture not found on disk: ${cleanFileName}`);
+      return res.sendStatus(404);
+    }
+
+    // Explicit content type assignments
+    if (cleanFileName.endsWith(".png")) {
+      res.setHeader("Content-Type", "image/png");
+    } else if (cleanFileName.endsWith(".jpg") || cleanFileName.endsWith(".jpeg")) {
+      res.setHeader("Content-Type", "image/jpeg");
+    }
+
+    // 🚀 READ AS FULL BUFFER: Forces clean 200 OK responses, breaking the Three.js 206 Partial Content loops
+    try {
+      const fileBuffer = fs.readFileSync(resolvedAssetPath);
+      res.setHeader("Content-Length", fileBuffer.length);
+      return res.status(200).send(fileBuffer);
+    } catch (err) {
+      console.error(`[ERROR] Failed to read texture buffer: ${cleanFileName}`, err);
+      return res.sendStatus(500);
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
