@@ -732,36 +732,16 @@ export default function App() {
   }, [activeReplay, activeReplayStartTime]);
 
   return (
-    <div className={`text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col ${isDarkMode ? 'bg-[#0d1117] dark-mode' : 'bg-slate-50'}`}>
+    <div className={`text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col ${isDarkMode ? 'bg-[#0d1117] dark-mode' : 'bg-white'}`}>
       
-      <div className={`fixed inset-0 z-0 pointer-events-none ${isDarkMode ? 'bg-[#0d1117]' : 'bg-slate-50'}`}>
+      <div className={`fixed inset-0 z-0 pointer-events-none ${isDarkMode ? 'bg-[#0d1117]' : 'bg-white'}`}>
         {isDarkMode ? (
           <Galaxy transparent={false} mouseInteraction={false} scrollProgress={!isSimulatorRunning ? scrollProgress : undefined} />
-        ) : (
-          <FaultyTerminal
-            scale={1.5}
-            gridMul={[2, 1]}
-            digitSize={1.2}
-            timeScale={1}
-            pause={false}
-            scanlineIntensity={1}
-            glitchAmount={1}
-            flickerAmount={1}
-            noiseAmp={1}
-            chromaticAberration={0}
-            dither={0}
-            curvature={0}
-            tint="#F97316"
-            mouseReact={true}
-            mouseStrength={0.5}
-            pageLoadAnimation={false}
-            brightness={1}
-          />
-        )}
+        ) : null}
       </div>
 
       {showMobileBlock && (
-        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-slate-50 text-gray-900 p-6 text-center select-none pointer-events-auto">
+        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-white text-gray-900 p-6 text-center select-none pointer-events-auto">
           <div className="max-w-xs flex flex-col items-center">
             <svg 
               className="w-10 h-10 text-blue-700/70 mb-5" 
