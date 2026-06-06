@@ -380,7 +380,7 @@ export const StaggeredMenu = ({
             className="sm-logo-img w-12 h-12 relative -top-0.5"
             draggable={false}
           />
-          <h1 className="font-display-lg text-[22px] md:text-headline-md font-bold tracking-tighter text-white hidden sm:block m-0">MAP G</h1>
+          <h1 className="font-display-lg text-[22px] md:text-headline-md font-bold tracking-tighter text-gray-900 hidden sm:block m-0">MAP G</h1>
         </div>
         
         <div className="flex items-center gap-4">

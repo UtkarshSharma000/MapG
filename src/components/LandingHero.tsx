@@ -25,9 +25,9 @@ export default function LandingHero({
         transition={{ duration: 0.8, delay: 0.2 }}
         className="relative z-10 max-w-4xl"
       >
-        <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 glass-panel border border-primary/30 rounded">
+        <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 solid-panel border border-primary/30 rounded">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-          <span className="font-label-caps text-[10px] text-primary tracking-widest">SYSTEMS NOMINAL // ORBITAL SECTOR 7</span>
+          <span className="font-label-caps text-[10px] text-primary tracking-widest">SYSTEMS ONLINE</span>
         </div>
         
         <ScrollFloat
@@ -61,7 +61,7 @@ export default function LandingHero({
           scrollContainerRef={landingScrollRef}
           textClassName="font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 max-w-2xl font-light text-left"
         >
-          Pioneering the Next Frontier of Satellite Logistics and Orbital Infrastructure.
+          Explore Space & Visit Planets.
         </ScrollReveal>
         
         <div className="flex flex-wrap gap-4">
@@ -69,13 +69,13 @@ export default function LandingHero({
             onClick={() => setIsSimulatorRunning(true)}
             className="px-10 py-4 bg-primary-container text-on-primary-container font-label-caps text-label-caps tracking-widest glow-primary hover:scale-105 active:scale-95 transition-all cursor-pointer rounded-full flex items-center gap-2"
           >
-            <Play size={16} fill="currentColor" /> LAUNCH TERMINAL
+            <Play size={16} fill="currentColor" /> START APP
           </button>
           <a 
             href="https://github.com/UtkarshSharma000/MapG"
             target="_blank"
             rel="noreferrer"
-            className="px-10 py-4 glass-panel border border-tertiary/40 text-tertiary font-label-caps text-label-caps tracking-widest glow-blue hover:scale-105 hover:bg-white/5 active:scale-95 transition-all rounded-full cursor-pointer inline-flex items-center gap-2"
+            className="px-10 py-4 solid-panel border border-tertiary/40 text-tertiary font-label-caps text-label-caps tracking-widest glow-blue hover:scale-105 hover:bg-gray-50 active:scale-95 transition-all rounded-full cursor-pointer inline-flex items-center gap-2"
           >
             <Github size={16} /> VIEW SOURCE
           </a>
@@ -92,7 +92,6 @@ export default function LandingHero({
           <Canvas camera={{ position: [0, 0, 3] }}>
             <InteractiveGlobe url="/textures/2k_mars.jpg" color="#c1440e" />
           </Canvas>
-          <div className="absolute inset-0 bg-gradient-to-l from-[#050505]/60 to-transparent pointer-events-none"></div>
         </div>
       </motion.div>
     </section>

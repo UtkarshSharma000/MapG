@@ -43,64 +43,64 @@ export function TelemetryPanel() {
       <Draggable nodeRef={nodeRef} handle=".drag-handle" position={position} onStop={onDragStop}>
         <div 
           ref={nodeRef}
-          className="p-6 rounded-lg border border-white/10 glass-panel shadow-[0_0_40px_rgba(0,0,0,0.5)] text-white w-72 flex flex-col"
+          className="p-6 rounded-lg border border-gray-200 solid-panel shadow-md text-gray-900 w-72 flex flex-col bg-white"
         >
           <div className="mb-6 drag-handle cursor-move select-none relative">
             <div className="absolute top-0 right-0 p-1 opacity-50 hover:opacity-100">
-              <Move className="w-3.5 h-3.5 text-white/40" />
+              <Move className="w-3.5 h-3.5 text-gray-500" />
             </div>
-            <div className="font-label-caps text-[9px] text-white/40 tracking-[0.2em] mb-1">CRAFT IDENTIFIER</div>
-            <div className="font-headline-md text-white text-xl pr-6">SATELLITE-01</div>
+            <div className="font-label-caps text-[10px] text-gray-500 tracking-wider mb-1 uppercase">Spacecraft Name</div>
+            <div className="font-headline-md text-gray-900 text-xl pr-6 font-bold">SATELLITE-01</div>
             <div className="flex items-center gap-2 mt-2">
-              <span className="px-1.5 py-0.5 rounded-sm bg-secondary/10 text-secondary text-[8px] font-bold border border-secondary/20 uppercase">
-                {telemetry?.time ? "TELEMETRY LINKED" : "ACQUIRING..."}
+              <span className="px-1.5 py-0.5 rounded-sm bg-blue-100 text-blue-700 text-[8px] font-bold border border-blue-200 uppercase tracking-widest">
+                {telemetry?.time ? "CONNECTED" : "CONNECTING..."}
               </span>
-              <span className={`w-1.5 h-1.5 rounded-full ${telemetry?.time ? 'bg-secondary glow-cyan animate-pulse' : 'bg-red-500 animate-pulse'}`}></span>
+              <span className={`w-2 h-2 rounded-full ${telemetry?.time ? 'bg-green-500 animate-pulse' : 'bg-red-500 animate-pulse'}`}></span>
             </div>
           </div>
 
       {!telemetry?.time ? (
-        <div className="text-xs font-label-caps tracking-widest text-white/40 mt-4">
-          Syncing with spacecraft transponder...
+        <div className="text-xs font-label-caps tracking-widest text-gray-500 mt-4">
+          Waiting for signal...
         </div>
       ) : (
         <div className="space-y-6 flex-1">
           <div>
-            <label className="font-label-caps text-[9px] text-white/30 block mb-2 tracking-[0.2em]">HELIOCENTRIC [R]</label>
-            <div className="flex justify-between items-baseline border-b border-white/5 pb-1">
-              <span className="font-label-caps text-[9px] text-white/30">X</span>
-              <span className="font-data-lg text-lg text-white">{telemetry.x.toFixed(2)}</span>
+            <label className="font-label-caps text-[10px] uppercase text-gray-400 block mb-2 tracking-widest font-bold">Position</label>
+            <div className="flex justify-between items-baseline border-b border-gray-100 pb-1">
+              <span className="font-label-caps text-[10px] text-gray-500 font-bold">X</span>
+              <span className="font-data-lg text-lg text-gray-900">{telemetry.x.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between items-baseline border-b border-white/5 py-1">
-              <span className="font-label-caps text-[9px] text-white/30">Y</span>
-              <span className="font-data-lg text-lg text-white">{telemetry.y.toFixed(2)}</span>
+            <div className="flex justify-between items-baseline border-b border-gray-100 py-1">
+              <span className="font-label-caps text-[10px] text-gray-500 font-bold">Y</span>
+              <span className="font-data-lg text-lg text-gray-900">{telemetry.y.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-baseline py-1">
-              <span className="font-label-caps text-[9px] text-white/30">Z</span>
-              <span className="font-data-lg text-lg text-white">{telemetry.z.toFixed(2)}</span>
+              <span className="font-label-caps text-[10px] text-gray-500 font-bold">Z</span>
+              <span className="font-data-lg text-lg text-gray-900">{telemetry.z.toFixed(2)}</span>
             </div>
           </div>
           
           <div>
-            <label className="font-label-caps text-[9px] text-white/30 block mb-2 tracking-[0.2em]">VELOCITY [V]</label>
-            <div className="flex justify-between items-baseline border-b border-white/5 pb-1">
-              <span className="font-label-caps text-[9px] text-white/30">Vx</span>
-              <span className="font-data-lg text-lg text-white">{telemetry.vx.toFixed(4)}</span>
+            <label className="font-label-caps text-[10px] uppercase text-gray-400 block mb-2 tracking-widest font-bold">Speed</label>
+            <div className="flex justify-between items-baseline border-b border-gray-100 pb-1">
+              <span className="font-label-caps text-[10px] text-gray-500 font-bold">Vx</span>
+              <span className="font-data-lg text-lg text-gray-900">{telemetry.vx.toFixed(4)}</span>
             </div>
-            <div className="flex justify-between items-baseline border-b border-white/5 py-1">
-              <span className="font-label-caps text-[9px] text-white/30">Vy</span>
-              <span className="font-data-lg text-lg text-white">{telemetry.vy.toFixed(4)}</span>
+            <div className="flex justify-between items-baseline border-b border-gray-100 py-1">
+              <span className="font-label-caps text-[10px] text-gray-500 font-bold">Vy</span>
+              <span className="font-data-lg text-lg text-gray-900">{telemetry.vy.toFixed(4)}</span>
             </div>
             <div className="flex justify-between items-baseline py-1">
-              <span className="font-label-caps text-[9px] text-white/30">Vz</span>
-              <span className="font-data-lg text-lg text-white">{telemetry.vz.toFixed(4)}</span>
+              <span className="font-label-caps text-[10px] text-gray-500 font-bold">Vz</span>
+              <span className="font-data-lg text-lg text-gray-900">{telemetry.vz.toFixed(4)}</span>
             </div>
           </div>
 
           <div>
-            <label className="font-label-caps text-[9px] text-white/30 block mb-2 tracking-[0.2em]">SIGNAL LOAD</label>
-            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-1">
-              <div className="h-full bg-secondary glow-cyan" style={{ width: `${Math.max(20, Math.min(100, (telemetry.delhi_elevation_deg / 90) * 100))}%` }}></div>
+            <label className="font-label-caps text-[10px] uppercase text-gray-400 block mb-2 tracking-widest font-bold">Signal Strength</label>
+            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden mt-1">
+              <div className="h-full bg-blue-500" style={{ width: `${Math.max(20, Math.min(100, (telemetry.delhi_elevation_deg / 90) * 100))}%` }}></div>
             </div>
           </div>
         </div>
