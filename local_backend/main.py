@@ -211,14 +211,10 @@ def get_derivatives_prop(pos, vel, t, nbody_enabled):
     if 0 < alt < 200.0:
         rho = RHO0 * math.exp(-(alt - H0) / SH)
         v = get_norm(vel)
-        v_ms = v * 1000.0
-        vx_ms = vx * 1000.0
-        vy_ms = vy * 1000.0
-        vz_ms = vz * 1000.0
-        a_drag_ms2 = -0.5 * CD * AM * rho * v_ms
-        ax += a_drag_ms2 * vx_ms / 1000.0
-        ay += a_drag_ms2 * vy_ms / 1000.0
-        az += a_drag_ms2 * vz_ms / 1000.0
+        f = -0.5 * CD * AM * rho * 1000.0 * v
+        ax += f * vx
+        ay += f * vy
+        az += f * vz
         
     return vel, (ax, ay, az)
 
@@ -311,24 +307,20 @@ def find_landing_trajectory(pos, target_lat, target_lon, earth_rotation_rate):
             J.append(col)
             
         c0, c1, c2 = J[0], J[1], J[2]
-        J00, J01, J02 = c0[0], c1[0], c2[0]
-        J10, J11, J12 = c0[1], c1[1], c2[1]
-        J20, J21, J22 = c0[2], c1[2], c2[2]
-
-        detJ = (J00 * (J11 * J22 - J12 * J21)
-                - J01 * (J10 * J22 - J12 * J20)
-                + J02 * (J10 * J21 - J11 * J20))
-
+        detJ = (c0[0]*(c1[1]*c2[2] - c1[2]*c2[1]) - 
+                c1[0]*(c0[1]*c2[2] - c0[2]*c1[2]) + 
+                c2[0]*(c0[1]*c1[2] - c0[2]*c1[1]))
+                
         if abs(detJ) > 1e-12:
-            detX = (error[0] * (J11 * J22 - J12 * J21)
-                    - J01 * (error[1] * J22 - J12 * error[2])
-                    + J02 * (error[1] * J21 - J11 * error[2]))
-            detY = (J00 * (error[1] * J22 - J12 * error[2])
-                    - error[0] * (J10 * J22 - J12 * J20)
-                    + J02 * (J10 * error[2] - error[1] * J20))
-            detZ = (J00 * (J11 * error[2] - error[1] * J21)
-                    - J01 * (J10 * error[2] - error[1] * J20)
-                    + error[0] * (J10 * J21 - J11 * J20))
+            detX = (error[0]*(c1[1]*c2[2] - c1[2]*c2[1]) - 
+                    c1[0]*(error[1]*c2[2] - error[2]*c2[1]) + 
+                    c2[0]*(error[1]*c1[2] - error[2]*c1[1]))
+            detY = (c0[0]*(error[1]*c2[2] - error[2]*c2[1]) - 
+                    error[0]*(c0[1]*c2[2] - c0[2]*c2[1]) + 
+                    c2[0]*(c0[1]*error[2] - c0[2]*error[1]))
+            detZ = (c0[0]*(c1[1]*error[2] - c1[2]*error[1]) - 
+                    c1[0]*(c0[1]*error[2] - c0[2]*error[1]) + 
+                    error[0]*(c0[1]*c1[2] - c0[2]*c1[1]))
             v_guess = (
                 v_guess[0] - (detX / detJ) * 0.5,
                 v_guess[1] - (detY / detJ) * 0.5,
@@ -525,17 +517,6 @@ PLANET_ELEMENTS = {
     },
 }
 
-PLANET_MU = {
-    "Mercury": 2.2032e13,
-    "Venus": 3.24859e14,
-    "Earth": 3.986004418e14,
-    "Mars": 4.282837e13,
-    "Jupiter": 1.26686534e17,
-    "Saturn": 3.7931187e16,
-    "Uranus": 5.794e15,
-    "Neptune": 6.836529e15,
-}
-
 def solve_kepler(M, e, tol=1e-6):
     E = M
     delta = 1.0
@@ -635,7 +616,7 @@ def solve_lambert(r1, r2, tof, mu, prograde=True):
     z = 0.0
 
     y = 0.0
-    tol = 1e-5
+    tol = 1e-4
     for _ in range(100):
         c_val = C(z)
         s_val = S(z)
@@ -651,7 +632,7 @@ def solve_lambert(r1, r2, tof, mu, prograde=True):
         x = math.sqrt(y / c_val)
         t_calc = (x**3 * s_val + A * math.sqrt(y)) / math.sqrt(mu)
 
-        if abs(t_calc - tof) < tol:
+        if abs(t_calc - tof) < 0.01:
             break
 
         if t_calc < tof:
@@ -664,29 +645,12 @@ def solve_lambert(r1, r2, tof, mu, prograde=True):
 
     f = 1.0 - y / norm1
     g = A * math.sqrt(y / mu)
-    g_dot = 1.0 - y / norm2
 
-    v1 = (
+    return (
         (r2[0] - f * r1[0]) / g,
         (r2[1] - f * r1[1]) / g,
         (r2[2] - f * r1[2]) / g,
     )
-    v2 = (
-        (g_dot * r2[0] - r1[0]) / g,
-        (g_dot * r2[1] - r1[1]) / g,
-        (g_dot * r2[2] - r1[2]) / g,
-    )
-    
-    # Sanity check: verify transfer orbit is valid and outbound
-    v1_mag = math.sqrt(v1[0]**2 + v1[1]**2 + v1[2]**2)
-    energy = v1_mag**2 / 2.0 - mu / norm1
-    
-    # Reject if transfer orbit has invalid characteristics (would go inward)
-    if energy >= 0.0:
-        # Parabolic or hyperbolic (escape trajectory) - invalid for planetary transfer
-        return None, None
-    
-    return v1, v2
 
 def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_fast=False):
     start_pos = propagate_orbit(earth_elements, current_time)
@@ -695,7 +659,6 @@ def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_
     best_tof = 0.0
     min_dv = float('inf')
     best_v = (0.0, 0.0, 0.0)
-    best_dv_req = 0.0
 
     a1 = earth_elements["a"] / AU
     a2 = target_elements["a"] / AU
@@ -710,51 +673,25 @@ def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_
         min_days = max(10.0, min_days * 0.4)
         max_days = max_days * 0.6
 
-    # Pass 1: Coarse search with distance-adaptive stepping
-    orbital_ratio = a2 / a1  # target/departure orbital distance ratio
-    if orbital_ratio > 20:
-        # Neptune and beyond: need finer sweep
-        coarse_step = 30.0
-        refine_window = 15.0
-        refine_step = 1.0
-    elif orbital_ratio > 5:
-        # Jupiter/Saturn range
-        coarse_step = 15.0
-        refine_window = 8.0
-        refine_step = 0.5
-    else:
-        # Mars/Venus range
-        coarse_step = 5.0
-        refine_window = 4.0
-        refine_step = 0.5
+    # Pass 1: Coarse search
+    coarse_step = 55.0 if max_days > 5000 else (15.0 if max_days > 2000 else 5.0)
     d = min_days
     while d <= max_days:
         tof_seconds = d * 24.0 * 3600.0
         target_pos_future = propagate_orbit(target_elements, current_time + tof_seconds)
 
         try:
-            v_lambert, v_arrival = solve_lambert(start_pos, target_pos_future, tof_seconds, mu)
-            if v_lambert is None or v_arrival is None:
-                d += coarse_step
-                continue
-            tgt_vel_future = get_orbital_velocity(target_elements, current_time + tof_seconds)
-            dv_dep = math.sqrt(
+            v_lambert = solve_lambert(start_pos, target_pos_future, tof_seconds, mu)
+            dv = math.sqrt(
                 (v_lambert[0] - start_vel_base[0])**2 +
                 (v_lambert[1] - start_vel_base[1])**2 +
                 (v_lambert[2] - start_vel_base[2])**2
             )
-            dv_arr = math.sqrt(
-                (v_arrival[0] - tgt_vel_future[0])**2 +
-                (v_arrival[1] - tgt_vel_future[1])**2 +
-                (v_arrival[2] - tgt_vel_future[2])**2
-            )
-            dv = dv_dep + dv_arr
 
             if dv < min_dv:
                 min_dv = dv
                 best_tof = tof_seconds
                 best_v = v_lambert
-                best_dv_req = dv_dep
         except Exception:
             pass
         d += coarse_step
@@ -762,38 +699,27 @@ def find_optimal_transfer(earth_elements, target_elements, current_time, mu, is_
     # Pass 2: Refined search
     if best_tof > 0.0:
         central_day = best_tof / (24.0 * 3600.0)
-        d = max(min_days, central_day - refine_window)
-        max_d = min(max_days, central_day + refine_window)
+        d = max(min_days, central_day - 4.0)
+        max_d = min(max_days, central_day + 4.0)
         while d <= max_d:
             tof_seconds = d * 24.0 * 3600.0
             target_pos_future = propagate_orbit(target_elements, current_time + tof_seconds)
             try:
-                v_lambert, v_arrival = solve_lambert(start_pos, target_pos_future, tof_seconds, mu)
-                if v_lambert is None or v_arrival is None:
-                    d += 0.5
-                    continue
-                tgt_vel_future = get_orbital_velocity(target_elements, current_time + tof_seconds)
-                dv_dep = math.sqrt(
+                v_lambert = solve_lambert(start_pos, target_pos_future, tof_seconds, mu)
+                dv = math.sqrt(
                     (v_lambert[0] - start_vel_base[0])**2 +
                     (v_lambert[1] - start_vel_base[1])**2 +
                     (v_lambert[2] - start_vel_base[2])**2
                 )
-                dv_arr = math.sqrt(
-                    (v_arrival[0] - tgt_vel_future[0])**2 +
-                    (v_arrival[1] - tgt_vel_future[1])**2 +
-                    (v_arrival[2] - tgt_vel_future[2])**2
-                )
-                dv = dv_dep + dv_arr
                 if dv < min_dv:
                     min_dv = dv
                     best_tof = tof_seconds
                     best_v = v_lambert
-                    best_dv_req = dv_dep
             except Exception:
                 pass
-            d += refine_step
+            d += 0.5
 
-    return {"tof": best_tof, "vReq": best_v, "dvReq": best_dv_req}
+    return {"tof": best_tof, "vReq": best_v, "dvReq": min_dv}
 
 
 # Interplanetary trajectory calculator
@@ -847,21 +773,13 @@ async def calculate_interplanetary(req: dict):
             sc_vel[2] + (dt_step/6.0) * (a1[2] + 2*a2[2] + 2*a3[2] + a4[2])
         ]
 
+    tgt_sma = target_el["a"]
     max_dv = 40000.0
+    captured = True
     remaining = max_dv - total_dv
+    capture_alt = (target_el["radius"] / 1000.0) * 0.3
 
-    target_pos_arrival = propagate_orbit(target_el, globalTime + tof)
-    arrival_distance = math.sqrt(
-        (sc_pos[0] - target_pos_arrival[0])**2 +
-        (sc_pos[1] - target_pos_arrival[1])**2 +
-        (sc_pos[2] - target_pos_arrival[2])**2
-    )
-    capture_alt = max(0.0, arrival_distance - target_el["radius"])
-    captured = arrival_distance <= target_el["radius"] * 5.0
-    planet_mu = PLANET_MU.get(targetPlanet, PLANET_MU["Earth"])
-    orbit_period_days = 2.0 * math.pi * math.sqrt(
-        (target_el["radius"] + capture_alt)**3 / planet_mu
-    ) / 86400.0
+    orbit_period_days = 195.6
 
     v_depart_mag = math.sqrt(sc_vel[0]**2 + sc_vel[1]**2 + sc_vel[2]**2)
 

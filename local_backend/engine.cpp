@@ -213,8 +213,8 @@ struct Spacecraft {
     
     // Tsiolkovsky parameters
     double dry_mass = 1000.0; // kg
-    double fuel_mass = 25000.0; // kg — increased for Neptune and outer planet transfers
-    double isp = 450.0; // seconds — increased to ion/nuclear engine capability
+    double fuel_mass = 8000.0; // kg
+    double isp = 350.0; // seconds
 
     double required_capture_dv = 0.0;
     double closest_approach = INFINITY;
@@ -750,7 +750,6 @@ int main(int argc, char* argv[]) {
             Eigen::Vector3d best_v = Eigen::Vector3d::Zero();
             
             double dv_depart = 0.0;
-            double best_dv_depart = 0.0;
 
             if (bypass_tof1 > 0) {
                 best_tof = bypass_tof1 * 86400.0;
@@ -765,25 +764,16 @@ int main(int argc, char* argv[]) {
                     double tof_seconds = d * 86400.0;
                     Eigen::Vector3d tgt_pos = propagate_orbit(*tgt, launchTime + tof_seconds);
                     try {
-                        std::pair<Eigen::Vector3d, Eigen::Vector3d> v_lambert_pair = gc.solve_lambert_full(earth_pos, tgt_pos, tof_seconds, MU_SUN);
-                        Eigen::Vector3d v_lambert = v_lambert_pair.first;
-                        Eigen::Vector3d v_arrival = v_lambert_pair.second;
-                        
-                        Eigen::Vector3d tgt_vel_future = get_orbital_velocity(*tgt, launchTime + tof_seconds);
-                        
-                        double dv_dep = (v_lambert - earth_vel).norm();
-                        double dv_arr = (v_arrival - tgt_vel_future).norm();
-                        double dv = dv_dep + dv_arr;
-                        
+                        Eigen::Vector3d v_lambert = gc.solve_lambert(earth_pos, tgt_pos, tof_seconds, MU_SUN);
+                        double dv = (v_lambert - earth_vel).norm();
                         if (dv < min_dv) {
                             min_dv = dv;
                             best_tof = tof_seconds;
                             best_v = v_lambert;
-                            best_dv_depart = dv_dep;
                         }
                     } catch (...) {}
                 }
-                dv_depart = best_dv_depart;
+                dv_depart = min_dv;
             }
 
             Eigen::Vector3d tgt_vel = get_orbital_velocity(*tgt, launchTime + best_tof);
@@ -862,7 +852,7 @@ int main(int argc, char* argv[]) {
 
             std::cout << std::fixed << std::setprecision(3);
             std::cout << "{\"points\":[";
-            for (size_t i = 0; i < ghost_path.size(); ++i) {
+            for (int i = 0; i < NUM_POINTS; i++) {
                 if (i) std::cout << ",";
                 std::cout << "[" << ghost_path[i].x()/1000.0 << "," << ghost_path[i].y()/1000.0 << "," << ghost_path[i].z()/1000.0 << "]";
             }
