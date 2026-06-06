@@ -9,7 +9,7 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom';
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
 import TrajectoryOptimizer, { OptimizeResult } from "./TrajectoryOptimizer";
-import { scanTrajectories } from "./workers/trajectory.worker";
+import { scanPorkchop } from "./workers/trajectory.worker";
 import { TelemetryPanel } from "./components/TelemetryPanel";
 import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
@@ -513,7 +513,7 @@ export default function App() {
         }
       });
     } else {
-      const result = scanTrajectories(
+      const result = scanPorkchop(
         currentDestId,
         3, // Earth
         t0,
@@ -1109,7 +1109,7 @@ export default function App() {
         {/* Footer */}
         <footer className="absolute bottom-0 w-full flex justify-center items-center py-4 z-10 bg-transparent pointer-events-auto">
           <div className="font-mono text-[9px] tracking-[0.2em] text-white/30 uppercase">
-            © 2026 SPACE SCIENCE SIMULATOR
+            © 2026 ODYSSEY ASTRODYNAMICS LABORATORY
           </div>
         </footer>
       </div>

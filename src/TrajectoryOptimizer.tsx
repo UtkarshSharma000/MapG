@@ -127,7 +127,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
       </div>
 
       <div className="mb-4">
-        <label className="text-[10px] font-mono text-white/40 block mb-1">TRIP PREFERENCE</label>
+        <label className="text-[10px] font-mono text-white/40 block mb-1">OPTIMIZATION GOAL</label>
         <select 
           value={optGoal} 
           onChange={e => setOptGoal(e.target.value)}
@@ -193,8 +193,8 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
       <button onClick={run} disabled={loading}
         className="w-full mb-4 px-3 py-2.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/25 text-cyan-400 transition-all disabled:opacity-40 font-mono tracking-widest text-[9px] flex justify-center items-center font-bold glossy-button cursor-pointer">
         {loading ? (
-          <><div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping mr-2"></div>COMPUTING FLIGHT PATH...</>
-        ) : 'FIND BEST LAUNCH WINDOW'}
+          <><div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping mr-2"></div>COMPUTING INTERPLANETARY AXIS...</>
+        ) : 'FIND OPTIMAL LAUNCH WINDOW'}
       </button>
 
       {result && (

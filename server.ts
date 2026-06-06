@@ -1,42 +1,40 @@
 import express from "express";
 import path from "path";
-import http from "http";
-import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
-import { spawn, execSync, exec } from "child_process";
+import { spawn, execSync } from "child_process";
 import fs from "fs";
 import engineApi from "./engineApi";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
-  const httpServer = http.createServer(app);
+
+  // Compile C++ Engine and Install Python Deps conditionally to ensure near-instant startup
+  console.log("Ensuring environment is ready...");
+  try {
+    const enginePath = path.join(process.cwd(), "local_backend/odyssey_engine");
+    if (!fs.existsSync(enginePath)) {
+      console.log("C++ engine binary not found. Compiling engine...");
+      execSync("bash local_backend/build.sh", { stdio: "inherit" });
+    } else {
+      console.log("C++ engine binary found. Skipping compilation to keep startup instant.");
+    }
+
+    const pipFlagPath = path.join(process.cwd(), "local_backend/.pip_installed");
+    if (!fs.existsSync(pipFlagPath)) {
+      console.log("First-time setup: installing Python dependencies...");
+      execSync("python3 -m pip install -r local_backend/requirements.txt", { stdio: "inherit" });
+      fs.writeFileSync(pipFlagPath, "installed_at_" + Date.now());
+    } else {
+      console.log("Python dependencies already satisfied. Skipping pip to keep startup instant.");
+    }
+  } catch (error) {
+    console.error("Setup warning (non-fatal, continuing):", error);
+  }
 
   let latestTelemetry: any = { status: "waiting_for_engine" };
 
   // API Route setup - Proxy to FastAPI bridge for legacy routes
-  app.get("/api/debug-paths", (req, res) => {
-    const currentDir = typeof __dirname !== "undefined" ? __dirname : process.cwd();
-    const isComp = currentDir.endsWith(path.sep + "dist") || currentDir.endsWith("/dist");
-    const projRoot = isComp ? path.join(currentDir, "..") : currentDir;
-    const pub = path.join(projRoot, "public");
-    const dst = path.join(projRoot, "dist");
-    
-    res.json({
-      currentDir,
-      isComp,
-      projRoot,
-      pub,
-      dst,
-      cwd: process.cwd(),
-      pubExists: fs.existsSync(pub),
-      pubTexturesExists: fs.existsSync(path.join(pub, "textures")),
-      sampleTextureExists: fs.existsSync(path.join(pub, "textures", "2k_mercury.jpg")),
-      sampleTextureStats: fs.existsSync(path.join(pub, "textures", "2k_mercury.jpg")) ? fs.statSync(path.join(pub, "textures", "2k_mercury.jpg")) : null,
-      env: process.env.NODE_ENV
-    });
-  });
-
   app.get("/api/telemetry", async (req, res) => {
     try {
       const response = await fetch("http://localhost:8000/telemetry");
@@ -62,139 +60,32 @@ async function startServer() {
   // Dedicated C++ engine API
   app.use("/api", engineApi);
 
-  // robust resolution of project root and dist
-  const currentDirname = typeof __dirname !== "undefined" ? __dirname : process.cwd();
-
-  const isCompiled = currentDirname.endsWith(path.sep + "dist") || currentDirname.endsWith("/dist");
-  const projectRoot = isCompiled ? path.join(currentDirname, "..") : currentDirname;
-  const distPath = path.join(projectRoot, "dist");
-  const publicPath = path.join(projectRoot, "public");
-
-  // Global CORS and Cache-Control headers for any request matching /textures/*
-  app.use("/textures", (req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "*");
-    res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
-
-    if (req.method === "OPTIONS") {
-      return res.sendStatus(200);
-    }
-
-    const cleanFileName = req.path.startsWith("/") ? req.path.slice(1) : req.path;
-    const pathInPublic = path.join(publicPath, "textures", cleanFileName);
-    const pathInDist = path.join(distPath, "textures", cleanFileName);
-
-    let resolvedAssetPath = "";
-    if (fs.existsSync(pathInDist)) {
-      resolvedAssetPath = pathInDist;
-    } else if (fs.existsSync(pathInPublic)) {
-      resolvedAssetPath = pathInPublic;
-    }
-
-    if (!resolvedAssetPath) {
-      console.warn(`[WARNING] Texture not found on disk: ${cleanFileName}`);
-      return res.sendStatus(404);
-    }
-
-    // Explicit content type assignments
-    if (cleanFileName.endsWith(".png")) {
-      res.setHeader("Content-Type", "image/png");
-    } else if (cleanFileName.endsWith(".jpg") || cleanFileName.endsWith(".jpeg")) {
-      res.setHeader("Content-Type", "image/jpeg");
-    }
-
-    // 🚀 READ AS FULL BUFFER: Forces clean 200 OK responses, breaking the Three.js 206 Partial Content loops
-    try {
-      const fileBuffer = fs.readFileSync(resolvedAssetPath);
-      res.setHeader("Content-Length", fileBuffer.length);
-      return res.status(200).send(fileBuffer);
-    } catch (err) {
-      console.error(`[ERROR] Failed to read texture buffer: ${cleanFileName}`, err);
-      return res.sendStatus(500);
-    }
+  // Start the Python FastAPI Bridge
+  console.log("Starting Python FastAPI bridge...");
+  const pythonProcess = spawn("python3", ["-m", "uvicorn", "main:app", "--port", "8000"], {
+    cwd: path.join(process.cwd(), "local_backend"),
   });
+
+  pythonProcess.stdout.on("data", (data) => console.log("Python:", data.toString()));
+  pythonProcess.stderr.on("data", (data) => console.error("Python Error:", data.toString()));
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { 
-        middlewareMode: true,
-        hmr: {
-          server: httpServer
-        }
-      },
+      server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    // Service static routes matching first, then fallback to SPA
+    const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
-  function startPythonBridge() {
-    console.log("Starting Python FastAPI bridge...");
-    try {
-      try {
-        execSync("fuser -k 8000/tcp || true");
-      } catch (e) {}
-
-      const pythonProcess = spawn("python3", ["-m", "uvicorn", "main:app", "--port", "8000"], {
-        cwd: path.join(projectRoot, "local_backend"),
-      });
-
-      pythonProcess.stdout.on("data", (data) => console.log("Python:", data.toString()));
-      pythonProcess.stderr.on("data", (data) => console.error("Python Error:", data.toString()));
-    } catch (err) {
-      console.error("Failed to start Python bridge:", err);
-    }
-  }
-
-  httpServer.listen(PORT, "0.0.0.0", () => {
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
-
-    // Perform environment preparation asynchronously in the background so the port is active immediately!
-    setTimeout(() => {
-      console.log("Running background preparation...");
-      try {
-        const enginePath = path.join(projectRoot, "local_backend/odyssey_engine");
-        if (!fs.existsSync(enginePath)) {
-          console.log("C++ engine binary not found. Compiling in background...");
-          exec("bash local_backend/build.sh", { cwd: projectRoot }, (err, stdout, stderr) => {
-            if (err) {
-              console.error("Failed to compile C++ engine:", err);
-            } else {
-              console.log("C++ engine compiled successfully.");
-            }
-          });
-        } else {
-          console.log("C++ engine binary found. Skipping compilation.");
-        }
-
-        const pipFlagPath = path.join(projectRoot, "local_backend/.pip_installed");
-        if (!fs.existsSync(pipFlagPath)) {
-          console.log("Installing Python dependencies in background...");
-          exec("python3 -m pip install -r local_backend/requirements.txt", { cwd: projectRoot }, (err, stdout, stderr) => {
-            if (err) {
-              console.error("Setup warning: pip install error in background (continuing):", err);
-            } else {
-              console.log("Python dependencies verified/installed.");
-              fs.writeFileSync(pipFlagPath, "installed_at_" + Date.now());
-            }
-            startPythonBridge();
-          });
-        } else {
-          console.log("Python dependencies already satisfied.");
-          startPythonBridge();
-        }
-      } catch (error) {
-        console.error("Setup background error:", error);
-        startPythonBridge();
-      }
-    }, 501);
   });
 }
 
