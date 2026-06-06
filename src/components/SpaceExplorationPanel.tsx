@@ -1,18 +1,31 @@
 import React from "react";
 import Waves from "./Waves";
 import ScrollFloat from "./ScrollFloat";
+import VideoScrubber from "./VideoScrubber";
 
 interface SpaceExplorationPanelProps {
   cinematicSectionRef: React.RefObject<HTMLDivElement | null>;
   scrollProgress: number;
   landingScrollRef: React.RefObject<HTMLDivElement | null>;
+  isDarkMode?: boolean;
 }
 
 export default function SpaceExplorationPanel({
   cinematicSectionRef,
   scrollProgress,
   landingScrollRef,
+  isDarkMode = false,
 }: SpaceExplorationPanelProps) {
+  if (!isDarkMode) {
+    return (
+      <section ref={cinematicSectionRef} className="relative h-[250vh] bg-transparent z-10 w-full overflow-visible">
+        <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden pointer-events-none">
+          <VideoScrubber scrollProgress={scrollProgress} src="/satellite.mp4" />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <>
       {/* Cinematic Interactive Space Exploration Panel */}

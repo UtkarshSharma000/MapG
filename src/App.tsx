@@ -868,6 +868,7 @@ export default function App() {
             cinematicSectionRef={cinematicSectionRef}
             scrollProgress={scrollProgress}
             landingScrollRef={landingScrollRef}
+            isDarkMode={isDarkMode}
           />
 
           <MathPhysicsShowcase
