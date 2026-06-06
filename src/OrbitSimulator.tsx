@@ -1459,7 +1459,6 @@ export default function OrbitSimulator({
         </div>
       )}
       <Canvas camera={{ position: [0, 150, 400], fov: 45, far: 5000000, near: 0.1 }}>
-        <color attach="background" args={['#ebf0f8']} />
         <ambientLight intensity={0.2} />
         <pointLight
           position={[0, 0, 0]}

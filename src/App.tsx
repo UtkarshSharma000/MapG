@@ -18,6 +18,8 @@ import StaggeredMenu from "./components/StaggeredMenu";
 
 // Modular Extracted Components
 import { InteractiveGlobe } from "./components/InteractiveGlobe";
+import { Moon, Sun } from "lucide-react";
+import FaultyTerminal from "./components/FaultyTerminal";
 import LandingHero from "./components/LandingHero";
 import InteractiveBridge from "./components/InteractiveBridge";
 import SpaceExplorationPanel from "./components/SpaceExplorationPanel";
@@ -25,6 +27,15 @@ import MathPhysicsShowcase from "./components/MathPhysicsShowcase";
 
 export default function App() {
   const [showMobileBlock, setShowMobileBlock] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -721,13 +732,30 @@ export default function App() {
   }, [activeReplay, activeReplayStartTime]);
 
   return (
-    <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-slate-50">
+    <div className={`text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col ${isDarkMode ? 'bg-[#0d1117] dark-mode' : 'bg-slate-50'}`}>
       
-      {!isSimulatorRunning && (
-        <>
-          <div className="fixed inset-0 z-0 pointer-events-none bg-slate-50"></div>
-        </>
-      )}
+      <div className={`fixed inset-0 z-0 pointer-events-none ${isDarkMode ? 'bg-[#0d1117]' : 'bg-slate-50'}`}>
+        <FaultyTerminal
+          scale={1.5}
+          gridMul={[2, 1]}
+          digitSize={1.2}
+          timeScale={1}
+          pause={false}
+          scanlineIntensity={1}
+          glitchAmount={1}
+          flickerAmount={1}
+          noiseAmp={1}
+          chromaticAberration={0}
+          dither={0}
+          curvature={0}
+          tint="#F97316"
+          mouseReact={true}
+          mouseStrength={0.5}
+          pageLoadAnimation={false}
+          brightness={isDarkMode ? 0.3 : 1}
+        />
+      </div>
+
       {showMobileBlock && (
         <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-slate-50 text-gray-900 p-6 text-center select-none pointer-events-auto">
           <div className="max-w-xs flex flex-col items-center">
@@ -778,6 +806,16 @@ export default function App() {
         cameraPresetToSave={cameraPresetToSave}
         resetCameraTrigger={resetCameraTrigger}
       />
+
+      {!isSimulatorRunning && (
+        <button
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          className="fixed top-6 left-6 z-50 w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-500 transition-all cursor-pointer bg-white/50 backdrop-blur-md"
+          title="Toggle Dark Mode"
+        >
+          {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+      )}
 
       {/* Landing Page Content */}
       <div
@@ -987,6 +1025,13 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-6 pointer-events-auto">
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-500 transition-all cursor-pointer bg-white/50 backdrop-blur-md"
+              title="Toggle Dark Mode"
+            >
+              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
             <button
               onClick={() => setIsSimulatorRunning(false)}
               className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-red-400 hover:border-red-400/30 transition-all cursor-pointer"
