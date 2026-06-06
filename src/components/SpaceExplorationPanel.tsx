@@ -28,11 +28,11 @@ export default function SpaceExplorationPanel({
             {/* HUD Top bar */}
             <div className="flex justify-between items-start">
               <div className="flex flex-col gap-1 border-l border-primary/40 pl-3">
-                <span className="font-mono text-[9px] text-primary/60 tracking-widest uppercase">SIMULATION STATUS // SOLAR SYSTEM</span>
-                <span className="font-display-lg text-lg text-white font-bold tracking-tight">PLANET ORBIT CALCULATOR</span>
+                <span className="font-mono text-[9px] text-primary/60 tracking-widest uppercase">SENSOR STREAM // DEEP FIELD SPECTROSCOPY</span>
+                <span className="font-display-lg text-lg text-white font-bold tracking-tight">SOLAR EXCURSION PROPAGATOR</span>
               </div>
               <div className="flex flex-col items-end gap-1 font-mono text-[9px] text-white/40">
-                <div>VIEW DEPTH // ZOOM LEVEL</div>
+                <div>RANGE REF // HELIOCENTRIC COHESION</div>
                 <div className="text-primary font-bold">SCALE: {(1.0 + scrollProgress * 4.5).toFixed(3)}x</div>
               </div>
             </div>
@@ -40,12 +40,12 @@ export default function SpaceExplorationPanel({
             {/* HUD Bottom telemetry overlay */}
             <div className="flex flex-col md:flex-row justify-between items-end gap-4 w-full">
               <div className="flex flex-col gap-2 font-mono text-[9px] text-white/30 text-left border-b border-white/5 pb-2 md:pb-0 md:border-b-0">
-                <div>ORBIT GRAPHICS: <span className="text-primary font-bold">ONLINE</span></div>
-                <div>GRAVITY SIMULATION: <span className="text-emerald-400 font-bold">STABLE</span></div>
-                <div>FLIGHT PATH PLANNER: <span className="text-blue-400 font-bold">READY</span></div>
+                <div>ACTIVE SENSOR BEAM: <span className="text-primary font-bold">ONLINE</span></div>
+                <div>ORBIT RESONANCE CALIBRATION: <span className="text-emerald-400 font-bold">STABLE</span></div>
+                <div>T-INJECTION VECTOR: <span className="text-blue-400 font-bold">READY</span></div>
               </div>
               <div className="flex flex-col items-end gap-1 text-right">
-                <span className="font-mono text-[9px] text-white/40 uppercase">ZOOM DEPTH BY SCROLLING</span>
+                <span className="font-mono text-[9px] text-white/40 uppercase">TRANSIT PROGRESSION</span>
                 <div className="w-48 bg-white/5 h-1 border border-white/10 rounded-full overflow-hidden">
                   <div 
                     className="bg-primary h-full transition-all duration-75 relative" 
@@ -72,11 +72,11 @@ export default function SpaceExplorationPanel({
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-                <span className="font-mono text-[9px] text-primary tracking-widest uppercase">THE SUN // ZONE 1</span>
+                <span className="font-mono text-[9px] text-primary tracking-widest uppercase">STELLAR APEX // STAGE 1</span>
               </div>
-              <h4 className="font-display-lg text-sm font-bold text-white uppercase tracking-wide mb-1">The Center of our System</h4>
+              <h4 className="font-display-lg text-sm font-bold text-white uppercase tracking-wide mb-1">Stellar Nucleus Core</h4>
               <p className="text-[11px] text-white/60 leading-relaxed font-light">
-                The Sun is the center of our solar system. Its strong gravity pulls on all planets and makes them orbit around it in oval shapes.
+                The focal origin points initiate here. High-energy solar wind calculations set Keplerian boundary rules for all inner planet transits.
               </p>
             </div>
 
@@ -91,11 +91,11 @@ export default function SpaceExplorationPanel({
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                <span className="font-mono text-[9px] text-amber-400 tracking-widest uppercase">INNER PLANETS // ZONE 2</span>
+                <span className="font-mono text-[9px] text-amber-400 tracking-widest uppercase">HOT VECTOR ZONE // STAGE 2</span>
               </div>
-              <h4 className="font-display-lg text-sm font-bold text-white uppercase tracking-wide mb-1">Mercury and Venus</h4>
+              <h4 className="font-display-lg text-sm font-bold text-white uppercase tracking-wide mb-1">Mercury & Venus Corridor</h4>
               <p className="text-[11px] text-white/60 leading-relaxed font-light">
-                These are the planets closest to the Sun. They move very fast because they are so close to the Sun's strong gravity.
+                Charting trajectories through high-temperature gravity wells requires extreme numeric stabilization with adaptive timesteps.
               </p>
             </div>
 
@@ -110,11 +110,11 @@ export default function SpaceExplorationPanel({
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
-                <span className="font-mono text-[9px] text-blue-400 tracking-widest uppercase">OUR HOME // ZONE 3</span>
+                <span className="font-mono text-[9px] text-blue-400 tracking-widest uppercase">BARCENTRICAL LAB // STAGE 3</span>
               </div>
-              <h4 className="font-display-lg text-sm font-bold text-white uppercase tracking-wide mb-1">Earth and the Moon</h4>
+              <h4 className="font-display-lg text-sm font-bold text-white uppercase tracking-wide mb-1">Earth-Moon Resonance</h4>
               <p className="text-[11px] text-white/60 leading-relaxed font-light">
-                This is where we live. Earth has one natural satellite, the Moon, which orbits Earth about once every 27 days.
+                The gravitational midpoint of Earth acts as the perfect springboard, leveraging lunar orbital speeds to accelerate outer missions.
               </p>
             </div>
 
@@ -129,11 +129,11 @@ export default function SpaceExplorationPanel({
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
-                <span className="font-mono text-[9px] text-purple-400 tracking-widest uppercase">OUTER PLANETS // ZONE 4</span>
+                <span className="font-mono text-[9px] text-purple-400 tracking-widest uppercase">JOVIAN BOUNDARIES // STAGE 4</span>
               </div>
-              <h4 className="font-display-lg text-sm font-bold text-white uppercase tracking-wide mb-1">Mars and Beyond</h4>
+              <h4 className="font-display-lg text-sm font-bold text-white uppercase tracking-wide mb-1">To Mars & Jupiter</h4>
               <p className="text-[11px] text-white/60 leading-relaxed font-light">
-                Mars is our neighbor. Beyond Mars are giant gas planets like Jupiter, Saturn, Uranus, and Neptune.
+                As we zoom out to the widest helical patterns, the full N-Body physics of Jovian systems dominates global path calculations.
               </p>
             </div>
 

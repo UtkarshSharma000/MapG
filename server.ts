@@ -9,27 +9,13 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Compile C++ Engine and Install Python Deps conditionally to ensure near-instant startup
+  // Compile C++ Engine and Install Python Deps
   console.log("Ensuring environment is ready...");
   try {
-    const enginePath = path.join(process.cwd(), "local_backend/odyssey_engine");
-    if (!fs.existsSync(enginePath)) {
-      console.log("C++ engine binary not found. Compiling engine...");
-      execSync("bash local_backend/build.sh", { stdio: "inherit" });
-    } else {
-      console.log("C++ engine binary found. Skipping compilation to keep startup instant.");
-    }
-
-    const pipFlagPath = path.join(process.cwd(), "local_backend/.pip_installed");
-    if (!fs.existsSync(pipFlagPath)) {
-      console.log("First-time setup: installing Python dependencies...");
-      execSync("python3 -m pip install -r local_backend/requirements.txt", { stdio: "inherit" });
-      fs.writeFileSync(pipFlagPath, "installed_at_" + Date.now());
-    } else {
-      console.log("Python dependencies already satisfied. Skipping pip to keep startup instant.");
-    }
+    execSync("bash local_backend/build.sh", { stdio: "inherit" });
+    execSync("python3 -m pip install -r local_backend/requirements.txt", { stdio: "inherit" });
   } catch (error) {
-    console.error("Setup warning (non-fatal, continuing):", error);
+    console.error("Setup failed:", error);
   }
 
   let latestTelemetry: any = { status: "waiting_for_engine" };

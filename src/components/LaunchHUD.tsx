@@ -82,7 +82,7 @@ export function LaunchHUD({
           {/* Panel Header */}
           <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-white/10 pb-3 mb-6 select-none">
           <h3 className="font-label-caps text-[10px] tracking-[0.2em] text-primary flex items-center gap-1.5">
-            LAUNCH CONTROL
+            LAUNCH CONTROL DECK
           </h3>
           <Move className="w-3.5 h-3.5 text-white/40 cursor-grab hover:text-white" />
         </div>
@@ -95,7 +95,7 @@ export function LaunchHUD({
             onClick={isLaunched ? handleReset : onLaunch}
             disabled={isCalculatingLaunchPhase}
           >
-             {isLaunched ? 'RESET SIMULATION' : isCalculatingLaunchPhase ? 'CALCULATING PATH...' : 'LAUNCH ROCKET'}
+             {isLaunched ? 'ABORT TRACKING' : isCalculatingLaunchPhase ? 'RESOLVING CONFLICTS...' : 'INITIATE IGNITION'}
           </button>
 
           {/* Mission Archive Controls */}
@@ -105,7 +105,7 @@ export function LaunchHUD({
                 onClick={onConcludeMission}
                 className="w-full py-3 bg-tertiary-container/20 border border-tertiary/40 hover:bg-tertiary-container/30 text-tertiary hover:text-white rounded font-label-caps tracking-[0.2em] text-[9px] uppercase transition-all cursor-pointer"
               >
-                FINISH MISSION
+                SUCCESS: ARCHIVE LOGS
               </button>
             </div>
           )}
@@ -123,18 +123,18 @@ export function LaunchHUD({
               {returnWindow && (
                 <div className="bg-black/40 p-4 rounded border border-white/10 flex flex-col gap-3 transition-all duration-300">
                   <div className="flex justify-between border-b border-white/5 pb-2 text-[9px] font-label-caps text-white/50 uppercase tracking-[0.2em]">
-                    <span>Best Trip Time:</span> 
+                    <span>Optimal Window:</span> 
                     <span className="text-white">{returnWindow.tof_days} Days</span>
                   </div>
                   <div className="flex justify-between pb-2 text-[9px] font-label-caps text-white/50 uppercase tracking-[0.2em]">
-                    <span>Speed Boost:</span> 
+                    <span>Burn Required:</span> 
                     <span className="text-white">{returnWindow.dv1_kms.toFixed(2)} KM/S</span>
                   </div>
                   <button 
                     onClick={onApplyReturn}
                     className="w-full py-2 bg-secondary/20 border border-secondary/50 hover:bg-secondary/30 text-secondary rounded font-label-caps text-[9px] uppercase tracking-[0.2em] cursor-pointer glow-cyan"
                   >
-                    Fly Back to Earth
+                    Execute TEI
                   </button>
                 </div>
               )}
