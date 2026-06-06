@@ -735,25 +735,29 @@ export default function App() {
     <div className={`text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col ${isDarkMode ? 'bg-[#0d1117] dark-mode' : 'bg-slate-50'}`}>
       
       <div className={`fixed inset-0 z-0 pointer-events-none ${isDarkMode ? 'bg-[#0d1117]' : 'bg-slate-50'}`}>
-        <FaultyTerminal
-          scale={1.5}
-          gridMul={[2, 1]}
-          digitSize={1.2}
-          timeScale={1}
-          pause={false}
-          scanlineIntensity={1}
-          glitchAmount={1}
-          flickerAmount={1}
-          noiseAmp={1}
-          chromaticAberration={0}
-          dither={0}
-          curvature={0}
-          tint="#F97316"
-          mouseReact={true}
-          mouseStrength={0.5}
-          pageLoadAnimation={false}
-          brightness={isDarkMode ? 0.3 : 1}
-        />
+        {isDarkMode ? (
+          <Galaxy transparent={false} mouseInteraction={false} scrollProgress={!isSimulatorRunning ? scrollProgress : undefined} />
+        ) : (
+          <FaultyTerminal
+            scale={1.5}
+            gridMul={[2, 1]}
+            digitSize={1.2}
+            timeScale={1}
+            pause={false}
+            scanlineIntensity={1}
+            glitchAmount={1}
+            flickerAmount={1}
+            noiseAmp={1}
+            chromaticAberration={0}
+            dither={0}
+            curvature={0}
+            tint="#F97316"
+            mouseReact={true}
+            mouseStrength={0.5}
+            pageLoadAnimation={false}
+            brightness={1}
+          />
+        )}
       </div>
 
       {showMobileBlock && (
@@ -805,6 +809,7 @@ export default function App() {
         cameraPresetToLoad={cameraPresetToLoad}
         cameraPresetToSave={cameraPresetToSave}
         resetCameraTrigger={resetCameraTrigger}
+        isDarkMode={isDarkMode}
       />
 
       {!isSimulatorRunning && (

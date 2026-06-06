@@ -1422,7 +1422,8 @@ export default function OrbitSimulator({
   cameraPresetToLoad = null,
   cameraPresetToSave = null,
   resetCameraTrigger = 0,
-  onPointsCalculated
+  onPointsCalculated,
+  isDarkMode = false
 }: {
   isRunning?: boolean;
   timeMult?: number;
@@ -1441,6 +1442,7 @@ export default function OrbitSimulator({
   resetCameraTrigger?: number;
   activeReplay?: any;
   onPointsCalculated?: (pts: THREE.Vector3[], isReturn: boolean) => void;
+  isDarkMode?: boolean;
 }) {
   const fallbackRef = useRef(0);
   const activeTimeRef = globalTimeRef || fallbackRef;
@@ -1448,17 +1450,18 @@ export default function OrbitSimulator({
 
   return (
     <div
-      className={`absolute inset-0 transition-opacity duration-1000 ${isRunning ? "opacity-100 z-10 pointer-events-auto bg-[#03060f]" : "opacity-0 z-[-10] pointer-events-none"}`}
+      className={`absolute inset-0 transition-opacity duration-1000 ${isRunning ? `opacity-100 z-10 pointer-events-auto ${isDarkMode ? 'bg-[#03060f]' : 'bg-[#ffffff]'}` : "opacity-0 z-[-10] pointer-events-none"}`}
     >
       {isCalculating && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">
-          <div className="text-cyan-400 font-mono tracking-widest text-[10px] uppercase bg-white px-4 py-2 border border-cyan-500/30 rounded shadow overflow-hidden relative">
-            <div className="absolute inset-0 bg-cyan-500/10 animate-pulse"></div>
+          <div className="text-blue-500 font-mono tracking-widest text-[10px] uppercase bg-white px-4 py-2 border border-blue-500/30 rounded shadow overflow-hidden relative">
+            <div className="absolute inset-0 bg-blue-500/10 animate-pulse"></div>
             Computing Trajectory...
           </div>
         </div>
       )}
       <Canvas camera={{ position: [0, 150, 400], fov: 45, far: 5000000, near: 0.1 }}>
+        <color attach="background" args={[isDarkMode ? '#03060f' : '#ffffff']} />
         <ambientLight intensity={0.2} />
         <pointLight
           position={[0, 0, 0]}
