@@ -732,9 +732,9 @@ export default function App() {
   }, [activeReplay, activeReplayStartTime]);
 
   return (
-    <div className={`text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col ${isDarkMode ? 'bg-[#0d1117] dark-mode' : 'bg-white'}`}>
+    <div className={`text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col ${isDarkMode ? 'bg-[#0d1117] dark-mode' : 'bg-slate-50'}`}>
       
-      <div className={`fixed inset-0 z-0 pointer-events-none ${isDarkMode ? 'bg-[#0d1117]' : 'bg-white'}`}>
+      <div className={`fixed inset-0 z-0 pointer-events-none ${isDarkMode ? 'bg-[#0d1117]' : 'bg-slate-50'}`}>
         {isDarkMode ? (
           <Galaxy transparent={false} mouseInteraction={false} scrollProgress={!isSimulatorRunning ? scrollProgress : undefined} />
         ) : (
