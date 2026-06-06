@@ -1405,7 +1405,7 @@ function SystemEngine({
   );
 }
 
-export default function OrbitSimulator({
+const OrbitSimulator = React.memo(function OrbitSimulator({
   isRunning = false,
   timeMult = 10 * 24 * 3600,
   selectedTarget,
@@ -1501,4 +1501,6 @@ export default function OrbitSimulator({
       </Canvas>
     </div>
   );
-}
+});
+
+export default OrbitSimulator;

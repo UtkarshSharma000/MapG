@@ -1,5 +1,5 @@
-import React from "react";
-import { motion } from "motion/react";
+import React, { useRef } from "react";
+import { motion, useInView } from "motion/react";
 import { Canvas } from "@react-three/fiber";
 import { Play, Github } from "lucide-react";
 import { InteractiveGlobe } from "./InteractiveGlobe";
@@ -17,8 +17,11 @@ export default function LandingHero({
   setIsSimulatorRunning,
   landingScrollRef,
 }: LandingHeroProps) {
+  const containerRef = useRef(null);
+  const isInView = useInView(containerRef);
+
   return (
-    <section className="relative min-h-[90vh] flex items-center px-8 md:px-[32px] overflow-hidden z-20">
+    <section ref={containerRef} className="relative min-h-[90vh] flex items-center px-8 md:px-[32px] overflow-hidden z-20">
       <motion.div 
         initial={{ opacity: 0, y: 30 }}
         animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1, y: 0 }}
@@ -89,7 +92,7 @@ export default function LandingHero({
         className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 aspect-square hidden xl:block"
       >
         <div className="relative w-full h-full cursor-grab active:cursor-grabbing opacity-90 transition-opacity duration-500">
-          <Canvas frameloop={isSimulatorRunning ? "demand" : "always"} camera={{ position: [0, 0, 3] }}>
+          <Canvas frameloop={!isInView || isSimulatorRunning ? "demand" : "always"} camera={{ position: [0, 0, 3] }}>
             <InteractiveGlobe url="/textures/2k_mars.jpg" color="#c1440e" />
           </Canvas>
         </div>

@@ -19,7 +19,7 @@ export default function InteractiveBridge() {
         />
       </div>
       {/* Subtle indicator label */}
-      <span className="font-mono text-[9px] tracking-[0.4em] uppercase text-gray-300 mt-4 pointer-events-none select-none">
+      <span className="font-mono text-[9px] tracking-[0.4em] uppercase text-gray-400 mt-4 pointer-events-none select-none">
         MOUSE INTERACTIVE PRESSURE ENGINE
       </span>
     </section>

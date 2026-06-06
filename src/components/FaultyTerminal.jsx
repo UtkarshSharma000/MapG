@@ -219,7 +219,7 @@ function hexToRgb(hex) {
   return [((num >> 16) & 255) / 255, ((num >> 8) & 255) / 255, (num & 255) / 255];
 }
 
-export default function FaultyTerminal({
+const FaultyTerminal = React.memo(function FaultyTerminal({
   scale = 1,
   gridMul = [2, 1],
   digitSize = 1.5,
@@ -396,4 +396,6 @@ export default function FaultyTerminal({
   ]);
 
   return <div ref={containerRef} className={`faulty-terminal-container ${className}`} style={style} {...rest} />;
-}
+});
+
+export default FaultyTerminal;

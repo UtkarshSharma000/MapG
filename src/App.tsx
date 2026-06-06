@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import Lenis from "lenis";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from 'three';
 import Draggable from 'react-draggable';
@@ -158,9 +159,35 @@ export default function App() {
   const cinematicSectionRef = React.useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
 
+  const lenisRef = React.useRef<Lenis | null>(null);
+
   useEffect(() => {
     const scroller = landingScrollRef.current;
-    if (!scroller) return;
+    if (!scroller || isSimulatorRunning) {
+      if (lenisRef.current) {
+        lenisRef.current.destroy();
+        lenisRef.current = null;
+      }
+      return;
+    }
+
+    const lenis = new Lenis({
+      wrapper: scroller,
+      content: scroller.firstElementChild as HTMLElement || undefined,
+      lerp: 0.05,        // lower is smoother
+      smoothWheel: true,
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      touchMultiplier: 2,
+    });
+    lenisRef.current = lenis;
+
+    let animationFrameId: number;
+    const raf = (time: number) => {
+      lenis.raf(time);
+      animationFrameId = requestAnimationFrame(raf);
+    };
+    animationFrameId = requestAnimationFrame(raf);
 
     const handleScroll = () => {
       const section = cinematicSectionRef.current;
@@ -183,6 +210,8 @@ export default function App() {
       }
     };
 
+    // lenis emits scroll events smoothly
+    lenis.on('scroll', handleScroll);
     scroller.addEventListener('scroll', handleScroll, { passive: true });
     // Run once initially
     handleScroll();
@@ -193,6 +222,9 @@ export default function App() {
     return () => {
       scroller.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
+      lenis.destroy();
+      lenisRef.current = null;
+      cancelAnimationFrame(animationFrameId);
     };
   }, [isSimulatorRunning]);
 
@@ -732,9 +764,9 @@ export default function App() {
   }, [activeReplay, activeReplayStartTime]);
 
   return (
-    <div className={`text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col ${isDarkMode ? 'bg-[#0d1117] dark-mode' : 'bg-slate-50'}`}>
+    <div className={`text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col transition-colors duration-500 ${isDarkMode ? 'bg-[#0d1117] dark-mode' : ((scrollProgress > 0 && scrollProgress < 1) ? 'bg-white' : 'bg-slate-50')}`}>
       
-      <div className={`fixed inset-0 z-0 pointer-events-none ${isDarkMode ? 'bg-[#0d1117]' : 'bg-slate-50'}`}>
+      <div className={`fixed inset-0 z-0 pointer-events-none transition-colors duration-500 ${isDarkMode ? 'bg-[#0d1117]' : ((scrollProgress > 0 && scrollProgress < 1) ? 'bg-white' : 'bg-slate-50')}`}>
         {isDarkMode ? (
           <Galaxy transparent={false} mouseInteraction={false} scrollProgress={!isSimulatorRunning ? scrollProgress : undefined} />
         ) : (

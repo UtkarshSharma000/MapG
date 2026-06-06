@@ -83,9 +83,9 @@ export default function VideoScrubber({ scrollProgress }: VideoScrubberProps) {
   }, []);
 
   return (
-    <div className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none z-10 bg-white">
+    <div className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none z-10 bg-transparent">
       {imagesLoaded < totalFrames && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-white">
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-transparent">
           <div className="text-gray-400 font-mono text-sm uppercase tracking-widest animate-pulse">
             Loading... {Math.round((imagesLoaded / totalFrames) * 100)}%
           </div>
