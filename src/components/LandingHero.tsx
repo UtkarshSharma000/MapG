@@ -89,7 +89,7 @@ export default function LandingHero({
         className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 aspect-square hidden xl:block"
       >
         <div className="relative w-full h-full cursor-grab active:cursor-grabbing opacity-90 transition-opacity duration-500">
-          <Canvas camera={{ position: [0, 0, 3] }}>
+          <Canvas frameloop={isSimulatorRunning ? "demand" : "always"} camera={{ position: [0, 0, 3] }}>
             <InteractiveGlobe url="/textures/2k_mars.jpg" color="#c1440e" />
           </Canvas>
         </div>

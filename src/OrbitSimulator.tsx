@@ -1460,7 +1460,7 @@ export default function OrbitSimulator({
           </div>
         </div>
       )}
-      <Canvas camera={{ position: [0, 150, 400], fov: 45, far: 5000000, near: 0.1 }}>
+      <Canvas frameloop={isRunning ? "always" : "demand"} camera={{ position: [0, 150, 400], fov: 45, far: 5000000, near: 0.1 }}>
         <color attach="background" args={[isDarkMode ? '#03060f' : '#ffffff']} />
         <ambientLight intensity={0.2} />
         <pointLight

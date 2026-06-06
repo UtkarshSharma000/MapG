@@ -737,7 +737,29 @@ export default function App() {
       <div className={`fixed inset-0 z-0 pointer-events-none ${isDarkMode ? 'bg-[#0d1117]' : 'bg-white'}`}>
         {isDarkMode ? (
           <Galaxy transparent={false} mouseInteraction={false} scrollProgress={!isSimulatorRunning ? scrollProgress : undefined} />
-        ) : null}
+        ) : (
+          <div className="absolute inset-0" style={{ opacity: (scrollProgress > 0 && scrollProgress < 1) ? 0 : 1, transition: 'opacity 0.3s' }}>
+            <FaultyTerminal
+              scale={1.5}
+              gridMul={[2, 1]}
+              digitSize={1.2}
+              timeScale={1}
+              pause={scrollProgress > 0 && scrollProgress < 1}
+              scanlineIntensity={1}
+              glitchAmount={1}
+              flickerAmount={1}
+              noiseAmp={1}
+              chromaticAberration={0}
+              dither={0}
+              curvature={0}
+              tint="#F97316"
+              mouseReact={true}
+              mouseStrength={0.5}
+              pageLoadAnimation={false}
+              brightness={1}
+            />
+          </div>
+        )}
       </div>
 
       {showMobileBlock && (

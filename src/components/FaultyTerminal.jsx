@@ -328,17 +328,15 @@ export default function FaultyTerminal({
     const update = t => {
       rafRef.current = requestAnimationFrame(update);
 
+      if (pause) return;
+
       if (pageLoadAnimation && loadAnimationStartRef.current === 0) {
         loadAnimationStartRef.current = t;
       }
 
-      if (!pause) {
-        const elapsed = (t * 0.001 + timeOffsetRef.current) * timeScale;
-        program.uniforms.iTime.value = elapsed;
-        frozenTimeRef.current = elapsed;
-      } else {
-        program.uniforms.iTime.value = frozenTimeRef.current;
-      }
+      const elapsed = (t * 0.001 + timeOffsetRef.current) * timeScale;
+      program.uniforms.iTime.value = elapsed;
+      frozenTimeRef.current = elapsed;
 
       if (pageLoadAnimation && loadAnimationStartRef.current > 0) {
         const animationDuration = 2000;

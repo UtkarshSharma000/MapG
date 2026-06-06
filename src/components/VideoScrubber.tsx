@@ -10,7 +10,6 @@ export default function VideoScrubber({ scrollProgress, src }: VideoScrubberProp
   const targetTimeRef = useRef(0);
   const currentVideoTimeRef = useRef(0);
   const targetProgressRef = useRef(scrollProgress);
-  const smoothScrollRef = useRef(scrollProgress);
 
   useEffect(() => {
     targetProgressRef.current = scrollProgress;
@@ -24,19 +23,8 @@ export default function VideoScrubber({ scrollProgress, src }: VideoScrubberProp
     let frameId: number;
     
     const updateFrame = () => {
-      smoothScrollRef.current += (targetProgressRef.current - smoothScrollRef.current) * 0.06;
-      
       const video = videoRef.current;
       if (video) {
-         const s = smoothScrollRef.current;
-         
-         // Dynamic Camera (Scale, Pan, Tilt)
-         const scale = 1.0 + s * 0.5;
-         const tx = s * -3;
-         const ty = s * 6;
-         const r = s * -2;
-         video.style.transform = `scale(${scale}) translate(${tx}%, ${ty}%) rotate(${r}deg)`;
-
          // Smooth Video Seek
          if (video.readyState >= 2 && video.duration) {
            currentVideoTimeRef.current += (targetTimeRef.current - currentVideoTimeRef.current) * 0.12;
@@ -67,8 +55,7 @@ export default function VideoScrubber({ scrollProgress, src }: VideoScrubberProp
       <video
         ref={videoRef}
         src={src}
-        className="w-full h-full object-contain origin-center"
-        style={{ willChange: 'transform' }}
+        className="w-full h-full object-contain"
         muted
         playsInline
         preload="auto"
