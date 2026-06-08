@@ -3,7 +3,7 @@ import TextPressure from "./TextPressure";
 
 export default function InteractiveBridge() {
   return (
-    <section className="relative w-full overflow-hidden bg-gradient-to-b from-[#050505] to-[#030611] py-16 flex flex-col items-center justify-center z-10 border-t border-b border-gray-100">
+    <section className="relative w-full overflow-hidden bg-gradient-to-b from-[#050505] to-[#030611] py-16 flex flex-col items-center justify-center z-10 border-t border-b border-white/5">
       {/* Soft decorative space glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,240,255,0.015),transparent_70%)] pointer-events-none"></div>
       
@@ -19,7 +19,7 @@ export default function InteractiveBridge() {
         />
       </div>
       {/* Subtle indicator label */}
-      <span className="font-mono text-[9px] tracking-[0.4em] uppercase text-gray-300 mt-4 pointer-events-none select-none">
+      <span className="font-mono text-[9px] tracking-[0.4em] uppercase text-white/20 mt-4 pointer-events-none select-none">
         MOUSE INTERACTIVE PRESSURE ENGINE
       </span>
     </section>

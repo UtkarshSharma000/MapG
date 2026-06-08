@@ -181,13 +181,93 @@ export function solveLambert(
   
   const f = 1 - y / norm1;
   const g = A * Math.sqrt(y / mu);
-  const gDot = 1 - y / norm2;
   
   return [
     (r2[0] - f * r1[0]) / g,
     (r2[1] - f * r1[1]) / g,
     (r2[2] - f * r1[2]) / g,
   ];
+}
+
+export function solveLambertFull(
+  r1: Vector3,
+  r2: Vector3,
+  tof: number,
+  mu: number,
+  prograde = true
+): { v1: Vector3, v2: Vector3 } {
+  const norm1 = Math.sqrt(r1[0] * r1[0] + r1[1] * r1[1] + r1[2] * r1[2]);
+  const norm2 = Math.sqrt(r2[0] * r2[0] + r2[1] * r2[1] + r2[2] * r2[2]);
+  
+  const cosDnu = (r1[0] * r2[0] + r1[1] * r2[1] + r1[2] * r2[2]) / (norm1 * norm2);
+  const cr = [
+    r1[1] * r2[2] - r1[2] * r2[1],
+    r1[2] * r2[0] - r1[0] * r2[2],
+    r1[0] * r2[1] - r1[1] * r2[0],
+  ];
+  let dnu = Math.acos(Math.max(-1, Math.min(1, cosDnu)));
+  
+  // Decide which way to go
+  if (prograde) {
+    if (cr[2] < 0) dnu = 2 * Math.PI - dnu;
+  } else {
+    if (cr[2] >= 0) dnu = 2 * Math.PI - dnu;
+  }
+  
+  const A = Math.sin(dnu) * Math.sqrt((norm1 * norm2) / (1 - Math.cos(dnu)));
+  
+  // Robust bisection
+  let zLow = -4 * Math.PI * Math.PI; 
+  let zHigh = 4 * Math.PI * Math.PI;
+  let z = 0;
+  
+  let y = 0;
+  const tol = 1e-4; // Better precision
+  for (let iter = 0; iter < 100; iter++) {
+    const cVal = C(z);
+    const sVal = S(z);
+    
+    // Safety check for cVal near 0
+    const denom = Math.sqrt(cVal);
+    y = norm1 + norm2 + A * (z * sVal - 1) / denom;
+    
+    if (A > 0 && y < 0) {
+      zLow = z;
+      z = (z + zHigh) / 2;
+      continue;
+    }
+    
+    const x = Math.sqrt(y / cVal);
+    const tCalc = (Math.pow(x, 3) * sVal + A * Math.sqrt(y)) / Math.sqrt(mu);
+    
+    if (Math.abs(tCalc - tof) < 0.01) { // Accuracy within 0.01 second
+      break;
+    }
+    
+    if (tCalc < tof) {
+      zLow = z;
+    } else {
+      zHigh = z;
+    }
+    z = (zHigh + zLow) / 2;
+    if (Math.abs(zHigh - zLow) < tol) break;
+  }
+  
+  const f = 1 - y / norm1;
+  const g = A * Math.sqrt(y / mu);
+  const gDot = 1 - y / norm2;
+  
+  const v1: Vector3 = [
+    (r2[0] - f * r1[0]) / g,
+    (r2[1] - f * r1[1]) / g,
+    (r2[2] - f * r1[2]) / g,
+  ];
+  const v2: Vector3 = [
+    (gDot * r2[0] - r1[0]) / g,
+    (gDot * r2[1] - r1[1]) / g,
+    (gDot * r2[2] - r1[2]) / g,
+  ];
+  return { v1, v2 };
 }
 
 export const J2000_UNIX = 946728000; // Seconds since Unix epoch to J2000
@@ -213,6 +293,7 @@ export function findOptimalTransfer(
   let bestTOF = 0;
   let minDV = Infinity;
   let bestV: Vector3 = [0,0,0];
+  let bestDVReq = 0;
 
   const a1 = earthElements.a / AU;
   const a2 = targetElements.a / AU;
@@ -236,17 +317,26 @@ export function findOptimalTransfer(
     const targetPosFuture = propagateOrbit(targetElements, currentTime + tofSeconds);
     
     try {
-      const vLambert = solveLambert(startPos, targetPosFuture, tofSeconds, mu);
-      const dv = Math.sqrt(
-        Math.pow(vLambert[0] - startVelBase[0], 2) +
-        Math.pow(vLambert[1] - startVelBase[1], 2) +
-        Math.pow(vLambert[2] - startVelBase[2], 2)
+      const { v1, v2 } = solveLambertFull(startPos, targetPosFuture, tofSeconds, mu);
+      const targetVelFuture = getOrbitalVelocity(targetElements, currentTime + tofSeconds);
+      
+      const dvDep = Math.sqrt(
+        Math.pow(v1[0] - startVelBase[0], 2) +
+        Math.pow(v1[1] - startVelBase[1], 2) +
+        Math.pow(v1[2] - startVelBase[2], 2)
       );
+      const dvArr = Math.sqrt(
+        Math.pow(v2[0] - targetVelFuture[0], 2) +
+        Math.pow(v2[1] - targetVelFuture[1], 2) +
+        Math.pow(v2[2] - targetVelFuture[2], 2)
+      );
+      const dv = dvDep + dvArr;
       
       if (dv < minDV) {
         minDV = dv;
         bestTOF = tofSeconds;
-        bestV = vLambert;
+        bestV = v1;
+        bestDVReq = dvDep;
       }
     } catch (e) {}
   }
@@ -258,22 +348,31 @@ export function findOptimalTransfer(
       const tofSeconds = d * 24 * 3600;
       const targetPosFuture = propagateOrbit(targetElements, currentTime + tofSeconds);
       try {
-        const vLambert = solveLambert(startPos, targetPosFuture, tofSeconds, mu);
-        const dv = Math.sqrt(
-          Math.pow(vLambert[0] - startVelBase[0], 2) +
-          Math.pow(vLambert[1] - startVelBase[1], 2) +
-          Math.pow(vLambert[2] - startVelBase[2], 2)
+        const { v1, v2 } = solveLambertFull(startPos, targetPosFuture, tofSeconds, mu);
+        const targetVelFuture = getOrbitalVelocity(targetElements, currentTime + tofSeconds);
+        
+        const dvDep = Math.sqrt(
+          Math.pow(v1[0] - startVelBase[0], 2) +
+          Math.pow(v1[1] - startVelBase[1], 2) +
+          Math.pow(v1[2] - startVelBase[2], 2)
         );
+        const dvArr = Math.sqrt(
+          Math.pow(v2[0] - targetVelFuture[0], 2) +
+          Math.pow(v2[1] - targetVelFuture[1], 2) +
+          Math.pow(v2[2] - targetVelFuture[2], 2)
+        );
+        const dv = dvDep + dvArr;
         if (dv < minDV) {
           minDV = dv;
           bestTOF = tofSeconds;
-          bestV = vLambert;
+          bestV = v1;
+          bestDVReq = dvDep;
         }
       } catch (e) {}
     }
   }
 
-  return { tof: bestTOF, vReq: bestV, dvReq: minDV };
+  return { tof: bestTOF, vReq: bestV, dvReq: bestDVReq || minDV };
 }
 
 export function simulateInterplanetaryRK4(
