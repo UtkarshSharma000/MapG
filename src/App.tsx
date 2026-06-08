@@ -788,7 +788,7 @@ export default function App() {
       {/* Landing Page Content */}
       <div
         ref={landingScrollRef}
-        className={`landing-scroller absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
+        className={`landing-scroller absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto snap-y snap-mandatory"}`}
       >
         {/* TopNavBar */}
         <StaggeredMenu
@@ -818,7 +818,7 @@ export default function App() {
           socialItems={[]}
         />
 
-        <main className="pt-20">
+        <main className="">
           <LandingHero
             isSimulatorRunning={isSimulatorRunning}
             setIsSimulatorRunning={setIsSimulatorRunning}
@@ -982,7 +982,7 @@ export default function App() {
         {/* TopAppBar */}
         <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
           <div className="flex items-center gap-6 pointer-events-auto">
-            <img src="/logo.svg" alt="Project Greninja" className="w-12 h-12 relative -top-0.5" />
+            <img src="/logo.svg" alt="Space Flight Simulator" className="w-12 h-12 relative -top-0.5" />
             <div className="flex items-center gap-10">
               <h1 className="font-display-lg text-2xl tracking-tighter text-white">SPACE FLIGHT <span className="text-secondary font-bold">SIMULATOR</span></h1>
               <nav className="hidden md:flex gap-10">

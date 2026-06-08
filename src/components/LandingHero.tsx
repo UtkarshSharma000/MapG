@@ -18,7 +18,7 @@ export default function LandingHero({
   landingScrollRef,
 }: LandingHeroProps) {
   return (
-    <section className="relative min-h-[90vh] flex items-center px-8 md:px-[32px] overflow-hidden z-20">
+    <section className="relative min-h-screen pt-20 flex items-center px-8 md:px-[32px] overflow-hidden z-20 snap-start">
       <motion.div 
         initial={{ opacity: 0, y: 30 }}
         animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1, y: 0 }}

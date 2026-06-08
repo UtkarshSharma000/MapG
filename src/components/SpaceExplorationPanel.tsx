@@ -16,7 +16,15 @@ export default function SpaceExplorationPanel({
   return (
     <>
       {/* Cinematic Interactive Space Exploration Panel */}
-      <section ref={cinematicSectionRef} className="relative h-[250vh] bg-transparent z-10 w-full overflow-visible">
+      <section ref={cinematicSectionRef} className="relative h-[400vh] bg-transparent z-10 w-full overflow-visible">
+        {/* Invisible snapping anchors */}
+        <div className="absolute top-0 left-0 w-full h-[400vh] pointer-events-none flex flex-col">
+          <div className="h-[100vh] w-full snap-start" />
+          <div className="h-[100vh] w-full snap-start" />
+          <div className="h-[100vh] w-full snap-start" />
+          <div className="h-[100vh] w-full snap-start" />
+        </div>
+
         {/* Sticky viewport content container */}
         <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden pointer-events-none">
           
@@ -65,9 +73,9 @@ export default function SpaceExplorationPanel({
             <div 
               className="absolute left-6 md:left-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left"
               style={{ 
-                opacity: scrollProgress >= 0.05 && scrollProgress <= 0.28 ? Math.min(1, (scrollProgress - 0.05) / 0.07) * Math.min(1, (0.28 - scrollProgress) / 0.07) : 0,
-                transform: `translateY(${scrollProgress >= 0.05 && scrollProgress <= 0.28 ? '0px' : '20px'})`,
-                visibility: scrollProgress >= 0.05 && scrollProgress <= 0.28 ? 'visible' : 'hidden'
+                opacity: Math.max(0, 1 - Math.abs(scrollProgress - 0) / 0.15),
+                transform: `translateY(${Math.abs(scrollProgress - 0) < 0.15 ? '0px' : '20px'})`,
+                visibility: Math.abs(scrollProgress - 0) < 0.15 ? 'visible' : 'hidden'
               }}
             >
               <div className="flex items-center gap-2 mb-2">
@@ -84,9 +92,9 @@ export default function SpaceExplorationPanel({
             <div 
               className="absolute right-6 md:right-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left"
               style={{ 
-                opacity: scrollProgress >= 0.28 && scrollProgress <= 0.52 ? Math.min(1, (scrollProgress - 0.28) / 0.07) * Math.min(1, (0.52 - scrollProgress) / 0.07) : 0,
-                transform: `translateY(${scrollProgress >= 0.28 && scrollProgress <= 0.52 ? '0px' : '20px'})`,
-                visibility: scrollProgress >= 0.28 && scrollProgress <= 0.52 ? 'visible' : 'hidden'
+                opacity: Math.max(0, 1 - Math.abs(scrollProgress - 0.333) / 0.15),
+                transform: `translateY(${Math.abs(scrollProgress - 0.333) < 0.15 ? '0px' : '20px'})`,
+                visibility: Math.abs(scrollProgress - 0.333) < 0.15 ? 'visible' : 'hidden'
               }}
             >
               <div className="flex items-center gap-2 mb-2">
@@ -103,9 +111,9 @@ export default function SpaceExplorationPanel({
             <div 
               className="absolute left-6 md:left-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left"
               style={{ 
-                opacity: scrollProgress >= 0.52 && scrollProgress <= 0.76 ? Math.min(1, (scrollProgress - 0.52) / 0.07) * Math.min(1, (0.76 - scrollProgress) / 0.07) : 0,
-                transform: `translateY(${scrollProgress >= 0.52 && scrollProgress <= 0.76 ? '0px' : '20px'})`,
-                visibility: scrollProgress >= 0.52 && scrollProgress <= 0.76 ? 'visible' : 'hidden'
+                opacity: Math.max(0, 1 - Math.abs(scrollProgress - 0.666) / 0.15),
+                transform: `translateY(${Math.abs(scrollProgress - 0.666) < 0.15 ? '0px' : '20px'})`,
+                visibility: Math.abs(scrollProgress - 0.666) < 0.15 ? 'visible' : 'hidden'
               }}
             >
               <div className="flex items-center gap-2 mb-2">
@@ -122,9 +130,9 @@ export default function SpaceExplorationPanel({
             <div 
               className="absolute right-6 md:right-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left"
               style={{ 
-                opacity: scrollProgress >= 0.76 ? Math.min(1, (scrollProgress - 0.76) / 0.07) : 0,
-                transform: `translateY(${scrollProgress >= 0.76 ? '0px' : '20px'})`,
-                visibility: scrollProgress >= 0.76 ? 'visible' : 'hidden'
+                opacity: Math.max(0, 1 - Math.abs(scrollProgress - 1) / 0.15),
+                transform: `translateY(${Math.abs(scrollProgress - 1) < 0.15 ? '0px' : '20px'})`,
+                visibility: Math.abs(scrollProgress - 1) < 0.15 ? 'visible' : 'hidden'
               }}
             >
               <div className="flex items-center gap-2 mb-2">

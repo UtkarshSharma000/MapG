@@ -2,7 +2,7 @@
  <img width="180" alt="transparent-image" src="https://github.com/user-attachments/assets/16c20926-5542-429b-84f6-c51561d8f15d" />
 </p>
 
-<h1 align="center">Project Greninja (MapG)</h1>
+<h1 align="center">Space Flight Simulator</h1>
 
 <p align="center">
   <strong>A simple, interactive 3D solar system and space flight simulator.</strong>
@@ -13,13 +13,12 @@
   <img src="https://img.shields.io/badge/Language-TypeScript-007acc?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/>
   <img src="https://img.shields.io/badge/Build_Tool-Vite-007acc?style=for-the-badge&logo=vite&logoColor=white" alt="Vite"/>
   <img src="https://img.shields.io/badge/Styling-Tailwind_CSS-007acc?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind"/>
-  <img src="https://img.shields.io/badge/Backend-Python-007acc?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
 </p>
 
 ---
 
 > [!NOTE]
-> The MapG project simulates how planets and spacecraft move in space.
+> Space Flight Simulator simulates how planets and spacecraft move in space.
 
 ## Core Features
 

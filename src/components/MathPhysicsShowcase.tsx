@@ -15,7 +15,7 @@ export default function MathPhysicsShowcase({
 }: MathPhysicsShowcaseProps) {
   return (
     <>
-      <section className="px-8 md:px-[32px] py-16 md:py-24 relative bg-transparent overflow-hidden min-h-[120vh] flex flex-col justify-center w-full">
+      <section className="px-8 md:px-[32px] py-16 md:py-24 relative bg-transparent overflow-hidden min-h-[120vh] flex flex-col justify-center w-full snap-start">
         {/* Shared Interactive Waves Component for the Entire Combined Block */}
         <Waves
           lineColor="rgba(255, 255, 255, 0.1)"
