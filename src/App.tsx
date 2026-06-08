@@ -49,7 +49,7 @@ export default function App() {
   };
   const [selectedTarget, setSelectedTarget] = useState<
     (typeof PLANETS)[0] | null
-  >(PLANETS[2]); // Earth
+  >(null); // Sol (Sun)
   const [timeMult, setTimeMult] = useState(1); // Realtime / Orbital / Galactic
 
   // Launch Parameters
