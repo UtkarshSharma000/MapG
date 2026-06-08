@@ -1359,6 +1359,21 @@ function SystemEngine({
         controlsRef.current.target.copy(finalLerpedTarget);
         state.camera.position.add(displacement);
       }
+
+      // Instrumentation and debugging logs (throttled)
+      if (state.clock.getElapsedTime() % 2.0 < 0.05) {
+        console.log("[OrbitControls Instrumentation] Status:", {
+          controlsEnabled: controlsRef.current?.enabled,
+          controlsTarget: controlsRef.current?.target?.clone(),
+          cameraPosition: state.camera.position.clone(),
+          pointer: { x: state.pointer.x, y: state.pointer.y }
+        });
+      }
+
+      // CRITICAL camera fix: controls update must be called after modifications and for damping every frame
+      if (controlsRef.current) {
+        controlsRef.current.update();
+      }
     }
   });
 
@@ -1466,6 +1481,29 @@ function SystemEngine({
           // Check if this was a right-click or drag that should unlock
           // For simplicity, any start of camera movement unlocks
           setIsLocked(false);
+          console.log("[OrbitControls Instrumentation] Interaction START:", {
+            enabled: controlsRef.current?.enabled,
+            target: controlsRef.current?.target?.clone(),
+            cameraPosition: camera.position.clone(),
+            event: e
+          });
+        }}
+        onChange={(e: any) => {
+          // Throttled random logs to keep the console clean but readable
+          if (Math.random() < 0.1) {
+            console.log("[OrbitControls Instrumentation] State Changed:", {
+              enabled: controlsRef.current?.enabled,
+              target: controlsRef.current?.target?.clone(),
+              cameraPosition: camera.position.clone()
+            });
+          }
+        }}
+        onEnd={(e: any) => {
+          console.log("[OrbitControls Instrumentation] Interaction END:", {
+            enabled: controlsRef.current?.enabled,
+            target: controlsRef.current?.target?.clone(),
+            cameraPosition: camera.position.clone()
+          });
         }}
         makeDefault
       />
