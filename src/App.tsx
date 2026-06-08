@@ -993,13 +993,13 @@ export default function App() {
             {showMissionPanel && (
               <div id="target-selector-wrapper" className="fixed top-24 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex items-center justify-center w-max" style={{ transform: 'translateX(-50%)' }}>
                 <Draggable nodeRef={targetSelectorNodeRef} handle=".target-drag-handle" position={targetSelectorPos} onStop={onDragStopTargetSelector}>
-                  <div ref={targetSelectorNodeRef} className="pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-full border border-gray-700 bg-gray-900 shadow-lg">
+                  <div ref={targetSelectorNodeRef} className="pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-full border border-white/10 bg-[#0a0a0c]/95 shadow-2xl backdrop-blur-md">
                     <div className="target-drag-handle opacity-50 cursor-move hover:opacity-100 flex items-center pr-2 border-r border-white/10">
                       <Move size={14} className="text-white/40" />
                     </div>
                     <button 
                       onClick={() => setSelectedTarget(null)}
-                      className={`px-3 py-1 text-[10px] font-label-caps rounded-full border transition-all ${!selectedTarget ? 'border-primary bg-primary/20 text-primary glow-primary font-bold scale-105' : 'border-white/10 text-white/60 hover:text-white bg-white/5'}`}
+                      className={`px-3 py-1 text-[10px] font-label-caps rounded-full border transition-all ${!selectedTarget ? 'border-white bg-white/10 text-white font-bold scale-105' : 'border-white/10 text-white/60 hover:text-white bg-white/5'}`}
                       title="Center camera on Sun"
                     >
                       SOL (SUN)
@@ -1010,7 +1010,7 @@ export default function App() {
                         <button
                           key={p.name}
                           onClick={() => setSelectedTarget(p)}
-                          className={`w-8 h-8 rounded-full border overflow-hidden cursor-pointer transition-all flex items-center justify-center relative group ${selectedTarget?.name === p.name ? "border-secondary scale-110 shadow-[0_0_10px_rgba(0,240,255,0.4)]" : "border-white/10 opacity-60 hover:opacity-100 hover:border-white/30"}`}
+                          className={`w-8 h-8 rounded-full border overflow-hidden cursor-pointer transition-all flex items-center justify-center relative group ${selectedTarget?.name === p.name ? "border-white scale-110 shadow-[0_0_12px_rgba(255,255,255,0.4)]" : "border-white/10 opacity-60 hover:opacity-100 hover:border-white/30"}`}
                           title={p.name}
                         >
                           <img
@@ -1032,56 +1032,56 @@ export default function App() {
             {/* Bottom Right: Time Controls */}
             <Draggable nodeRef={timeControlNodeRef} handle=".drag-handle" position={timeControlPos} onStop={onDragStopTC}>
               <div ref={timeControlNodeRef} className="fixed z-40 pointer-events-auto" style={{ right: 32, bottom: 32 }}>
-                <div className="p-5 rounded-lg w-80 flex flex-col gap-4 border border-gray-700 bg-gray-800 shadow-xl text-white">
+                <div className="p-5 rounded-2xl w-80 flex flex-col gap-4 border border-white/10 bg-[#0a0a0c]/95 shadow-2xl backdrop-blur-md text-white">
                   <div className="flex justify-between items-center drag-handle cursor-move select-none pb-2 border-b border-white/10">
                     <span className="font-label-caps text-[9px] tracking-[0.2em] text-white/40">
                       TIME SPEED
                     </span>
-                    <span className="font-data-lg text-lg text-secondary">
+                    <span className="font-data-lg text-lg text-[#aaddff]">
                       {timeMult === 1
                         ? "REALTIME"
                         : `x${timeMult.toLocaleString()}`}
                     </span>
                   </div>
 
-              <input
-                type="range"
-                min="0"
-                max="5"
-                step="1"
-                value={
-                  timeMult === 1
-                    ? 0
-                    : timeMult === 86400
-                      ? 1 // days
-                      : timeMult === 86400 * 30
-                        ? 2 // months
-                        : timeMult === 86400 * 365.25
-                          ? 3 // years
-                          : timeMult === 86400 * 365.25 * 10
-                            ? 4 // decades
-                            : 5 // centuries
-                }
-                onChange={(e) => {
-                  const val = parseInt(e.target.value);
-                  if (val === 0) handleTimeMultChange(1);
-                  else if (val === 1) handleTimeMultChange(86400);
-                  else if (val === 2) handleTimeMultChange(86400 * 30);
-                  else if (val === 3) handleTimeMultChange(86400 * 365.25);
-                  else if (val === 4) handleTimeMultChange(86400 * 365.25 * 10);
-                  else handleTimeMultChange(86400 * 365.25 * 100);
-                }}
-                className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-secondary glow-cyan"
-              />
+                  <input
+                    type="range"
+                    min="0"
+                    max="5"
+                    step="1"
+                    value={
+                      timeMult === 1
+                        ? 0
+                        : timeMult === 86400
+                          ? 1 // days
+                          : timeMult === 86400 * 30
+                            ? 2 // months
+                            : timeMult === 86400 * 365.25
+                              ? 3 // years
+                              : timeMult === 86400 * 365.25 * 10
+                                ? 4 // decades
+                                : 5 // centuries
+                    }
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (val === 0) handleTimeMultChange(1);
+                      else if (val === 1) handleTimeMultChange(86400);
+                      else if (val === 2) handleTimeMultChange(86400 * 30);
+                      else if (val === 3) handleTimeMultChange(86400 * 365.25);
+                      else if (val === 4) handleTimeMultChange(86400 * 365.25 * 10);
+                      else handleTimeMultChange(86400 * 365.25 * 100);
+                    }}
+                    className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-white"
+                  />
 
-              <div className="flex justify-between text-white/20 font-label-caps text-[8px] tracking-[0.15em]">
-                <span>1S</span>
-                <span>DAY</span>
-                <span>MON</span>
-                <span>YR</span>
-                <span>DEC</span>
-                <span>CEN</span>
-              </div>
+                  <div className="flex justify-between text-white/20 font-label-caps text-[8px] tracking-[0.15em]">
+                    <span>1S</span>
+                    <span>DAY</span>
+                    <span>MON</span>
+                    <span>YR</span>
+                    <span>DEC</span>
+                    <span>CEN</span>
+                  </div>
                 </div>
               </div>
             </Draggable>
