@@ -810,8 +810,8 @@ export default function App() {
             },
             { 
               label: 'GitHub Repo', 
-              ariaLabel: 'GitHub MapG', 
-              link: 'https://github.com/UtkarshSharma000/MapG',
+              ariaLabel: 'GitHub Srinivasa', 
+              link: 'https://github.com/UtkarshSharma000/Srinivasa',
               image: 'https://images.unsplash.com/photo-1618477247222-ac60c7477123?q=80&w=2064&auto=format&fit=crop'
             },
           ]}

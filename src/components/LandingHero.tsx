@@ -72,7 +72,7 @@ export default function LandingHero({
             <Play size={16} fill="currentColor" /> START SIMULATOR
           </button>
           <a 
-            href="https://github.com/UtkarshSharma000/MapG"
+            href="https://github.com/UtkarshSharma000/Srinivasa"
             target="_blank"
             rel="noreferrer"
             className="px-10 py-4 bg-gray-800 border border-gray-700 text-tertiary font-label-caps text-label-caps tracking-widest hover:scale-105 hover:bg-gray-700 active:scale-95 transition-all rounded-full cursor-pointer inline-flex items-center gap-2"

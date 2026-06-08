@@ -46,9 +46,9 @@ export default function SpaceExplorationPanel({
       // Box 1
       applyBoxStyle(
         box1Ref,
-        scrollProgress < 0.28 ? 1 : Math.max(0, 1 - (scrollProgress - 0.28) / 0.04),
-        `translateY(${scrollProgress < 0.30 ? '0px' : '20px'})`,
-        scrollProgress < 0.32 ? 'visible' : 'hidden'
+        scrollProgress < 0.05 ? 0 : scrollProgress < 0.09 ? (scrollProgress - 0.05) / 0.04 : scrollProgress < 0.28 ? 1 : Math.max(0, 1 - (scrollProgress - 0.28) / 0.04),
+        `translateY(${scrollProgress >= 0.05 && scrollProgress <= 0.30 ? '0px' : '20px'})`,
+        scrollProgress >= 0.05 && scrollProgress <= 0.32 ? 'visible' : 'hidden'
       );
 
       // Box 2

@@ -1020,7 +1020,7 @@ function GhostPath({
              </mesh>
            )}
 
-           <pointLight color="#ff4444" intensity={5} distance={10} />
+           {/* removed red pointlight */}
             <Html distanceFactor={20} position={[0, 0.5, 0]}>
               <div className="bg-black/80 px-2 py-1 rounded border border-red-500/50 flex flex-col gap-0.5 shadow-lg min-w-[80px]">
                 <div className="text-[7px] text-white/50 font-mono uppercase tracking-tighter">Status</div>
