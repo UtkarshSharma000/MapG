@@ -18,11 +18,11 @@ export default function SpaceExplorationPanel({
       {/* Cinematic Interactive Space Exploration Panel */}
       <section ref={cinematicSectionRef} className="relative h-[400vh] bg-transparent z-10 w-full overflow-visible">
         {/* Invisible snapping anchors */}
-        <div className="absolute top-0 left-0 w-full h-[400vh] pointer-events-none flex flex-col">
-          <div className="h-[100vh] w-full snap-start" />
-          <div className="h-[100vh] w-full snap-start" />
-          <div className="h-[100vh] w-full snap-start" />
-          <div className="h-[100vh] w-full snap-start" />
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+          <div className="absolute top-[0vh] h-screen w-full snap-start" />
+          <div className="absolute top-[100vh] h-screen w-full snap-start" />
+          <div className="absolute top-[200vh] h-screen w-full snap-start" />
+          <div className="absolute top-[300vh] h-screen w-full snap-start" />
         </div>
 
         {/* Sticky viewport content container */}

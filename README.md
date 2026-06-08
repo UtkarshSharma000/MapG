@@ -2,7 +2,7 @@
  <img width="180" alt="transparent-image" src="https://github.com/user-attachments/assets/16c20926-5542-429b-84f6-c51561d8f15d" />
 </p>
 
-<h1 align="center">Space Flight Simulator</h1>
+<h1 align="center">Project Greninja</h1>
 
 <p align="center">
   <strong>A simple, interactive 3D solar system and space flight simulator.</strong>
