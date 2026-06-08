@@ -59,13 +59,7 @@ export default function SpaceExplorationPanel({
         }
 
         if (hudGlowRef.current) {
-          if (phase === 0) {
-            hudGlowRef.current.className = "absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,180,255,0.03)_0%,transparent_70%)] pointer-events-none z-10 transition-colors duration-1000";
-          } else if (phase === 1) {
-            hudGlowRef.current.className = "absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,160,0,0.05)_0%,transparent_70%)] pointer-events-none z-10 transition-colors duration-1000";
-          } else {
-            hudGlowRef.current.className = "absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,0,50,0.08)_0%,transparent_70%)] pointer-events-none z-10 transition-colors duration-1000";
-          }
+          hudGlowRef.current.className = "absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,180,255,0.02)_0%,transparent_70%)] pointer-events-none z-10 transition-colors duration-1000";
         }
         
         if (hudStatusRef.current && hudRouteRef.current && hudPathRef.current) {

@@ -727,7 +727,11 @@ export default function App() {
           <Galaxy transparent={false} mouseInteraction={false} />
         </div>
       )}
-      {/* !isSimulatorRunning Galaxy removed since we handle it in OrbitSimulator */}
+      {!isSimulatorRunning && (
+        <div className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000">
+          <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={scrollProgressRef} />
+        </div>
+      )}
       {showMobileBlock && (
         <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#03060f] text-white p-6 text-center select-none pointer-events-auto">
           <div className="max-w-xs flex flex-col items-center">

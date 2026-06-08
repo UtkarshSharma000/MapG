@@ -1183,6 +1183,7 @@ function SystemEngine({
 
   const spectatingObjRef = useRef<THREE.Object3D | null>(null);
   const [spectatedLabel, setSpectatedLabel] = useState<string | null>(null);
+  const smoothedScrollRef = useRef(0);
 
   const handleShuttleDoubleClick = (label: string, ref: any) => {
     spectatingObjRef.current = ref.current;
@@ -1241,35 +1242,43 @@ function SystemEngine({
 
     if (isCinematic && cinematicScrollRef) {
       // Time-Warp Scroll
-      const s = cinematicScrollRef.current;
+      const rawS = cinematicScrollRef.current;
       
+      // Smooth the scroll target
+      const lerpSpeed = 1 - Math.exp(-safeDelta * 5);
+      smoothedScrollRef.current += (rawS - smoothedScrollRef.current) * lerpSpeed;
+      const s = smoothedScrollRef.current;
+
       // J2000 epoch + base offset
       const baseJ2000 = (new Date("2020-01-01T00:00:00Z").getTime() - new Date("2000-01-01T12:00:00Z").getTime()) / 1000;
       globalTimeRef.current = baseJ2000 + s * (365 * 24 * 3600) * 1.5; // Simulate 1.5 years across the scroll
+
+      // Compute exact planet coordinates for no-lag targeting
+      const pE = propagateOrbit(PLANETS.find(p => p.name === "Earth")!.elements, globalTimeRef.current);
+      const tpE = new THREE.Vector3(pE[0]*POS_SCALE, pE[2]*POS_SCALE, -pE[1]*POS_SCALE);
+      
+      const pM = propagateOrbit(PLANETS.find(p => p.name === "Mars")!.elements, globalTimeRef.current);
+      const tpM = new THREE.Vector3(pM[0]*POS_SCALE, pM[2]*POS_SCALE, -pM[1]*POS_SCALE);
 
       // Camera Choreography
       // Top down (0.0), Horizon burn (0.5), Intercept (1.0)
       if (s < 0.25) {
         // Blueprint view (top-down)
-        state.camera.position.lerp(new THREE.Vector3(0, 400, 0), 0.05);
+        state.camera.position.lerp(new THREE.Vector3(0, 400, 0), lerpSpeed);
         if (controlsRef.current) {
-          controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), 0.05);
+          controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), lerpSpeed);
         }
       } else if (s < 0.65) {
-        // Horizon Burn / inner solar system tracking Earth
-        const pE = propagateOrbit(PLANETS.find(p => p.name === "Earth")!.elements, globalTimeRef.current);
-        const tpE = new THREE.Vector3(pE[0]*POS_SCALE, pE[2]*POS_SCALE, -pE[1]*POS_SCALE);
-        state.camera.position.lerp(new THREE.Vector3(tpE.x + 15, tpE.y + 5, tpE.z + 15), 0.05);
+        // Horizon Burn / inner solar system tracking Earth exactly (no delay on the target itself)
+        state.camera.position.lerp(new THREE.Vector3(tpE.x + 15, tpE.y + 5, tpE.z + 15), lerpSpeed);
         if (controlsRef.current) {
-          controlsRef.current.target.lerp(tpE, 0.05);
+          controlsRef.current.target.copy(tpE);
         }
       } else {
-        // Intercept Mars
-        const pM = propagateOrbit(PLANETS.find(p => p.name === "Mars")!.elements, globalTimeRef.current);
-        const tpM = new THREE.Vector3(pM[0]*POS_SCALE, pM[2]*POS_SCALE, -pM[1]*POS_SCALE);
-        state.camera.position.lerp(new THREE.Vector3(tpM.x + 20, tpM.y + 10, tpM.z + 20), 0.05);
+        // Intercept Mars tracking exactly
+        state.camera.position.lerp(new THREE.Vector3(tpM.x + 20, tpM.y + 10, tpM.z + 20), lerpSpeed);
         if (controlsRef.current) {
-          controlsRef.current.target.lerp(tpM, 0.05);
+          controlsRef.current.target.copy(tpM);
         }
       }
 
