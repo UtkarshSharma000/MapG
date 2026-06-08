@@ -649,6 +649,7 @@ function Planet({
             distanceFactor={100}
             zIndexRange={[100, 0]}
             className="pointer-events-none"
+            wrapperClass="pointer-events-none"
           >
             <div className="text-[10px] uppercase font-bold text-white/50 tracking-widest translate-x-3 translate-y-3 drop-shadow-md">
               {data.name}
@@ -1367,7 +1368,7 @@ function SystemEngine({
   return (
     <>
       {/* UI Controls overlay inside the 3D scene */}
-      <Html fullscreen className="pointer-events-none">
+      <Html fullscreen className="pointer-events-none" wrapperClass="pointer-events-none">
         <div className="absolute top-24 left-8 pointer-events-auto flex flex-col gap-2">
           {/* Date and Time Header */}
           <div className="px-4 py-2 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl flex items-center gap-4">
@@ -1409,7 +1410,7 @@ function SystemEngine({
       <mesh>
         <sphereGeometry args={[SUN_SIZE, 64, 64]} />
         <meshBasicMaterial color="#ffcc00" />
-        <Html distanceFactor={100} className="pointer-events-none">
+        <Html distanceFactor={100} className="pointer-events-none" wrapperClass="pointer-events-none">
           <div className="text-xs uppercase font-bold text-[#ffcc00] tracking-widest translate-x-4 drop-shadow-lg">
             SUN
           </div>
