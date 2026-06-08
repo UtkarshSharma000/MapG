@@ -1360,6 +1360,12 @@ function SystemEngine({
         state.camera.position.add(displacement);
       }
 
+      // Camera and orbit target logging on every frame
+      console.log("camera", state.camera.position.toArray());
+      if (controlsRef.current) {
+        console.log("target", controlsRef.current.target.toArray());
+      }
+
       // Instrumentation and debugging logs (throttled)
       if (state.clock.getElapsedTime() % 2.0 < 0.05) {
         console.log("[OrbitControls Instrumentation] Status:", {
@@ -1477,34 +1483,9 @@ function SystemEngine({
         enableDamping={true}
         dampingFactor={0.05}
         maxDistance={2000000}
-        onStart={(e: any) => {
-          // Check if this was a right-click or drag that should unlock
-          // For simplicity, any start of camera movement unlocks
-          setIsLocked(false);
-          console.log("[OrbitControls Instrumentation] Interaction START:", {
-            enabled: controlsRef.current?.enabled,
-            target: controlsRef.current?.target?.clone(),
-            cameraPosition: camera.position.clone(),
-            event: e
-          });
-        }}
-        onChange={(e: any) => {
-          // Throttled random logs to keep the console clean but readable
-          if (Math.random() < 0.1) {
-            console.log("[OrbitControls Instrumentation] State Changed:", {
-              enabled: controlsRef.current?.enabled,
-              target: controlsRef.current?.target?.clone(),
-              cameraPosition: camera.position.clone()
-            });
-          }
-        }}
-        onEnd={(e: any) => {
-          console.log("[OrbitControls Instrumentation] Interaction END:", {
-            enabled: controlsRef.current?.enabled,
-            target: controlsRef.current?.target?.clone(),
-            cameraPosition: camera.position.clone()
-          });
-        }}
+        onStart={() => console.log("ORBIT START")}
+        onChange={() => console.log("ORBIT CHANGE")}
+        onEnd={() => console.log("ORBIT END")}
         makeDefault
       />
     </>
