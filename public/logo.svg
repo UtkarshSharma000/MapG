@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="none">
+  <!-- Stylized S with orbital curves -->
+  <path d="M 120 180 C 120 150 150 120 200 120 L 260 120 L 250 135 L 195 135 C 160 135 140 150 140 170 C 140 185 160 195 190 200 L 230 210 C 270 220 280 240 280 260 C 280 265 275 270 270 275" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" fill="none" />
+  
+  <path d="M 100 240 C 100 210 130 185 170 170 C 220 150 260 160 280 180" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+  
+  <path d="M 270 275 C 230 300 170 300 120 280 L 100 240 C 120 270 160 285 220 275 C 240 270 260 260 275 245 L 260 235 C 240 250 210 260 170 260 C 130 260 110 240 110 220" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" fill="none" />
+  
+  <path d="M 190 300 L 230 300 C 260 300 280 280 280 260" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6" />
+  
+  <circle cx="285" cy="215" r="12" fill="#88DDFF" />
+</svg>

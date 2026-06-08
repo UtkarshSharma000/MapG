@@ -9,7 +9,7 @@ export default function InteractiveBridge() {
       
       <div className="w-full max-w-6xl px-6 relative z-10 select-none h-[140px] md:h-[200px] lg:h-[260px] flex items-center justify-center">
         <TextPressure
-          text="GRENINJA"
+          text="SRINIVASA"
           textColor="#ffffff"
           strokeColor="rgba(0, 240, 255, 0.45)"
           stroke={true}
