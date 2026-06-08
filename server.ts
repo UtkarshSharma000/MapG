@@ -52,6 +52,10 @@ async function startServer() {
     cwd: path.join(process.cwd(), "local_backend"),
   });
 
+  pythonProcess.on("error", (err) => {
+    console.error("Failed to start python3. It might not be installed:", err);
+  });
+
   pythonProcess.stdout.on("data", (data) => console.log("Python:", data.toString()));
   pythonProcess.stderr.on("data", (data) => console.error("Python Error:", data.toString()));
 

@@ -1,10 +1,8 @@
 import React from "react";
 import { motion } from "motion/react";
 import { Canvas } from "@react-three/fiber";
-import { Play, Github } from "lucide-react";
+import { Play, ArrowRight } from "lucide-react";
 import { InteractiveGlobe } from "./InteractiveGlobe";
-import ScrollFloat from "./ScrollFloat";
-import ScrollReveal from "./ScrollReveal";
 
 interface LandingHeroProps {
   isSimulatorRunning: boolean;
@@ -18,83 +16,82 @@ export default function LandingHero({
   landingScrollRef,
 }: LandingHeroProps) {
   return (
-    <section className="relative min-h-screen pt-20 flex items-center px-8 md:px-[32px] overflow-hidden z-20">
+    <section className="relative min-h-screen bg-[#050505] flex flex-col justify-center overflow-hidden z-20">
+      {/* MASSIVE BACKGROUND TEXT */}
       <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.2 }}
-        className="relative z-10 max-w-4xl"
+        initial={{ opacity: 0, x: -100 }}
+        animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1, x: 0 }}
+        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+        className="absolute top-1/2 -translate-y-1/2 left-0 w-full pointer-events-none flex justify-center z-0 mix-blend-difference"
       >
-        <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 bg-gray-800 border border-gray-700 rounded">
-          <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-          <span className="font-label-caps text-[10px] text-primary tracking-widest">ALL SYSTEMS GO // SECTOR 7</span>
+        <h1 
+          className="text-[#ffffff] leading-none whitespace-nowrap text-[35vw] font-black select-none tracking-tighter"
+          style={{ fontFamily: "'Oi', cursive", opacity: 0.15 }}
+        >
+          ORBIT
+        </h1>
+      </motion.div>
+
+      {/* FLOATING 3D GLOBE OVERLAY */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1, scale: 1 }}
+        transition={{ duration: 1.5, delay: 0.2, type: "spring" }}
+        className="absolute inset-0 z-10 hidden md:flex items-center justify-center pointer-events-none"
+      >
+        <div className="w-[50vw] aspect-square rounded-full overflow-hidden opacity-80 mix-blend-luminosity">
+          <Canvas camera={{ position: [0, 0, 2.5] }}>
+            <InteractiveGlobe url="/textures/2k_mars.jpg" color="#ffffff" />
+          </Canvas>
         </div>
-        
-        <ScrollFloat
-          animationDuration={1}
-          ease="back.inOut(2)"
-          scrollStart="center bottom+=50%"
-          scrollEnd="bottom bottom-=40%"
-          stagger={0.02}
-          scrollContainerRef={landingScrollRef}
-          textClassName="font-display-lg text-5xl md:text-[64px] font-bold mb-2 leading-none tracking-tighter block text-left"
-        >
-          PROJECT:
-        </ScrollFloat>
-        <ScrollFloat
-          animationDuration={1.2}
-          ease="back.inOut(2)"
-          scrollStart="center bottom+=50%"
-          scrollEnd="bottom bottom-=40%"
-          stagger={0.03}
-          scrollContainerRef={landingScrollRef}
-          textClassName="font-display-lg text-primary glow-primary text-6xl md:text-[80px] font-bold mb-6 leading-none tracking-tighter block text-left"
-        >
-          SRINIVASA
-        </ScrollFloat>
-        
-        <ScrollReveal
-          baseOpacity={0}
-          enableBlur={true}
-          baseRotation={5}
-          blurStrength={10}
-          scrollContainerRef={landingScrollRef}
-          textClassName="font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 max-w-2xl font-light text-left"
-        >
-          Exploring the Next Frontier of Space Travel and Flight Paths.
-        </ScrollReveal>
-        
-        <div className="flex flex-wrap gap-4">
-          <button 
-            onClick={() => setIsSimulatorRunning(true)}
-            className="px-10 py-4 bg-primary-container text-on-primary-container font-label-caps text-label-caps tracking-widest hover:scale-105 active:scale-95 transition-all cursor-pointer rounded-full flex items-center gap-2"
-          >
-            <Play size={16} fill="currentColor" /> START SIMULATOR
-          </button>
+      </motion.div>
+
+      {/* FOREGROUND CONTENT */}
+      <motion.div 
+        initial={{ opacity: 0, y: 50 }}
+        animate={isSimulatorRunning ? { opacity: 0, y: -50 } : { opacity: 1, y: 0 }}
+        transition={{ duration: 1, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-20 w-full max-w-7xl mx-auto px-8 md:px-16 flex flex-col md:flex-row items-end justify-between gap-12"
+      >
+        <div className="w-full md:w-1/2 pt-[30vh]">
+          <h2 className="text-white text-5xl md:text-7xl lg:text-[100px] leading-[0.9] font-headline-md font-bold italic mb-6">
+            Astral <br/> Mechanics
+          </h2>
+          <p className="text-[#a0a0a0] font-label-caps text-sm md:text-base uppercase tracking-[0.2em] max-w-sm mb-12">
+            The mathematical manifestation of orbital trajectories. Simulating deep space pathways with high precision.
+          </p>
+
+          <div className="flex items-center gap-6">
+            <button 
+              onClick={() => setIsSimulatorRunning(true)}
+              className="bg-white text-black px-8 py-5 rounded-full flex items-center gap-3 font-bold uppercase tracking-wider hover:bg-gray-200 transition-colors"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              <Play size={18} fill="currentColor" /> Initialize
+            </button>
+            <div className="flex flex-col text-white font-label-caps text-xs tracking-widest uppercase">
+              <span className="opacity-50">System Version</span>
+              <span>v.9.0.21</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full md:w-1/3 flex flex-col items-end text-right pb-4 border-b border-white/20">
+          <span className="text-white text-4xl md:text-6xl font-headline-md italic mb-2">Manifest</span>
           <a 
-            href="https://github.com/UtkarshSharma000/Srinivasa"
-            target="_blank"
-            rel="noreferrer"
-            className="px-10 py-4 bg-gray-800 border border-gray-700 text-tertiary font-label-caps text-label-caps tracking-widest hover:scale-105 hover:bg-gray-700 active:scale-95 transition-all rounded-full cursor-pointer inline-flex items-center gap-2"
+            href="https://github.com/UtkarshSharma000/Srinivasa" 
+            target="_blank" rel="noreferrer"
+            className="flex items-center gap-3 text-[#cccccc] font-label-caps text-xs tracking-widest group hover:text-white transition-colors"
           >
-            <Github size={16} /> VIEW SOURCE
+            SEE THE SOURCE CODE <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
           </a>
         </div>
       </motion.div>
-      {/* Side Floating Visual */}
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 0.9, scale: 1 }}
-        transition={{ duration: 1.5, delay: 0.4, type: "spring" }}
-        className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 aspect-square hidden xl:block"
-      >
-        <div className="relative w-full h-full cursor-grab active:cursor-grabbing opacity-90 transition-opacity duration-500">
-          <Canvas camera={{ position: [0, 0, 3] }}>
-            <InteractiveGlobe url="/textures/2k_mars.jpg" color="#c1440e" />
-          </Canvas>
-          <div className="absolute inset-0 bg-gradient-to-l from-[#050505]/60 to-transparent pointer-events-none"></div>
-        </div>
-      </motion.div>
+      
+      {/* ABSOLUTE DECORATIVE ELEMENTS */}
+      <div className="absolute top-8 left-8 md:left-16 z-20 flex items-start gap-4 mix-blend-difference">
+        <span className="text-white font-label-caps text-xs tracking-[0.3em]">SRINIVASA // CORE</span>
+      </div>
     </section>
   );
 }

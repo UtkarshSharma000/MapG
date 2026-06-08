@@ -20,6 +20,13 @@ router.post('/calculate', express.json(), (req, res) => {
         errorOutput += data.toString();
     });
 
+    engineProcess.on('error', (err) => {
+        console.error('Failed to spawn engineProcess:', err);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Engine calculation failed or engine missing' });
+        }
+    });
+
     engineProcess.on('close', (code) => {
         if (code !== 0) {
             console.error(`Engine exited with code ${code}:`, errorOutput);

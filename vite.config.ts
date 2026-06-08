@@ -16,10 +16,7 @@ export default defineConfig(() => {
       allowedHosts: ['greninja.2bd.net'], // Prevents the host blocking error
       
       // Update this section right here:
-      hmr: {
-        host: 'greninja.2bd.net',
-        clientPort: 80, // Forces the WebSocket to connect through standard web traffic
-      },
+      hmr: process.env.DISABLE_HMR === 'true' ? false : undefined,
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
   };
