@@ -554,44 +554,44 @@ export default function App() {
       return (
         <>
           <div className="flex justify-between items-center mb-6">
-            <span className="font-label-caps text-[9px] text-white/40 tracking-[0.2em]">
+            <span className="font-label-caps text-[9px] text-gray-500 tracking-[0.2em]">
               PRIMARY TARGET
             </span>
-            <span className="px-2 py-0.5 border border-secondary/40 text-secondary text-[8px] rounded glow-cyan tracking-[0.2em]">
+            <span className="px-2 py-0.5 border border-secondary/40 text-blue-600 text-[8px] rounded glow-cyan tracking-[0.2em]">
               SYSTEM CENTER
             </span>
           </div>
           <div className="flex items-center gap-5 mb-8">
             <div className="relative">
-              <div className="w-16 h-16 rounded-full border border-white/10 bg-[#ffcc00] shadow-[0_0_20px_rgba(255,204,0,0.5)]"></div>
+              <div className="w-16 h-16 rounded-full border border-gray-200 bg-[#ffcc00] shadow-[0_0_20px_rgba(255,204,0,0.5)]"></div>
               <div className="absolute inset-0 rounded-full ring-2 ring-secondary/20 animate-ping"></div>
             </div>
             <div>
-              <h2 className="font-display-lg text-4xl text-white">SOL</h2>
-              <p className="font-label-caps text-[9px] text-secondary/80 mt-1 tracking-[0.2em]">
+              <h2 className="font-display-lg text-4xl text-gray-900">SOL</h2>
+              <p className="font-label-caps text-[9px] text-blue-600/80 mt-1 tracking-[0.2em]">
                 RADIUS: 696,340 KM
               </p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-y-6">
             <div>
-              <span className="font-label-caps text-[9px] text-white/30 block mb-1">TYPE</span>
-              <span className="font-data-lg text-xl text-white">G2V</span>
+              <span className="font-label-caps text-[9px] text-gray-400 block mb-1">TYPE</span>
+              <span className="font-data-lg text-xl text-gray-900">G2V</span>
             </div>
             <div>
-              <span className="font-label-caps text-[9px] text-white/30 block mb-1">MASS</span>
-              <span className="font-data-lg text-xl text-white">1.989</span>
-              <span className="text-[9px] text-white/20 ml-1">x10³⁰ KG</span>
+              <span className="font-label-caps text-[9px] text-gray-400 block mb-1">MASS</span>
+              <span className="font-data-lg text-xl text-gray-900">1.989</span>
+              <span className="text-[9px] text-gray-300 ml-1">x10³⁰ KG</span>
             </div>
             <div>
-              <span className="font-label-caps text-[9px] text-white/30 block mb-1">TEMP (SURF)</span>
-              <span className="font-data-lg text-xl text-secondary">5,505</span>
-              <span className="text-[9px] text-white/20 ml-1">°C</span>
+              <span className="font-label-caps text-[9px] text-gray-400 block mb-1">TEMP (SURF)</span>
+              <span className="font-data-lg text-xl text-blue-600">5,505</span>
+              <span className="text-[9px] text-gray-300 ml-1">°C</span>
             </div>
             <div>
-              <span className="font-label-caps text-[9px] text-white/30 block mb-1">AGE</span>
-              <span className="font-data-lg text-xl text-white">4.6</span>
-              <span className="text-[9px] text-white/20 ml-1">B YR</span>
+              <span className="font-label-caps text-[9px] text-gray-400 block mb-1">AGE</span>
+              <span className="font-data-lg text-xl text-gray-900">4.6</span>
+              <span className="text-[9px] text-gray-300 ml-1">B YR</span>
             </div>
           </div>
         </>
@@ -601,33 +601,33 @@ export default function App() {
     return (
       <>
         <div className="flex justify-between items-center mb-6">
-          <span className="font-label-caps text-[9px] text-white/40 tracking-[0.2em]">
+          <span className="font-label-caps text-[9px] text-gray-500 tracking-[0.2em]">
             PRIMARY TARGET
           </span>
-          <span className="px-2 py-0.5 border border-primary/40 text-primary text-[8px] rounded glow-primary tracking-[0.2em]">
+          <span className="px-2 py-0.5 border border-primary/40 text-blue-700 text-[8px] rounded glow-primary tracking-[0.2em]">
             LOCKED
           </span>
         </div>
         <div className="flex items-center gap-5 mb-8">
-          <div className="relative w-20 h-20 rounded-full border border-white/10 overflow-hidden cursor-grab active:cursor-grabbing">
+          <div className="relative w-20 h-20 rounded-full border border-gray-200 overflow-hidden cursor-grab active:cursor-grabbing">
             <Canvas camera={{ position: [0, 0, 3] }}>
               <InteractiveGlobe url={selectedTarget.texture} color={selectedTarget.color} />
             </Canvas>
             <div className="absolute inset-0 rounded-full ring-2 ring-primary/20 pointer-events-none animate-ping"></div>
           </div>
           <div>
-            <h2 className="font-display-lg text-4xl text-white uppercase">
+            <h2 className="font-display-lg text-4xl text-gray-900 uppercase">
               {selectedTarget.name}
             </h2>
-            <p className="font-label-caps text-[9px] text-primary/80 mt-1 tracking-[0.2em]">
+            <p className="font-label-caps text-[9px] text-blue-700/80 mt-1 tracking-[0.2em]">
               RADIUS: {selectedTarget.radius} KM
             </p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white/5 p-3 rounded-lg border border-white/5 hover:border-white/20 hover:-translate-y-1 hover:bg-white/10 transition-all cursor-pointer shadow-lg hover:shadow-primary/20">
-            <span className="font-label-caps text-[9px] text-white/40 block mb-1">VELOCITY (PERI)</span>
-            <span className="font-data-lg text-xl text-white">
+          <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:-translate-y-1 hover:bg-gray-100 transition-all cursor-pointer shadow-lg hover:shadow-primary/20">
+            <span className="font-label-caps text-[9px] text-gray-500 block mb-1">VELOCITY (PERI)</span>
+            <span className="font-data-lg text-xl text-gray-900">
               {Math.ceil(
                 (Math.sqrt(
                   6.6743e-11 *
@@ -641,28 +641,28 @@ export default function App() {
                   10,
               ) / 10}
             </span>
-            <span className="text-[9px] text-white/20 ml-1">KM/S</span>
+            <span className="text-[9px] text-gray-300 ml-1">KM/S</span>
           </div>
-          <div className="bg-white/5 p-3 rounded-lg border border-white/5 hover:border-white/20 hover:-translate-y-1 hover:bg-white/10 transition-all cursor-pointer shadow-lg hover:shadow-cyan-500/20">
-            <span className="font-label-caps text-[9px] text-white/40 block mb-1">SEMI-MAJOR</span>
-            <span className="font-data-lg text-xl text-white">
+          <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:-translate-y-1 hover:bg-gray-100 transition-all cursor-pointer shadow-lg hover:shadow-cyan-500/20">
+            <span className="font-label-caps text-[9px] text-gray-500 block mb-1">SEMI-MAJOR</span>
+            <span className="font-data-lg text-xl text-gray-900">
               {(selectedTarget.elements.a / 149597870700).toFixed(2)}
             </span>
-            <span className="text-[9px] text-white/20 ml-1">AU</span>
+            <span className="text-[9px] text-gray-300 ml-1">AU</span>
           </div>
-          <div className="bg-white/5 p-3 rounded-lg border border-white/5 hover:border-white/20 hover:-translate-y-1 hover:bg-white/10 transition-all cursor-pointer shadow-lg hover:shadow-cyan-500/20">
-            <span className="font-label-caps text-[9px] text-white/40 block mb-1">ORBIT PERIOD</span>
-            <span className="font-data-lg text-xl text-white">
+          <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:-translate-y-1 hover:bg-gray-100 transition-all cursor-pointer shadow-lg hover:shadow-cyan-500/20">
+            <span className="font-label-caps text-[9px] text-gray-500 block mb-1">ORBIT PERIOD</span>
+            <span className="font-data-lg text-xl text-gray-900">
               {(selectedTarget.elements.period / (24 * 3600)).toFixed(1)}
             </span>
-            <span className="text-[9px] text-white/20 ml-1">DAYS</span>
+            <span className="text-[9px] text-gray-300 ml-1">DAYS</span>
           </div>
-          <div className="bg-white/5 p-3 rounded-lg border border-white/5 hover:border-white/20 hover:-translate-y-1 hover:bg-white/10 transition-all cursor-pointer shadow-lg hover:shadow-primary/20">
-            <span className="font-label-caps text-[9px] text-white/40 block mb-1">ECCENTRICITY</span>
-            <span className="font-data-lg text-xl text-primary">
+          <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:-translate-y-1 hover:bg-gray-100 transition-all cursor-pointer shadow-lg hover:shadow-primary/20">
+            <span className="font-label-caps text-[9px] text-gray-500 block mb-1">ECCENTRICITY</span>
+            <span className="font-data-lg text-xl text-blue-700">
               {selectedTarget.elements.e.toFixed(4)}
             </span>
-            <span className="text-[9px] text-white/20 ml-1">E</span>
+            <span className="text-[9px] text-gray-300 ml-1">E</span>
           </div>
         </div>
       </>
@@ -721,24 +721,18 @@ export default function App() {
   }, [activeReplay, activeReplayStartTime]);
 
   return (
-    <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-transparent">
-      {isSimulatorRunning && (
-        <div className="absolute inset-0 z-0">
-          <Galaxy transparent={false} mouseInteraction={false} />
-        </div>
-      )}
+    <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-slate-50">
+      
       {!isSimulatorRunning && (
         <>
-          <div className="fixed inset-0 z-0 pointer-events-none">
-            <Galaxy transparent={false} mouseInteraction={false} scrollProgress={scrollProgress} />
-          </div>
+          <div className="fixed inset-0 z-0 pointer-events-none bg-slate-50"></div>
         </>
       )}
       {showMobileBlock && (
-        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#03060f] text-white p-6 text-center select-none pointer-events-auto">
+        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-slate-50 text-gray-900 p-6 text-center select-none pointer-events-auto">
           <div className="max-w-xs flex flex-col items-center">
             <svg 
-              className="w-10 h-10 text-primary/70 mb-5" 
+              className="w-10 h-10 text-blue-700/70 mb-5" 
               viewBox="0 0 24 24" 
               fill="none" 
               stroke="currentColor" 
@@ -752,7 +746,7 @@ export default function App() {
             <h1 className="text-xs font-bold tracking-[0.25em] text-[#aaddff] uppercase mb-2">
               DESKTOP ONLY
             </h1>
-            <p className="text-[11px] text-white/40 tracking-wider leading-relaxed">
+            <p className="text-[11px] text-gray-500 tracking-wider leading-relaxed">
               Mobile support has not been added. Please connect using a desktop display.
             </p>
           </div>
@@ -926,41 +920,41 @@ export default function App() {
           />
         )}
         {isArchiveOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md pointer-events-auto">
-            <div className="glass-panel p-8 rounded-2xl w-full max-w-3xl border border-white/10 shadow-2xl shadow-primary/20 flex flex-col max-h-[80vh]">
-              <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/10">
-                <h2 className="font-display-lg text-3xl text-white tracking-widest">MISSION ARCHIVE</h2>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white backdrop-blur-md pointer-events-auto">
+            <div className="solid-panel p-8 rounded-2xl w-full max-w-3xl border border-gray-200 shadow-2xl shadow-primary/20 flex flex-col max-h-[80vh]">
+              <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-200">
+                <h2 className="font-display-lg text-3xl text-gray-900 tracking-widest">HISTORY</h2>
                 <button 
                   onClick={() => setIsArchiveOpen(false)}
-                  className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors border border-white/10"
+                  className="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition-colors border border-gray-200"
                 >
-                  <span className="material-symbols-outlined text-white/70">close</span>
+                  <span className="material-symbols-outlined text-gray-700">close</span>
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto pr-2 space-y-4">
                 {archivedMissions.length === 0 ? (
-                  <div className="text-center py-12 text-white/40 font-label-caps tracking-widest">
+                  <div className="text-center py-12 text-gray-500 font-label-caps tracking-widest">
                     NO MISSIONS ARCHIVED YET
                   </div>
                 ) : (
                   archivedMissions.map((m, idx) => (
-                    <div key={m.id} className="p-5 rounded-xl border border-white/10 bg-[#1d1d1d]/40 flex justify-between items-center group hover:border-primary/40 transition-colors">
+                    <div key={m.id} className="p-5 rounded-xl border border-gray-200 bg-gray-50 flex justify-between items-center group hover:border-primary/40 transition-colors">
                       <div>
                         <div className="flex items-center gap-3 mb-2">
-                          <span className="px-2 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-label-caps tracking-widest border border-primary/20">
+                          <span className="px-2 py-0.5 rounded bg-primary/20 text-blue-700 text-[10px] font-label-caps tracking-widest border border-primary/20">
                             MISSION {String(m.id + 1).padStart(2, '0')}
                           </span>
-                          <span className="font-label-caps text-xs text-secondary tracking-widest">
+                          <span className="font-label-caps text-xs text-blue-600 tracking-widest">
                             {m.orbitType ? m.orbitType.replace("_", " ") : "TRANSFER"}
                           </span>
                         </div>
-                        <div className="font-headline-md text-xl text-white mt-1">
+                        <div className="font-headline-md text-xl text-gray-900 mt-1">
                           {m.launchPlanet} → {m.targetPlanet || "Deep Space"}
                         </div>
                       </div>
                       <button 
                         onClick={() => handleReplay(m)}
-                        className="px-6 py-2 rounded border border-white/20 bg-white/5 hover:bg-primary/20 hover:border-primary/50 hover:text-primary transition-all font-label-caps tracking-widest text-[#aaaaaa] text-xs flex items-center gap-2"
+                        className="px-6 py-2 rounded border border-gray-200 bg-gray-50 hover:bg-primary/20 hover:border-primary/50 hover:text-blue-700 transition-all font-label-caps tracking-widest text-[#aaaaaa] text-xs flex items-center gap-2"
                       >
                         <span className="material-symbols-outlined text-[16px]">replay</span>
                         REPLAY
@@ -980,14 +974,14 @@ export default function App() {
         </div>
 
         {/* TopAppBar */}
-        <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+        <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-20 bg-gradient-to-b from-white to-transparent pointer-events-none">
           <div className="flex items-center gap-6 pointer-events-auto">
-            <img src="/logo.svg" alt="Project Greninja" className="w-12 h-12 relative -top-0.5" />
+            <img src="/logo.svg" alt="Space Explorer" className="w-12 h-12 relative -top-0.5" />
             <div className="flex items-center gap-10">
-              <h1 className="font-display-lg text-2xl tracking-tighter text-white">PROJECT <span className="text-secondary font-bold">GRENINJA</span></h1>
+              <h1 className="font-display-lg text-2xl tracking-tighter text-gray-900">SPACE <span className="text-blue-600 font-bold">EXPLORER</span></h1>
               <nav className="hidden md:flex gap-10">
-                <a className="font-label-caps text-[10px] tracking-[0.15em] text-secondary border-b border-secondary/50 pb-1 cursor-pointer">TRAJECTORY</a>
-                <a onClick={() => setIsArchiveOpen(true)} className="font-label-caps text-[10px] tracking-[0.15em] text-white/60 hover:text-secondary transition-colors cursor-pointer">MISSION ARCHIVE</a>
+                <a className="font-label-caps text-[10px] tracking-widest text-blue-600 border-b border-blue-600 pb-1 cursor-pointer">FLIGHT PATH</a>
+                <a onClick={() => setIsArchiveOpen(true)} className="font-label-caps text-[10px] tracking-widest text-gray-600 hover:text-blue-600 transition-colors cursor-pointer">HISTORY</a>
               </nav>
             </div>
           </div>
@@ -995,7 +989,7 @@ export default function App() {
           <div className="flex items-center gap-6 pointer-events-auto">
             <button
               onClick={() => setIsSimulatorRunning(false)}
-              className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:text-red-400 hover:border-red-400/30 transition-all cursor-pointer"
+              className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-red-400 hover:border-red-400/30 transition-all cursor-pointer"
               title="Exit Flight Deck"
             >
               <LogOut size={16} className="rotate-180" /> 
@@ -1012,23 +1006,23 @@ export default function App() {
               <div id="target-selector-wrapper" className="fixed top-24 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex items-center justify-center w-max" style={{ transform: 'translateX(-50%)' }}>
                 <Draggable nodeRef={targetSelectorNodeRef} handle=".target-drag-handle" position={targetSelectorPos} onStop={onDragStopTargetSelector}>
                   <div ref={targetSelectorNodeRef} className="pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-full border border-white/15 bg-background/90 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.6)]">
-                    <div className="target-drag-handle opacity-50 cursor-move hover:opacity-100 flex items-center pr-2 border-r border-white/10">
-                      <Move size={14} className="text-white/40" />
+                    <div className="target-drag-handle opacity-50 cursor-move hover:opacity-100 flex items-center pr-2 border-r border-gray-200">
+                      <Move size={14} className="text-gray-500" />
                     </div>
                     <button 
                       onClick={() => setSelectedTarget(null)}
-                      className={`px-3 py-1 text-[10px] font-label-caps rounded-full border transition-all ${!selectedTarget ? 'border-primary bg-primary/20 text-primary glow-primary font-bold scale-105' : 'border-white/10 text-white/60 hover:text-white bg-white/5'}`}
+                      className={`px-3 py-1 text-[10px] font-label-caps rounded-full border transition-all ${!selectedTarget ? 'border-blue-300 bg-blue-50 text-blue-700 font-bold scale-105 shadow-sm' : 'border-gray-200 text-gray-600 hover:text-gray-900 bg-gray-50'}`}
                       title="Center camera on Sun"
                     >
-                      SOL (SUN)
+                      THE SUN
                     </button>
-                    <div className="w-[1px] h-4 bg-white/20"></div>
+                    <div className="w-[1px] h-4 bg-gray-200"></div>
                     <div className="flex gap-2">
                       {PLANETS.map((p) => (
                         <button
                           key={p.name}
                           onClick={() => setSelectedTarget(p)}
-                          className={`w-8 h-8 rounded-full border overflow-hidden cursor-pointer transition-all flex items-center justify-center relative group ${selectedTarget?.name === p.name ? "border-secondary scale-110 shadow-[0_0_10px_rgba(0,240,255,0.4)]" : "border-white/10 opacity-60 hover:opacity-100 hover:border-white/30"}`}
+                          className={`w-8 h-8 rounded-full border overflow-hidden cursor-pointer transition-all flex items-center justify-center relative group ${selectedTarget?.name === p.name ? "border-blue-600 scale-110 shadow-md" : "border-gray-200 opacity-60 hover:opacity-100 hover:border-gray-400"}`}
                           title={p.name}
                         >
                           <img
@@ -1036,7 +1030,7 @@ export default function App() {
                             alt={p.name}
                             className="w-full h-full object-cover"
                           />
-                          <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-black/80 text-[8px] font-mono border border-white/10 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                          <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-white text-[8px] font-mono border border-gray-200 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                             {p.name.toUpperCase()}
                           </span>
                         </button>
@@ -1050,12 +1044,12 @@ export default function App() {
             {/* Bottom Right: Time Controls */}
             <Draggable nodeRef={timeControlNodeRef} handle=".drag-handle" position={timeControlPos} onStop={onDragStopTC}>
               <div ref={timeControlNodeRef} className="fixed z-40 pointer-events-auto" style={{ right: 32, bottom: 32 }}>
-                <div className="p-5 rounded-lg w-80 flex flex-col gap-4 border border-white/10 glass-panel shadow-[0_0_20px_rgba(0,0,0,0.5)] text-white">
-                  <div className="flex justify-between items-center drag-handle cursor-move select-none pb-2 border-b border-white/10">
-                    <span className="font-label-caps text-[9px] tracking-[0.2em] text-white/40">
-                      TIME DILATION
+                <div className="p-5 rounded-lg w-80 flex flex-col gap-4 border border-gray-200 solid-panel shadow-md text-gray-900 bg-white">
+                  <div className="flex justify-between items-center drag-handle cursor-move select-none pb-2 border-b border-gray-200">
+                    <span className="font-label-caps text-[10px] tracking-widest text-blue-700 font-bold uppercase">
+                      TIME SPEED
                     </span>
-                    <span className="font-data-lg text-lg text-secondary">
+                    <span className="font-data-lg text-lg text-blue-600">
                       {timeMult === 1
                         ? "REALTIME"
                         : `x${timeMult.toLocaleString()}`}
@@ -1089,10 +1083,10 @@ export default function App() {
                   else if (val === 4) handleTimeMultChange(86400 * 365.25 * 10);
                   else handleTimeMultChange(86400 * 365.25 * 100);
                 }}
-                className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-secondary glow-cyan"
+                className="w-full h-1 bg-gray-100 rounded-full appearance-none cursor-pointer accent-secondary glow-cyan"
               />
 
-              <div className="flex justify-between text-white/20 font-label-caps text-[8px] tracking-[0.15em]">
+              <div className="flex justify-between text-gray-300 font-label-caps text-[8px] tracking-[0.15em]">
                 <span>1S</span>
                 <span>DAY</span>
                 <span>MON</span>
@@ -1108,7 +1102,7 @@ export default function App() {
 
         {/* Footer */}
         <footer className="absolute bottom-0 w-full flex justify-center items-center py-4 z-10 bg-transparent pointer-events-auto">
-          <div className="font-mono text-[9px] tracking-[0.2em] text-white/30 uppercase">
+          <div className="font-mono text-[9px] tracking-[0.2em] text-gray-400 uppercase">
             © 2026 ODYSSEY ASTRODYNAMICS LABORATORY
           </div>
         </footer>

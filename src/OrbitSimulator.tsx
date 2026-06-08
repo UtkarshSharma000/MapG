@@ -650,7 +650,7 @@ function Planet({
             zIndexRange={[100, 0]}
             className="pointer-events-none"
           >
-            <div className="text-[10px] uppercase font-bold text-white/50 tracking-widest translate-x-3 translate-y-3 drop-shadow-md">
+            <div className="text-[10px] uppercase font-bold text-gray-500 tracking-widest translate-x-3 translate-y-3 drop-shadow-md">
               {data.name}
             </div>
           </Html>
@@ -992,7 +992,7 @@ function GhostPath({
             <meshBasicMaterial color="#00ffff" transparent opacity={0.6} side={THREE.DoubleSide} />
           </mesh>
           <Html distanceFactor={20} position={[0, -0.6, 0]}>
-            <div className="bg-black/80 px-2 py-1 rounded border border-cyan-500/50 text-[6px] whitespace-nowrap text-cyan-400 font-mono uppercase tracking-widest shadow-lg">
+            <div className="bg-white px-2 py-1 rounded border border-cyan-500/50 text-[6px] whitespace-nowrap text-cyan-400 font-mono uppercase tracking-widest shadow-lg">
               Intercept Lock
             </div>
           </Html>
@@ -1022,21 +1022,21 @@ function GhostPath({
 
            <pointLight color="#ff4444" intensity={5} distance={10} />
             <Html distanceFactor={20} position={[0, 0.5, 0]}>
-              <div className="bg-black/80 px-2 py-1 rounded border border-red-500/50 flex flex-col gap-0.5 shadow-lg min-w-[80px]">
-                <div className="text-[7px] text-white/50 font-mono uppercase tracking-tighter">Status</div>
-                <div className="text-[9px] text-white font-mono uppercase font-bold tracking-tight">{status}</div>
+              <div className="bg-white px-2 py-1 rounded border border-red-500/50 flex flex-col gap-0.5 shadow-lg min-w-[80px]">
+                <div className="text-[7px] text-gray-500 font-mono uppercase tracking-tighter">Status</div>
+                <div className="text-[9px] text-gray-900 font-mono uppercase font-bold tracking-tight">{status}</div>
                 {status.includes("ORBIT") && captureInfoRef.current.altitude && (
-                  <div className="flex flex-col gap-0 font-mono uppercase mt-0.5 mb-0.5 bg-white/5 px-1 py-0.5 rounded">
+                  <div className="flex flex-col gap-0 font-mono uppercase mt-0.5 mb-0.5 bg-gray-50 px-1 py-0.5 rounded">
                     <div className="text-[6px] text-zinc-400">ALTITUDE: <span className="text-cyan-400">{Math.round(captureInfoRef.current.altitude).toLocaleString()} KM</span></div>
                     <div className="text-[6px] text-zinc-400">PERIOD: <span className="text-cyan-400">{captureInfoRef.current.period?.toFixed(1)} DAYS</span></div>
                     <div className="text-[6px] text-zinc-400">STAY TIME: <span className="text-orange-400">{stayTimeDays} DAYS</span></div>
                   </div>
                 )}
                 <div className="flex justify-between items-center mt-1">
-                  <span className="text-[7px] text-white/50 font-mono">T+ {daysPassed} Days</span>
+                  <span className="text-[7px] text-gray-500 font-mono">T+ {daysPassed} Days</span>
                   <span className="text-[7px] text-red-400 font-mono font-bold">{Math.round(fuelRef.current)}%</span>
                 </div>
-                <div className="w-full h-0.5 bg-white/10 mt-0.5 rounded-full overflow-hidden">
+                <div className="w-full h-0.5 bg-gray-100 mt-0.5 rounded-full overflow-hidden">
                   <div className="h-full bg-red-500 transition-all duration-500" style={{ width: `${fuelRef.current}%` }}></div>
                 </div>
               </div>
@@ -1096,7 +1096,7 @@ function OrbitingShuttle({
         <meshStandardMaterial color="#112244" roughness={0.5} metalness={0.9} />
       </mesh>
       <Html distanceFactor={20} position={[0, 0.5, 0]}>
-        <div className="bg-black/80 px-2 py-0.5 rounded border border-cyan-500/30 flex flex-col gap-0 shadow-lg min-w-[70px]">
+        <div className="bg-white px-2 py-0.5 rounded border border-cyan-500/30 flex flex-col gap-0 shadow-lg min-w-[70px]">
           <div className="text-[6px] text-zinc-400 font-mono tracking-tighter uppercase whitespace-nowrap">ODYSSEY ACTIVE</div>
           <div className="text-[8px] text-cyan-400 font-mono font-bold tracking-tight uppercase whitespace-nowrap">{planetName.toUpperCase()} ORBIT</div>
         </div>
@@ -1303,17 +1303,17 @@ function SystemEngine({
       <Html fullscreen className="pointer-events-none">
         <div className="absolute top-24 left-8 pointer-events-auto flex flex-col gap-2">
           {/* Date and Time Header */}
-          <div className="px-4 py-2 bg-black/80 border border-white/10 backdrop-blur-2xl rounded-xl shadow-2xl flex items-center gap-4 glossy-panel">
+          <div className="px-4 py-2 bg-white border border-gray-200 backdrop-blur-2xl rounded-xl shadow-2xl flex items-center gap-4 solid-panel">
             <div className="flex flex-col">
               <span className="text-[8px] text-cyan-400 font-mono tracking-[0.2em] uppercase">Epoch Reference</span>
-              <span className="text-xs text-white font-mono font-bold tracking-tight">
+              <span className="text-xs text-gray-900 font-mono font-bold tracking-tight">
                 {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ').slice(0, 4).join(' ')}
               </span>
             </div>
             <div className="w-px h-6 bg-white/15"></div>
             <div className="flex flex-col">
               <span className="text-[8px] text-cyan-400 font-mono tracking-[0.2em] uppercase">Mission Time</span>
-              <span className="text-xs text-white font-mono font-bold">
+              <span className="text-xs text-gray-900 font-mono font-bold">
                 {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ')[4]}
               </span>
             </div>
@@ -1322,14 +1322,14 @@ function SystemEngine({
           {!isLocked && (
             <button 
               onClick={() => setIsLocked(true)}
-              className="px-3 py-1 bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/55 text-cyan-400 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 group transition-all self-start glossy-button cursor-pointer"
+              className="px-3 py-1 bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/55 text-cyan-400 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 group transition-all self-start solid-panel cursor-pointer"
             >
               <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse group-hover:scale-125"></div>
               RE-LOCK CAMERA TO {spectatedLabel ? spectatedLabel : (selectedTarget ? selectedTarget.name.toUpperCase() : "SOL")}
             </button>
           )}
           {isLocked && (
-            <div className="px-3 py-1 bg-black/60 border border-white/10 text-white/50 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 self-start">
+            <div className="px-3 py-1 bg-gray-50 border border-gray-200 text-gray-500 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 self-start">
               <div className="w-1.5 h-1.5 rounded-full bg-white/30"></div>
               CAMERA TRACKING {spectatedLabel ? spectatedLabel : (selectedTarget ? selectedTarget.name.toUpperCase() : "SOL")}
               <span className="ml-2 text-[8px] opacity-30">(DRAG TO UNLOCK)</span>
@@ -1452,13 +1452,14 @@ export default function OrbitSimulator({
     >
       {isCalculating && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">
-          <div className="text-cyan-400 font-mono tracking-widest text-[10px] uppercase bg-black/80 px-4 py-2 border border-cyan-500/30 rounded shadow overflow-hidden relative">
+          <div className="text-cyan-400 font-mono tracking-widest text-[10px] uppercase bg-white px-4 py-2 border border-cyan-500/30 rounded shadow overflow-hidden relative">
             <div className="absolute inset-0 bg-cyan-500/10 animate-pulse"></div>
             Computing Trajectory...
           </div>
         </div>
       )}
       <Canvas camera={{ position: [0, 150, 400], fov: 45, far: 5000000, near: 0.1 }}>
+        <color attach="background" args={['#ebf0f8']} />
         <ambientLight intensity={0.2} />
         <pointLight
           position={[0, 0, 0]}
