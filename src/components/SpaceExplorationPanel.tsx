@@ -21,9 +21,16 @@ export default function SpaceExplorationPanel({
   const box2Ref = React.useRef<HTMLDivElement>(null);
   const box3Ref = React.useRef<HTMLDivElement>(null);
   const box4Ref = React.useRef<HTMLDivElement>(null);
+  const bgPath1Ref = React.useRef<SVGPathElement>(null);
+  const bgPath2Ref = React.useRef<SVGPathElement>(null);
+  const hudGlowRef = React.useRef<HTMLDivElement>(null);
+  const hudStatusRef = React.useRef<HTMLSpanElement>(null);
+  const hudRouteRef = React.useRef<HTMLSpanElement>(null);
+  const hudPathRef = React.useRef<HTMLSpanElement>(null);
 
   React.useEffect(() => {
     let frame: number;
+    let oldPhase = 0;
     const update = () => {
       const scrollProgress = scrollProgressRef.current;
       
@@ -33,6 +40,57 @@ export default function SpaceExplorationPanel({
       
       if (progressBarRef.current) {
         progressBarRef.current.style.width = `${scrollProgress * 100}%`;
+      }
+
+      if (bgPath1Ref.current) bgPath1Ref.current.style.strokeDashoffset = String(120 - scrollProgress * 120);
+      if (bgPath2Ref.current) bgPath2Ref.current.style.strokeDashoffset = String(110 - scrollProgress * 110);
+
+      // Phase colors logic
+      let phase = 0; // 0 = blue/green, 1 = orange, 2 = red
+      if (scrollProgress > 0.35 && scrollProgress <= 0.75) phase = 1;
+      else if (scrollProgress > 0.75) phase = 2;
+
+      if (phase !== oldPhase) {
+        // Glitch effect on transition
+        if (hudStatusRef.current) {
+          hudStatusRef.current.style.animation = 'none';
+          void hudStatusRef.current.offsetWidth; // trigger reflow
+          hudStatusRef.current.style.animation = 'pulse 0.2s 3';
+        }
+
+        if (hudGlowRef.current) {
+          if (phase === 0) {
+            hudGlowRef.current.className = "absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,180,255,0.03)_0%,transparent_70%)] pointer-events-none z-10 transition-colors duration-1000";
+          } else if (phase === 1) {
+            hudGlowRef.current.className = "absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,160,0,0.05)_0%,transparent_70%)] pointer-events-none z-10 transition-colors duration-1000";
+          } else {
+            hudGlowRef.current.className = "absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,0,50,0.08)_0%,transparent_70%)] pointer-events-none z-10 transition-colors duration-1000";
+          }
+        }
+        
+        if (hudStatusRef.current && hudRouteRef.current && hudPathRef.current) {
+          if (phase === 0) {
+            hudStatusRef.current.className = "text-primary font-bold transition-colors";
+            hudStatusRef.current.textContent = "ONLINE";
+            hudRouteRef.current.className = "text-emerald-400 font-bold transition-colors";
+            hudPathRef.current.className = "text-blue-400 font-bold transition-colors";
+            if (progressBarRef.current) progressBarRef.current.className = "bg-primary h-full transition-all duration-75 relative";
+          } else if (phase === 1) {
+            hudStatusRef.current.className = "text-amber-500 font-bold transition-colors";
+            hudStatusRef.current.textContent = "HOHMANN TRANSFER";
+            hudRouteRef.current.className = "text-amber-400 font-bold transition-colors";
+            hudPathRef.current.className = "text-orange-400 font-bold animate-pulse transition-colors";
+            if (progressBarRef.current) progressBarRef.current.className = "bg-amber-500 h-full transition-all duration-75 relative";
+          } else {
+            hudStatusRef.current.className = "text-red-500 font-bold animate-pulse transition-colors";
+            hudStatusRef.current.textContent = "INTERCEPT ALIGNMENT";
+            hudRouteRef.current.className = "text-rose-500 font-bold transition-colors";
+            hudPathRef.current.className = "text-red-600 font-bold animate-pulse transition-colors";
+            if (progressBarRef.current) progressBarRef.current.className = "bg-red-500 h-full transition-all duration-75 relative";
+          }
+        }
+
+        oldPhase = phase;
       }
 
       const applyBoxStyle = (ref: React.RefObject<HTMLDivElement | null>, opacity: number, transform: string, visibility: string) => {
@@ -96,8 +154,15 @@ export default function SpaceExplorationPanel({
         <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden pointer-events-none">
           
           {/* Subtle tech background grids exclusively visible here */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,180,255,0.03)_0%,transparent_70%)] pointer-events-none z-10"></div>
+          <div ref={hudGlowRef} className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,180,255,0.03)_0%,transparent_70%)] pointer-events-none z-10 transition-colors duration-1000"></div>
           
+          {/* Graphical Telemetry Overlay */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-50 stroke-primary/30" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {/* Draw-in paths */}
+            <path ref={bgPath1Ref} d="M -5,50 Q 30,30 50,50 T 105,50" fill="none" strokeWidth="0.1" strokeDasharray="120" strokeDashoffset="120" />
+            <path ref={bgPath2Ref} d="M 50,105 L 50,-5" fill="none" strokeWidth="0.05" strokeDasharray="110" strokeDashoffset="110" />
+          </svg>
+
           {/* Telemetry and HUD Readouts Overlay */}
           <div className="absolute inset-0 p-8 md:p-[32px] flex flex-col justify-between pointer-events-none z-10">
             {/* HUD Top bar */}
@@ -115,9 +180,9 @@ export default function SpaceExplorationPanel({
             {/* HUD Bottom telemetry overlay */}
             <div className="flex flex-col md:flex-row justify-between items-end gap-4 w-full">
               <div className="flex flex-col gap-2 font-mono text-[9px] text-white/30 text-left border-b border-white/5 pb-2 md:pb-0 md:border-b-0">
-                <div>SYSTEM STATUS: <span className="text-primary font-bold">ONLINE</span></div>
-                <div>ROUTE CHECK: <span className="text-emerald-400 font-bold">STABLE</span></div>
-                <div>FLIGHT PATH: <span className="text-blue-400 font-bold">READY</span></div>
+                <div>SYSTEM STATUS: <span ref={hudStatusRef} className="text-primary font-bold transition-colors">ONLINE</span></div>
+                <div>ROUTE CHECK: <span ref={hudRouteRef} className="text-emerald-400 font-bold transition-colors">STABLE</span></div>
+                <div>FLIGHT PATH: <span ref={hudPathRef} className="text-blue-400 font-bold transition-colors">READY</span></div>
               </div>
               <div className="flex flex-col items-end gap-1 text-right">
                 <span className="font-mono text-[9px] text-white/40 uppercase">FLIGHT PROGRESS</span>
@@ -140,7 +205,7 @@ export default function SpaceExplorationPanel({
             {/* Narrative Step 1: Core Star System Nucleus */}
             <div 
               ref={box1Ref}
-              className="absolute left-6 md:left-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left"
+              className="absolute left-6 md:left-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left opacity-0 invisible"
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
@@ -155,7 +220,7 @@ export default function SpaceExplorationPanel({
             {/* Narrative Step 2: Inner Terrestrial Zones */}
             <div 
               ref={box2Ref}
-              className="absolute right-6 md:right-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left"
+              className="absolute right-6 md:right-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left opacity-0 invisible"
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
@@ -170,7 +235,7 @@ export default function SpaceExplorationPanel({
             {/* Narrative Step 3: Celestial Home World */}
             <div 
               ref={box3Ref}
-              className="absolute left-6 md:left-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left"
+              className="absolute left-6 md:left-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left opacity-0 invisible"
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
@@ -185,7 +250,7 @@ export default function SpaceExplorationPanel({
             {/* Narrative Step 4: Deeper Frontiers */}
             <div 
               ref={box4Ref}
-              className="absolute right-6 md:right-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left"
+              className="absolute right-6 md:right-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left opacity-0 invisible"
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>

@@ -727,13 +727,7 @@ export default function App() {
           <Galaxy transparent={false} mouseInteraction={false} />
         </div>
       )}
-      {!isSimulatorRunning && (
-        <>
-          <div className="fixed inset-0 z-0 pointer-events-none">
-            <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={scrollProgressRef} />
-          </div>
-        </>
-      )}
+      {/* !isSimulatorRunning Galaxy removed since we handle it in OrbitSimulator */}
       {showMobileBlock && (
         <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#03060f] text-white p-6 text-center select-none pointer-events-auto">
           <div className="max-w-xs flex flex-col items-center">
@@ -761,6 +755,8 @@ export default function App() {
 
       <OrbitSimulator
         isRunning={isSimulatorRunning}
+        isCinematic={!isSimulatorRunning}
+        cinematicScrollRef={scrollProgressRef}
         timeMult={timeMult}
         selectedTarget={selectedTarget}
         launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs }}

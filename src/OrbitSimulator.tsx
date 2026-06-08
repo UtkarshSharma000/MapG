@@ -1152,7 +1152,9 @@ function SystemEngine({
   cameraPresetToSave = null,
   resetCameraTrigger = 0,
   onPointsCalculated,
-  onCalculating
+  onCalculating,
+  isCinematic = false,
+  cinematicScrollRef
 }: {
   timeMult: number;
   selectedTarget: (typeof PLANETS)[0] | null;
@@ -1171,6 +1173,8 @@ function SystemEngine({
   activeReplay?: any;
   onPointsCalculated?: (pts: THREE.Vector3[], isReturn: boolean) => void;
   onCalculating?: (c: boolean) => void;
+  isCinematic?: boolean;
+  cinematicScrollRef?: React.MutableRefObject<number>;
 }) {
   const controlsRef = useRef<any>(null);
   const currentTargetName = useRef(selectedTarget?.name || "Sun");
@@ -1234,63 +1238,104 @@ function SystemEngine({
   useFrame((state, delta) => {
     // Limit delta to prevent huge jumps from tab switching
     const safeDelta = Math.min(delta, 0.1);
-    globalTimeRef.current += safeDelta * timeMult;
 
-    // Follow spacecraft tracking
-    if (followSpacecraft) {
-      const activeShuttle = scene.getObjectByName("ODYSSEY_ACTIVE_SHUTTLE");
-      if (activeShuttle) {
-        spectatingObjRef.current = activeShuttle;
-        if (spectatedLabel !== "ODYSSEY ACTIVE") {
-          setSpectatedLabel("ODYSSEY ACTIVE");
+    if (isCinematic && cinematicScrollRef) {
+      // Time-Warp Scroll
+      const s = cinematicScrollRef.current;
+      
+      // J2000 epoch + base offset
+      const baseJ2000 = (new Date("2020-01-01T00:00:00Z").getTime() - new Date("2000-01-01T12:00:00Z").getTime()) / 1000;
+      globalTimeRef.current = baseJ2000 + s * (365 * 24 * 3600) * 1.5; // Simulate 1.5 years across the scroll
+
+      // Camera Choreography
+      // Top down (0.0), Horizon burn (0.5), Intercept (1.0)
+      if (s < 0.25) {
+        // Blueprint view (top-down)
+        state.camera.position.lerp(new THREE.Vector3(0, 400, 0), 0.05);
+        if (controlsRef.current) {
+          controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), 0.05);
         }
-        setIsLocked(true);
-      }
-    } else if (spectatedLabel === "ODYSSEY ACTIVE") {
-      setSpectatedLabel(null);
-    }
-
-    if (controlsRef.current && isLocked) {
-      let finalLerpedTarget: THREE.Vector3;
-      const currentTarget = controlsRef.current.target;
-
-      if (spectatedLabel && spectatingObjRef.current) {
-        const pos = new THREE.Vector3();
-        spectatingObjRef.current.getWorldPosition(pos);
-        
-        const lerpFactor = 1 - Math.exp(-safeDelta * 6);
-        finalLerpedTarget = currentTarget.clone().lerp(pos, lerpFactor);
+      } else if (s < 0.65) {
+        // Horizon Burn / inner solar system tracking Earth
+        const pE = propagateOrbit(PLANETS.find(p => p.name === "Earth")!.elements, globalTimeRef.current);
+        const tpE = new THREE.Vector3(pE[0]*POS_SCALE, pE[2]*POS_SCALE, -pE[1]*POS_SCALE);
+        state.camera.position.lerp(new THREE.Vector3(tpE.x + 15, tpE.y + 5, tpE.z + 15), 0.05);
+        if (controlsRef.current) {
+          controlsRef.current.target.lerp(tpE, 0.05);
+        }
       } else {
-        let targetX = 0,
-          targetY = 0,
-          targetZ = 0;
-
-        if (selectedTarget) {
-          const [x, y, z] = propagateOrbit(
-            selectedTarget.elements,
-            globalTimeRef.current,
-          );
-          targetX = x * POS_SCALE;
-          targetY = z * POS_SCALE;
-          targetZ = -y * POS_SCALE;
+        // Intercept Mars
+        const pM = propagateOrbit(PLANETS.find(p => p.name === "Mars")!.elements, globalTimeRef.current);
+        const tpM = new THREE.Vector3(pM[0]*POS_SCALE, pM[2]*POS_SCALE, -pM[1]*POS_SCALE);
+        state.camera.position.lerp(new THREE.Vector3(tpM.x + 20, tpM.y + 10, tpM.z + 20), 0.05);
+        if (controlsRef.current) {
+          controlsRef.current.target.lerp(tpM, 0.05);
         }
-
-        const newTarget = new THREE.Vector3(targetX, targetY, targetZ);
-        const targetName = selectedTarget ? selectedTarget.name : "Sun";
-
-        if (currentTargetName.current !== targetName) {
-          currentTargetName.current = targetName;
-        }
-
-        const lerpFactor = 1 - Math.exp(-safeDelta * 6);
-        finalLerpedTarget = currentTarget.clone().lerp(newTarget, lerpFactor);
       }
 
-      const displacement = finalLerpedTarget.clone().sub(currentTarget);
+      if (controlsRef.current) {
+        controlsRef.current.update();
+      }
 
-      // Update target and camera position to track smoothly
-      controlsRef.current.target.copy(finalLerpedTarget);
-      state.camera.position.add(displacement);
+    } else {
+      globalTimeRef.current += safeDelta * timeMult;
+
+      // Follow spacecraft tracking
+      if (followSpacecraft) {
+        const activeShuttle = scene.getObjectByName("ODYSSEY_ACTIVE_SHUTTLE");
+        if (activeShuttle) {
+          spectatingObjRef.current = activeShuttle;
+          if (spectatedLabel !== "ODYSSEY ACTIVE") {
+            setSpectatedLabel("ODYSSEY ACTIVE");
+          }
+          setIsLocked(true);
+        }
+      } else if (spectatedLabel === "ODYSSEY ACTIVE") {
+        setSpectatedLabel(null);
+      }
+
+      if (controlsRef.current && isLocked) {
+        let finalLerpedTarget: THREE.Vector3;
+        const currentTarget = controlsRef.current.target;
+
+        if (spectatedLabel && spectatingObjRef.current) {
+          const pos = new THREE.Vector3();
+          spectatingObjRef.current.getWorldPosition(pos);
+          
+          const lerpFactor = 1 - Math.exp(-safeDelta * 6);
+          finalLerpedTarget = currentTarget.clone().lerp(pos, lerpFactor);
+        } else {
+          let targetX = 0,
+            targetY = 0,
+            targetZ = 0;
+
+          if (selectedTarget) {
+            const [x, y, z] = propagateOrbit(
+              selectedTarget.elements,
+              globalTimeRef.current,
+            );
+            targetX = x * POS_SCALE;
+            targetY = z * POS_SCALE;
+            targetZ = -y * POS_SCALE;
+          }
+
+          const newTarget = new THREE.Vector3(targetX, targetY, targetZ);
+          const targetName = selectedTarget ? selectedTarget.name : "Sun";
+
+          if (currentTargetName.current !== targetName) {
+            currentTargetName.current = targetName;
+          }
+
+          const lerpFactor = 1 - Math.exp(-safeDelta * 6);
+          finalLerpedTarget = currentTarget.clone().lerp(newTarget, lerpFactor);
+        }
+
+        const displacement = finalLerpedTarget.clone().sub(currentTarget);
+
+        // Update target and camera position to track smoothly
+        controlsRef.current.target.copy(finalLerpedTarget);
+        state.camera.position.add(displacement);
+      }
     }
   });
 
@@ -1422,7 +1467,9 @@ export default function OrbitSimulator({
   cameraPresetToLoad = null,
   cameraPresetToSave = null,
   resetCameraTrigger = 0,
-  onPointsCalculated
+  onPointsCalculated,
+  isCinematic = false,
+  cinematicScrollRef
 }: {
   isRunning?: boolean;
   timeMult?: number;
@@ -1441,6 +1488,8 @@ export default function OrbitSimulator({
   resetCameraTrigger?: number;
   activeReplay?: any;
   onPointsCalculated?: (pts: THREE.Vector3[], isReturn: boolean) => void;
+  isCinematic?: boolean;
+  cinematicScrollRef?: React.MutableRefObject<number>;
 }) {
   const fallbackRef = useRef(0);
   const activeTimeRef = globalTimeRef || fallbackRef;
@@ -1448,7 +1497,7 @@ export default function OrbitSimulator({
 
   return (
     <div
-      className={`absolute inset-0 transition-opacity duration-1000 ${isRunning ? "opacity-100 z-10 pointer-events-auto bg-[#03060f]" : "opacity-0 z-[-10] pointer-events-none"}`}
+      className={`absolute inset-0 transition-opacity duration-1000 ${isRunning ? "opacity-100 z-10 pointer-events-auto bg-[#03060f]" : "opacity-100 z-[-10] pointer-events-none"}`}
     >
       {isCalculating && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">
@@ -1485,6 +1534,8 @@ export default function OrbitSimulator({
           resetCameraTrigger={resetCameraTrigger}
           onPointsCalculated={onPointsCalculated}
           onCalculating={setIsCalculating}
+          isCinematic={isCinematic}
+          cinematicScrollRef={cinematicScrollRef}
         />
 
         <Stars
