@@ -46,6 +46,7 @@ export function LaunchHUD({
 
   const onLaunch = () => {
     setIsCalculatingLaunchPhase(true);
+    // Simulate CPP engine collision avoidance calculations as requested
     setTimeout(() => {
       setIsCalculatingLaunchPhase(false);
       onSimulateLaunch();
@@ -59,7 +60,7 @@ export function LaunchHUD({
   if (missionStatus === undefined) {
     console.error('LaunchHUD: missionStatus prop is required');
     return (
-      <div className="fixed bottom-4 left-4 bg-red-100 p-2 text-red-900 text-[10px] font-mono border border-red-500 rounded z-[100]">
+      <div className="fixed bottom-4 left-4 bg-red-900/80 p-2 text-white text-[10px] font-mono border border-red-500 rounded z-[100]">
         LaunchHUD: missing props
       </div>
     );
@@ -76,64 +77,64 @@ export function LaunchHUD({
       <Draggable nodeRef={nodeRef} handle=".vab-drag-handle" position={position} onStop={onDragStop}>
         <div 
           ref={nodeRef} 
-          className="w-80 solid-panel border-gray-200 bg-white rounded-lg p-6 text-gray-900 shadow-md flex flex-col"
+          className="w-80 glass-panel border-white/10 rounded-lg p-6 text-white shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col"
         >
           {/* Panel Header */}
-          <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-gray-200 pb-3 mb-6 select-none">
-          <h3 className="font-label-caps text-[10px] tracking-widest text-blue-700 flex items-center gap-1.5 uppercase font-bold">
-            Rocket Controls
+          <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-white/10 pb-3 mb-6 select-none">
+          <h3 className="font-label-caps text-[10px] tracking-[0.2em] text-primary flex items-center gap-1.5">
+            LAUNCH CONTROL DECK
           </h3>
-          <Move className="w-3.5 h-3.5 text-gray-400 cursor-grab hover:text-gray-700" />
+          <Move className="w-3.5 h-3.5 text-white/40 cursor-grab hover:text-white" />
         </div>
         
         <div className="space-y-6">
 
           {/* Primary Ignition Trigger Button */}
           <button 
-            className={`w-full py-3 rounded border font-label-caps tracking-widest text-[10px] transition-all cursor-pointer uppercase font-bold ${isLaunched ? 'text-red-600 border-red-200 bg-red-50 hover:bg-red-100' : (isCalculatingLaunchPhase ? 'text-blue-600 border-blue-200 bg-blue-50' : 'text-blue-700 hover:text-gray-900 border-blue-300 bg-blue-100 hover:bg-blue-600')}`}
+            className={`w-full py-3 rounded border font-label-caps tracking-[0.2em] text-[10px] transition-all cursor-pointer ${isLaunched ? 'text-error hover:text-red-300 border-error/40 bg-error/10 hover:bg-error/20' : (isCalculatingLaunchPhase ? 'text-primary border-primary/40 bg-primary/10' : 'text-secondary hover:text-white border-secondary/40 bg-secondary/10 hover:bg-secondary/25 glow-cyan')}`}
             onClick={isLaunched ? handleReset : onLaunch}
             disabled={isCalculatingLaunchPhase}
           >
-             {isLaunched ? 'Stop Tracking' : isCalculatingLaunchPhase ? 'Calculating...' : 'Launch Rocket'}
+             {isLaunched ? 'ABORT TRACKING' : isCalculatingLaunchPhase ? 'RESOLVING CONFLICTS...' : 'INITIATE IGNITION'}
           </button>
 
           {/* Mission Archive Controls */}
           {isLaunched && missionStatus === 'EARTH_ORBIT' && onConcludeMission && (
-            <div className="pt-4 border-t border-gray-200 flex flex-col gap-2">
+            <div className="pt-4 border-t border-white/10 flex flex-col gap-2">
               <button 
                 onClick={onConcludeMission}
-                className="w-full py-3 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 hover:text-blue-900 rounded font-label-caps tracking-widest text-[9px] uppercase transition-all cursor-pointer font-bold"
+                className="w-full py-3 bg-tertiary-container/20 border border-tertiary/40 hover:bg-tertiary-container/30 text-tertiary hover:text-white rounded font-label-caps tracking-[0.2em] text-[9px] uppercase transition-all cursor-pointer"
               >
-                Save To History
+                SUCCESS: ARCHIVE LOGS
               </button>
             </div>
           )}
 
           {/* Planetary Return Planner UI and Actions */}
           {missionStatus && missionStatus.includes('ORBIT') && missionStatus !== 'EARTH_ORBIT' && (
-            <div className="pt-4 border-t border-gray-200 flex flex-col gap-3">
+            <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
               <button 
                 onClick={onPlanReturn}
-                className="w-full py-2.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 rounded font-label-caps tracking-widest text-[9px] uppercase transition-all cursor-pointer font-bold"
+                className="w-full py-2.5 bg-primary/10 border border-primary/40 hover:bg-primary/20 text-primary hover:text-white rounded font-label-caps tracking-[0.2em] text-[9px] uppercase transition-all cursor-pointer glow-primary"
               >
-                Plan Return Trip
+                Plan Earth Return
               </button>
               
               {returnWindow && (
-                <div className="bg-gray-50 p-4 rounded border border-gray-200 flex flex-col gap-3 transition-all duration-300">
-                  <div className="flex justify-between border-b border-gray-200 pb-2 text-[9px] font-label-caps text-gray-500 uppercase tracking-widest font-bold">
-                    <span>Best Time:</span> 
-                    <span className="text-gray-900">{returnWindow.tof_days} Days</span>
+                <div className="bg-black/40 p-4 rounded border border-white/10 flex flex-col gap-3 transition-all duration-300">
+                  <div className="flex justify-between border-b border-white/5 pb-2 text-[9px] font-label-caps text-white/50 uppercase tracking-[0.2em]">
+                    <span>Optimal Window:</span> 
+                    <span className="text-white">{returnWindow.tof_days} Days</span>
                   </div>
-                  <div className="flex justify-between pb-2 text-[9px] font-label-caps text-gray-500 uppercase tracking-widest font-bold">
-                    <span>Speed Needed:</span> 
-                    <span className="text-gray-900">{returnWindow.dv1_kms.toFixed(2)} KM/S</span>
+                  <div className="flex justify-between pb-2 text-[9px] font-label-caps text-white/50 uppercase tracking-[0.2em]">
+                    <span>Burn Required:</span> 
+                    <span className="text-white">{returnWindow.dv1_kms.toFixed(2)} KM/S</span>
                   </div>
                   <button 
                     onClick={onApplyReturn}
-                    className="w-full py-2 bg-blue-100 border border-blue-200 hover:bg-blue-200 text-blue-800 rounded font-label-caps text-[9px] uppercase tracking-widest cursor-pointer font-bold"
+                    className="w-full py-2 bg-secondary/20 border border-secondary/50 hover:bg-secondary/30 text-secondary rounded font-label-caps text-[9px] uppercase tracking-[0.2em] cursor-pointer glow-cyan"
                   >
-                    Start Return
+                    Execute TEI
                   </button>
                 </div>
               )}

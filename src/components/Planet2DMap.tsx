@@ -96,12 +96,12 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, launchPlane
         {/* Header */}
         <div className="drag-handle bg-surface border-b border-outline p-3 flex justify-between items-center cursor-move">
           <div className="flex items-center gap-2">
-            <Map className="w-5 h-5 text-blue-700" />
+            <Map className="w-5 h-5 text-primary" />
             <h3 className="font-heading font-medium text-lg tracking-widest uppercase">
               {planetName} 2D Topography
             </h3>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+          <button onClick={onClose} className="p-1 hover:bg-white/10 rounded">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -128,7 +128,7 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, launchPlane
           {/* Click Marker */}
           {targetPoint && (
             <div 
-              className="absolute w-4 h-4 -ml-2 -mt-2 text-blue-700 pointer-events-none"
+              className="absolute w-4 h-4 -ml-2 -mt-2 text-primary pointer-events-none"
               style={{ left: `${(targetPoint.lon + 180) / 360 * 100}%`, top: `${(90 - targetPoint.lat) / 180 * 100}%` }}
             >
               <Target className="w-4 h-4 animate-pulse" color="#ff4444" />
@@ -136,10 +136,10 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, launchPlane
           )}
           {launchPoint && (
             <div 
-              className="absolute w-4 h-4 -ml-2 -mt-2 text-blue-700 pointer-events-none"
+              className="absolute w-4 h-4 -ml-2 -mt-2 text-primary pointer-events-none"
               style={{ left: `${(launchPoint.lon + 180) / 360 * 100}%`, top: `${(90 - launchPoint.lat) / 180 * 100}%` }}
             >
-              <Crosshair className="w-4 h-4 text-blue-700 animate-spin-slow" />
+              <Crosshair className="w-4 h-4 text-primary animate-spin-slow" />
             </div>
           )}
         </div>
@@ -154,7 +154,7 @@ export function Planet2DMap({ planetName, onClose, onSelectLocation, launchPlane
               </span>
             ) : null}
             {launchPoint ? (
-              <span className="text-blue-700">
+              <span className="text-primary">
                 LAUNCH LAT: {launchPoint.lat.toFixed(4)}° / LON: {launchPoint.lon.toFixed(4)}°
               </span>
             ) : null}

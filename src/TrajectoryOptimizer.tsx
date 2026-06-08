@@ -118,102 +118,103 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const apply = () => { if (result) onApply(result) }
 
   return (
-    <div className="p-5 rounded-2xl w-80 mb-4 pointer-events-auto shadow-md relative overflow-y-auto overflow-x-hidden max-h-[85vh] text-gray-900 z-[1000] border border-gray-200 solid-panel bg-white pointer-events-auto custom-scrollbar font-sans">
-      <div className="trajectory-drag-handle flex justify-between items-center mb-4 border-b border-gray-200 pb-2.5 cursor-move select-none">
-        <h3 className="font-sans font-bold text-[10px] tracking-widest text-blue-700 flex items-center gap-1.5 uppercase">
-          <Move className="w-3 h-3 text-gray-500" />
-          Plan Trip
+    <div className="p-5 rounded-2xl w-80 mb-4 pointer-events-auto shadow-2xl relative overflow-y-auto overflow-x-hidden max-h-[85vh] text-white z-[1000] border border-white/10 glossy-panel pointer-events-auto custom-scrollbar font-sans">
+      <div className="trajectory-drag-handle flex justify-between items-center mb-4 border-b border-white/10 pb-2.5 cursor-move select-none">
+        <h3 className="font-sans font-medium text-[10px] tracking-widest text-primary flex items-center gap-1.5">
+          <Move className="w-3 h-3 text-primary/60" />
+          DIRECT TRANSFER PLANNER
         </h3>
       </div>
 
       <div className="mb-4">
-        <label className="text-[10px] font-mono font-bold text-gray-500 block mb-1 uppercase tracking-widest">Goal</label>
+        <label className="text-[10px] font-mono text-white/40 block mb-1">OPTIMIZATION GOAL</label>
         <select 
           value={optGoal} 
           onChange={e => setOptGoal(e.target.value)}
-          className="w-full bg-white border border-gray-200 rounded px-2 py-1 flex items-center justify-between text-xs font-mono text-gray-900 outline-none cursor-pointer"
+          className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-xs font-mono text-cyan-400 outline-none cursor-pointer"
         >
-          <option value="Mass-Optimal (Fuel-Efficient)">Save Fuel</option>
-          <option value="Time-Optimal (Fast-Transit)">Go Fast</option>
+          <option value="Mass-Optimal (Fuel-Efficient)">Mass-Optimal (Fuel-Efficient)</option>
+          <option value="Time-Optimal (Fast-Transit)">Time-Optimal (Fast-Transit)</option>
+          <option value="Budget Capped (Max 6 km/s)">Budget Capped (Max 6 km/s)</option>
         </select>
       </div>
 
       <div className="mb-4">
-        <label className="text-[10px] font-mono text-gray-500 font-bold flex justify-between mb-1 uppercase tracking-widest">
-          <span>Search Window</span>
-          <span className="text-blue-700">{searchYears} YRS</span>
+        <label className="text-[10px] font-mono text-white/40 flex justify-between mb-1">
+          <span>LAUNCH WINDOW</span>
+          <span className="text-cyan-400">{searchYears} YEARS</span>
         </label>
         <input 
           type="range" 
           min="1" max="100" step="1" 
           value={searchYears}
           onChange={e => setSearchYears(parseInt(e.target.value))}
-          className="w-full accent-blue-600"
+          className="w-full accent-cyan-500"
         />
-        <div className="flex justify-between text-[8px] font-mono text-gray-400 mt-1 mb-2">
+        <div className="flex justify-between text-[8px] font-mono text-white/30 mt-1 mb-2">
           <span>1YR</span>
           <span>100YR</span>
         </div>
 
-        <label className="text-[10px] font-mono text-gray-500 font-bold flex justify-between mb-1 uppercase tracking-widest">
-          <span>Max Flight Time</span>
-          <span className="text-blue-700">{maxFlightYears} YRS</span>
+        <label className="text-[10px] font-mono text-white/40 flex justify-between mb-1">
+          <span>MAX FLIGHT TIME</span>
+          <span className="text-cyan-400">{maxFlightYears} YEARS</span>
         </label>
         <input 
           type="range" 
           min="1" max="100" step="1" 
           value={maxFlightYears}
           onChange={e => setMaxFlightYears(parseInt(e.target.value))}
-          className="w-full accent-blue-600"
+          className="w-full accent-cyan-500"
         />
-        <div className="flex justify-between text-[8px] font-mono text-gray-400 mt-1">
+        <div className="flex justify-between text-[8px] font-mono text-white/30 mt-1">
           <span>1YR</span>
           <span>100YR</span>
         </div>
       </div>
 
       <div className="flex flex-col gap-2 mb-4">
-        <div className="flex flex-col gap-1 bg-gray-50 p-2 rounded border border-gray-200 relative group">
+        <div className="flex flex-col gap-1 bg-black/40 p-2 rounded border border-white/5 relative group">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-mono text-gray-500 font-bold uppercase tracking-widest">
-              Direct Route
+            <span className="text-[10px] font-mono text-outline-variant uppercase">
+              DIRECT TRANSFER
             </span>
           </div>
           
           <div className="flex items-center gap-2">
-            <div className="text-xs font-mono text-gray-600 w-16">{PLANETS[originId]?.name}</div>
-            <div className="flex-1 border-b border-dashed border-gray-300 relative">
+            <div className="text-xs font-mono text-white/50 w-16">{PLANETS[originId]?.name}</div>
+            <div className="flex-1 border-b border-dashed border-white/20 relative">
             </div>
-            <div className="text-xs font-mono text-blue-700 font-bold">{PLANETS[destId]?.name}</div>
+            <div className="text-xs font-mono text-primary font-bold">{PLANETS[destId]?.name}</div>
           </div>
         </div>
       </div>
 
       <button onClick={run} disabled={loading}
-        className="w-full mb-4 px-3 py-2.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 transition-all disabled:opacity-40 font-mono tracking-widest text-[9px] flex justify-center items-center font-bold solid-panel cursor-pointer uppercase">
+        className="w-full mb-4 px-3 py-2.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/25 text-cyan-400 transition-all disabled:opacity-40 font-mono tracking-widest text-[9px] flex justify-center items-center font-bold glossy-button cursor-pointer">
         {loading ? (
-          <><div className="w-2 h-2 rounded-full bg-blue-500 animate-ping mr-2"></div>Calculating Route...</>
-        ) : 'Find Best Time to Go'}
+          <><div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping mr-2"></div>COMPUTING INTERPLANETARY AXIS...</>
+        ) : 'FIND OPTIMAL LAUNCH WINDOW'}
       </button>
 
       {result && (
-        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
+        <div className="bg-black/40 rounded-xl p-3 border border-white/10">
           <div className="grid grid-cols-2 gap-2 mb-4">
             {[
-              ['Start Speed',  `${result.dv1_kms.toFixed(2)} km/s`],
-              ['End Speed',  `${result.dv2_kms.toFixed(2)} km/s`],
-              ['Flight Time',  `${result.tof_days} days`],
+              ['DEP. Δv',  `${result.dv1_kms.toFixed(2)} km/s`],
+              ['ARR. Δv',  `${result.dv2_kms.toFixed(2)} km/s`],
+              ['EST TOF',  `${result.tof_days} days`],
             ].map(([k,v]) => (
-               <div key={k} className="bg-white rounded p-2 border border-gray-200">
-                 <div className="font-mono text-gray-500 font-bold tracking-wider text-[8px] mb-1 uppercase">{k}</div>
-                 <div className="font-mono text-[12px] text-gray-900 font-bold">{v}</div>
+               <div key={k} className="bg-black/30 rounded p-2 border border-white/5">
+                 <div className="font-mono text-white/40 tracking-wider text-[8px] mb-1">{k}</div>
+                 <div className="font-mono text-[12px] text-white font-bold">{v}</div>
                </div>
             ))}
           </div>
 
           <button onClick={apply}
-            className="w-full px-3 py-2.5 rounded-lg bg-green-50 border border-green-200 hover:bg-green-100 text-green-700 transition-all font-mono tracking-widest text-[9px] flex items-center justify-center gap-2 font-bold solid-panel cursor-pointer mb-2 uppercase">
-            Apply to Rocket ↗
+            className="w-full px-3 py-2.5 rounded-lg bg-cyan-500/15 border border-cyan-500/35 hover:bg-cyan-500/30 text-cyan-400 transition-all font-mono tracking-widest text-[9px] flex items-center justify-center gap-2 font-bold glossy-button cursor-pointer mb-2">
+            APPLY TO NAVIGATION COMPUTER ↗
           </button>
         </div>
       )}
