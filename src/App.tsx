@@ -10,7 +10,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
 import TrajectoryOptimizer, { OptimizeResult } from "./TrajectoryOptimizer";
 import { scanPorkchop } from "./workers/trajectory.worker";
-import { TelemetryPanel } from "./components/TelemetryPanel";
 import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
 import Galaxy from "./components/Galaxy";
@@ -93,7 +92,6 @@ export default function App() {
   const [cameraPresetToLoad, setCameraPresetToLoad] = useState<number | null>(null);
   const [cameraPresetToSave, setCameraPresetToSave] = useState<number | null>(null);
   const [resetCameraTrigger, setResetCameraTrigger] = useState(0);
-  const [showTelemetryPanel, setShowTelemetryPanel] = useState(true); 
   const [showMissionPanel, setShowMissionPanel] = useState(true); 
   const lastTimeMultRef = useRef(86400); // 1 Day/sec
 
@@ -386,10 +384,6 @@ export default function App() {
         case 'escape':
           setMapPlanet(null);
           setIsArchiveOpen(false);
-          break;
-        case '`':
-        case '~':
-          setShowTelemetryPanel(prev => !prev);
           break;
         default:
           break;
@@ -844,7 +838,6 @@ export default function App() {
       <div
         className={`absolute inset-0 z-30 pointer-events-none flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-100" : "opacity-0"}`}
       >
-        {isSimulatorRunning && showTelemetryPanel && <TelemetryPanel />}
         {isSimulatorRunning && showMissionPanel && (
           <Draggable nodeRef={trajectoryNodeRef} handle=".trajectory-drag-handle" position={trajectoryPos} onStop={onDragStopTrajectory}>
             <div ref={trajectoryNodeRef} className="fixed z-40 pointer-events-auto" style={{ left: 32 + 310, top: 144 }}>

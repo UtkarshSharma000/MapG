@@ -45,12 +45,7 @@ export function LaunchHUD({
   };
 
   const onLaunch = () => {
-    setIsCalculatingLaunchPhase(true);
-    // Simulate CPP engine collision avoidance calculations as requested
-    setTimeout(() => {
-      setIsCalculatingLaunchPhase(false);
-      onSimulateLaunch();
-    }, 3500);
+    onSimulateLaunch();
   };
 
   const handleReset = () => {
