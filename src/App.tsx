@@ -926,10 +926,10 @@ export default function App() {
           />
         )}
         {isArchiveOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md pointer-events-auto">
-            <div className="glass-panel p-8 rounded-2xl w-full max-w-3xl border border-white/10 shadow-2xl shadow-primary/20 flex flex-col max-h-[80vh]">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900 pointer-events-auto">
+            <div className="bg-gray-800 p-8 rounded-2xl w-full max-w-3xl border border-gray-700 shadow-2xl flex flex-col max-h-[80vh]">
               <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/10">
-                <h2 className="font-display-lg text-3xl text-white tracking-widest">MISSION ARCHIVE</h2>
+                <h2 className="font-display-lg text-3xl text-white tracking-widest">FLIGHT HISTORY</h2>
                 <button 
                   onClick={() => setIsArchiveOpen(false)}
                   className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors border border-white/10"
@@ -984,10 +984,10 @@ export default function App() {
           <div className="flex items-center gap-6 pointer-events-auto">
             <img src="/logo.svg" alt="Project Greninja" className="w-12 h-12 relative -top-0.5" />
             <div className="flex items-center gap-10">
-              <h1 className="font-display-lg text-2xl tracking-tighter text-white">PROJECT <span className="text-secondary font-bold">GRENINJA</span></h1>
+              <h1 className="font-display-lg text-2xl tracking-tighter text-white">SPACE FLIGHT <span className="text-secondary font-bold">SIMULATOR</span></h1>
               <nav className="hidden md:flex gap-10">
-                <a className="font-label-caps text-[10px] tracking-[0.15em] text-secondary border-b border-secondary/50 pb-1 cursor-pointer">TRAJECTORY</a>
-                <a onClick={() => setIsArchiveOpen(true)} className="font-label-caps text-[10px] tracking-[0.15em] text-white/60 hover:text-secondary transition-colors cursor-pointer">MISSION ARCHIVE</a>
+                <a className="font-label-caps text-[10px] tracking-[0.15em] text-secondary border-b border-secondary/50 pb-1 cursor-pointer">FLIGHT PATH</a>
+                <a onClick={() => setIsArchiveOpen(true)} className="font-label-caps text-[10px] tracking-[0.15em] text-white/60 hover:text-secondary transition-colors cursor-pointer">FLIGHT HISTORY</a>
               </nav>
             </div>
           </div>
@@ -1011,7 +1011,7 @@ export default function App() {
             {showMissionPanel && (
               <div id="target-selector-wrapper" className="fixed top-24 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex items-center justify-center w-max" style={{ transform: 'translateX(-50%)' }}>
                 <Draggable nodeRef={targetSelectorNodeRef} handle=".target-drag-handle" position={targetSelectorPos} onStop={onDragStopTargetSelector}>
-                  <div ref={targetSelectorNodeRef} className="pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-full border border-white/15 bg-background/90 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.6)]">
+                  <div ref={targetSelectorNodeRef} className="pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-full border border-gray-700 bg-gray-900 shadow-lg">
                     <div className="target-drag-handle opacity-50 cursor-move hover:opacity-100 flex items-center pr-2 border-r border-white/10">
                       <Move size={14} className="text-white/40" />
                     </div>
@@ -1050,10 +1050,10 @@ export default function App() {
             {/* Bottom Right: Time Controls */}
             <Draggable nodeRef={timeControlNodeRef} handle=".drag-handle" position={timeControlPos} onStop={onDragStopTC}>
               <div ref={timeControlNodeRef} className="fixed z-40 pointer-events-auto" style={{ right: 32, bottom: 32 }}>
-                <div className="p-5 rounded-lg w-80 flex flex-col gap-4 border border-white/10 glass-panel shadow-[0_0_20px_rgba(0,0,0,0.5)] text-white">
+                <div className="p-5 rounded-lg w-80 flex flex-col gap-4 border border-gray-700 bg-gray-800 shadow-xl text-white">
                   <div className="flex justify-between items-center drag-handle cursor-move select-none pb-2 border-b border-white/10">
                     <span className="font-label-caps text-[9px] tracking-[0.2em] text-white/40">
-                      TIME DILATION
+                      TIME SPEED
                     </span>
                     <span className="font-data-lg text-lg text-secondary">
                       {timeMult === 1

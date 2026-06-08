@@ -118,7 +118,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
   const apply = () => { if (result) onApply(result) }
 
   return (
-    <div className="p-5 rounded-2xl w-80 mb-4 pointer-events-auto shadow-2xl relative overflow-y-auto overflow-x-hidden max-h-[85vh] text-white z-[1000] border border-white/10 glossy-panel pointer-events-auto custom-scrollbar font-sans">
+    <div className="p-5 rounded-2xl w-80 mb-4 pointer-events-auto shadow-2xl relative overflow-y-auto overflow-x-hidden max-h-[85vh] text-white z-[1000] border border-gray-700 bg-gray-800 pointer-events-auto custom-scrollbar font-sans">
       <div className="trajectory-drag-handle flex justify-between items-center mb-4 border-b border-white/10 pb-2.5 cursor-move select-none">
         <h3 className="font-sans font-medium text-[10px] tracking-widest text-primary flex items-center gap-1.5">
           <Move className="w-3 h-3 text-primary/60" />
@@ -127,21 +127,21 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
       </div>
 
       <div className="mb-4">
-        <label className="text-[10px] font-mono text-white/40 block mb-1">OPTIMIZATION GOAL</label>
+        <label className="text-[10px] font-mono text-white/40 block mb-1">FLIGHT GOAL</label>
         <select 
           value={optGoal} 
           onChange={e => setOptGoal(e.target.value)}
-          className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-xs font-mono text-cyan-400 outline-none cursor-pointer"
+          className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs font-mono text-primary outline-none cursor-pointer"
         >
-          <option value="Mass-Optimal (Fuel-Efficient)">Mass-Optimal (Fuel-Efficient)</option>
-          <option value="Time-Optimal (Fast-Transit)">Time-Optimal (Fast-Transit)</option>
-          <option value="Budget Capped (Max 6 km/s)">Budget Capped (Max 6 km/s)</option>
+          <option value="Save Fuel">Save Fuel</option>
+          <option value="Fastest Route">Fastest Route</option>
+          <option value="Limit Speed to 6 km/s">Limit Speed to 6 km/s</option>
         </select>
       </div>
 
       <div className="mb-4">
         <label className="text-[10px] font-mono text-white/40 flex justify-between mb-1">
-          <span>LAUNCH WINDOW</span>
+          <span>DEPARTURE WINDOW</span>
           <span className="text-cyan-400">{searchYears} YEARS</span>
         </label>
         <input 
@@ -157,7 +157,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
         </div>
 
         <label className="text-[10px] font-mono text-white/40 flex justify-between mb-1">
-          <span>MAX FLIGHT TIME</span>
+          <span>MAX TRAVEL TIME</span>
           <span className="text-cyan-400">{maxFlightYears} YEARS</span>
         </label>
         <input 
@@ -177,7 +177,7 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
         <div className="flex flex-col gap-1 bg-black/40 p-2 rounded border border-white/5 relative group">
           <div className="flex justify-between items-center">
             <span className="text-[10px] font-mono text-outline-variant uppercase">
-              DIRECT TRANSFER
+              DIRECT ROUTE
             </span>
           </div>
           
@@ -191,19 +191,19 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
       </div>
 
       <button onClick={run} disabled={loading}
-        className="w-full mb-4 px-3 py-2.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/25 text-cyan-400 transition-all disabled:opacity-40 font-mono tracking-widest text-[9px] flex justify-center items-center font-bold glossy-button cursor-pointer">
+        className="w-full mb-4 px-3 py-2.5 rounded-lg border border-cyan-700 bg-cyan-900/50 hover:bg-cyan-800/80 text-cyan-400 transition-all disabled:opacity-40 font-mono tracking-widest text-[9px] flex justify-center items-center font-bold cursor-pointer transition-colors duration-200">
         {loading ? (
-          <><div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping mr-2"></div>COMPUTING INTERPLANETARY AXIS...</>
-        ) : 'FIND OPTIMAL LAUNCH WINDOW'}
+          <><div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping mr-2"></div>CALCULATING ROUTE...</>
+        ) : 'FIND BEST ROUTE'}
       </button>
 
       {result && (
         <div className="bg-black/40 rounded-xl p-3 border border-white/10">
           <div className="grid grid-cols-2 gap-2 mb-4">
             {[
-              ['DEP. Δv',  `${result.dv1_kms.toFixed(2)} km/s`],
-              ['ARR. Δv',  `${result.dv2_kms.toFixed(2)} km/s`],
-              ['EST TOF',  `${result.tof_days} days`],
+              ['START Δv',  `${result.dv1_kms.toFixed(2)} km/s`],
+              ['END Δv',  `${result.dv2_kms.toFixed(2)} km/s`],
+              ['TIME TO FLY',  `${result.tof_days} days`],
             ].map(([k,v]) => (
                <div key={k} className="bg-black/30 rounded p-2 border border-white/5">
                  <div className="font-mono text-white/40 tracking-wider text-[8px] mb-1">{k}</div>
@@ -213,8 +213,8 @@ export default function TrajectoryOptimizer({ originId, destId, globalTimeRef, o
           </div>
 
           <button onClick={apply}
-            className="w-full px-3 py-2.5 rounded-lg bg-cyan-500/15 border border-cyan-500/35 hover:bg-cyan-500/30 text-cyan-400 transition-all font-mono tracking-widest text-[9px] flex items-center justify-center gap-2 font-bold glossy-button cursor-pointer mb-2">
-            APPLY TO NAVIGATION COMPUTER ↗
+            className="w-full px-3 py-2.5 rounded-lg bg-cyan-900/50 border border-cyan-700 hover:bg-cyan-800/80 text-cyan-400 transition-colors duration-200 font-mono tracking-widest text-[9px] flex items-center justify-center gap-2 font-bold cursor-pointer mb-2">
+            APPLY TO LAUNCH CONTROLS ↗
           </button>
         </div>
       )}

@@ -77,7 +77,7 @@ export function LaunchHUD({
       <Draggable nodeRef={nodeRef} handle=".vab-drag-handle" position={position} onStop={onDragStop}>
         <div 
           ref={nodeRef} 
-          className="w-80 glass-panel border-white/10 rounded-lg p-6 text-white shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col"
+          className="w-80 bg-gray-800 border-gray-700 rounded-lg p-6 text-white shadow-xl flex flex-col"
         >
           {/* Panel Header */}
           <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-white/10 pb-3 mb-6 select-none">
@@ -95,7 +95,7 @@ export function LaunchHUD({
             onClick={isLaunched ? handleReset : onLaunch}
             disabled={isCalculatingLaunchPhase}
           >
-             {isLaunched ? 'ABORT TRACKING' : isCalculatingLaunchPhase ? 'RESOLVING CONFLICTS...' : 'INITIATE IGNITION'}
+             {isLaunched ? 'STOP FLIGHT' : isCalculatingLaunchPhase ? 'CALCULATING ROUTE...' : 'START FLIGHT'}
           </button>
 
           {/* Mission Archive Controls */}
@@ -105,7 +105,7 @@ export function LaunchHUD({
                 onClick={onConcludeMission}
                 className="w-full py-3 bg-tertiary-container/20 border border-tertiary/40 hover:bg-tertiary-container/30 text-tertiary hover:text-white rounded font-label-caps tracking-[0.2em] text-[9px] uppercase transition-all cursor-pointer"
               >
-                SUCCESS: ARCHIVE LOGS
+                SUCCESS: SAVE FLIGHT RESULTS
               </button>
             </div>
           )}
@@ -117,24 +117,24 @@ export function LaunchHUD({
                 onClick={onPlanReturn}
                 className="w-full py-2.5 bg-primary/10 border border-primary/40 hover:bg-primary/20 text-primary hover:text-white rounded font-label-caps tracking-[0.2em] text-[9px] uppercase transition-all cursor-pointer glow-primary"
               >
-                Plan Earth Return
+                Plan Return To Earth
               </button>
               
               {returnWindow && (
-                <div className="bg-black/40 p-4 rounded border border-white/10 flex flex-col gap-3 transition-all duration-300">
+                <div className="bg-gray-900 p-4 rounded border border-gray-700 flex flex-col gap-3 transition-all duration-300">
                   <div className="flex justify-between border-b border-white/5 pb-2 text-[9px] font-label-caps text-white/50 uppercase tracking-[0.2em]">
-                    <span>Optimal Window:</span> 
+                    <span>Best Flight Time:</span> 
                     <span className="text-white">{returnWindow.tof_days} Days</span>
                   </div>
                   <div className="flex justify-between pb-2 text-[9px] font-label-caps text-white/50 uppercase tracking-[0.2em]">
-                    <span>Burn Required:</span> 
+                    <span>Speed Change Needed:</span> 
                     <span className="text-white">{returnWindow.dv1_kms.toFixed(2)} KM/S</span>
                   </div>
                   <button 
                     onClick={onApplyReturn}
                     className="w-full py-2 bg-secondary/20 border border-secondary/50 hover:bg-secondary/30 text-secondary rounded font-label-caps text-[9px] uppercase tracking-[0.2em] cursor-pointer glow-cyan"
                   >
-                    Execute TEI
+                    Fly Back To Earth
                   </button>
                 </div>
               )}

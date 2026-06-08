@@ -5,7 +5,7 @@
 <h1 align="center">Project Greninja (MapG)</h1>
 
 <p align="center">
-  <strong>A high-performance, interactive orbital mechanics and trajectory simulator.</strong>
+  <strong>A simple, interactive 3D solar system and space flight simulator.</strong>
 </p>
 
 <p align="center">
@@ -19,30 +19,23 @@
 ---
 
 > [!NOTE]
-> The MapG core engine simulates complex celestial paths, planetary rotation, and automated porkchop plotting utilizing custom-built visual rendering physics.
+> The MapG project simulates how planets and spacecraft move in space.
 
 ## Core Features
 
-* **Interactive Orbit Simulator** Visualizes precise planetary trajectories and satellite orbits in a real-time, canvas-based environment.
+* **Interactive Space Simulator** Watch how planets and spacecraft travel in a real-time 3D view.
   
-* **Automated Porkchop Plotting** Integrated porkchop plots map out delta-v requirements and pinpoint optimal interplanetary launch windows.
+* **Flight Path Planner** Find the best route and time to fly between planets.
   
-* **Custom Physics Engine (`greninja_engine`)** Built entirely from the ground up to handle rotational velocity tracking, coordinate translation, and discrete vector positioning.
+* **Physics Engine** A simple math engine to calculate how things move in space.
   
-* **Launch HUD** A real-time, sleek dashboard telemetry overlay designed to monitor instantaneous velocities, orbital states, and system metrics during simulation.
+* **Data Dashboard** A real-time screen to track spacecraft speed, position, and flight status.
 
 ---
 
-## The Physics Engine (`greninja_engine`)
+## The Physics Engine
 
-The core engine maps out planetary behavior using custom direct-proportionality scaling equations optimized for fixed circular tracks. 
-
-Instead of relying on heavy traditional textbook derivations, the system calculates rotational tracking speeds ($R_v$) relative to linear velocities ($V_s$) using a strict custom scaling constant $k$, where:
-
-$$R_v = k \cdot V_s$$
-
-> [!TIP]
-> The scaling factor $k$ automatically scales as $\frac{1}{\text{radius}}$. This balances the visual tracking display seamlessly across vastly different cosmic scales—ranging from Low Earth Orbit up to full solar system paths.
+The core engine uses simple math rules to calculate how planets and objects move in outer space. The math ensures that planets closer to the sun move faster, and those further away move slower.
 
 ---
 

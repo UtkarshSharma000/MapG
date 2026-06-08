@@ -1303,7 +1303,7 @@ function SystemEngine({
       <Html fullscreen className="pointer-events-none">
         <div className="absolute top-24 left-8 pointer-events-auto flex flex-col gap-2">
           {/* Date and Time Header */}
-          <div className="px-4 py-2 bg-black/80 border border-white/10 backdrop-blur-2xl rounded-xl shadow-2xl flex items-center gap-4 glossy-panel">
+          <div className="px-4 py-2 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl flex items-center gap-4">
             <div className="flex flex-col">
               <span className="text-[8px] text-cyan-400 font-mono tracking-[0.2em] uppercase">Epoch Reference</span>
               <span className="text-xs text-white font-mono font-bold tracking-tight">
@@ -1322,14 +1322,14 @@ function SystemEngine({
           {!isLocked && (
             <button 
               onClick={() => setIsLocked(true)}
-              className="px-3 py-1 bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/55 text-cyan-400 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 group transition-all self-start glossy-button cursor-pointer"
+              className="px-3 py-1 bg-cyan-900/50 hover:bg-cyan-800/80 border border-cyan-700 text-cyan-400 text-[9px] font-mono tracking-widest rounded-lg flex items-center gap-2 group transition-all self-start cursor-pointer transition-colors duration-200"
             >
               <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse group-hover:scale-125"></div>
               RE-LOCK CAMERA TO {spectatedLabel ? spectatedLabel : (selectedTarget ? selectedTarget.name.toUpperCase() : "SOL")}
             </button>
           )}
           {isLocked && (
-            <div className="px-3 py-1 bg-black/60 border border-white/10 text-white/50 text-[9px] font-mono tracking-widest rounded-lg backdrop-blur-md flex items-center gap-2 self-start">
+            <div className="px-3 py-1 bg-gray-800 border border-gray-700 text-white/50 text-[9px] font-mono tracking-widest rounded-lg flex items-center gap-2 self-start">
               <div className="w-1.5 h-1.5 rounded-full bg-white/30"></div>
               CAMERA TRACKING {spectatedLabel ? spectatedLabel : (selectedTarget ? selectedTarget.name.toUpperCase() : "SOL")}
               <span className="ml-2 text-[8px] opacity-30">(DRAG TO UNLOCK)</span>

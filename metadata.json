@@ -1,6 +1,6 @@
 {
   "name": "Interplanetary Orbit Simulator",
-  "description": "An interactive 3D interplanetary orbit simulator implementing Porkchop optimization scans, custom gravity assist legs, and launch trajectory planning.",
+  "description": "An interactive 3D solar system simulator showing how planets and spacecraft move in space. You can plan flight paths and watch the journey.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

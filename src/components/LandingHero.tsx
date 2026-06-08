@@ -25,9 +25,9 @@ export default function LandingHero({
         transition={{ duration: 0.8, delay: 0.2 }}
         className="relative z-10 max-w-4xl"
       >
-        <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 glass-panel border border-primary/30 rounded">
+        <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 bg-gray-800 border border-gray-700 rounded">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-          <span className="font-label-caps text-[10px] text-primary tracking-widest">SYSTEMS NOMINAL // ORBITAL SECTOR 7</span>
+          <span className="font-label-caps text-[10px] text-primary tracking-widest">ALL SYSTEMS GO // SECTOR 7</span>
         </div>
         
         <ScrollFloat
@@ -39,7 +39,7 @@ export default function LandingHero({
           scrollContainerRef={landingScrollRef}
           textClassName="font-display-lg text-5xl md:text-[64px] font-bold mb-2 leading-none tracking-tighter block text-left"
         >
-          MISSION:
+          PROJECT:
         </ScrollFloat>
         <ScrollFloat
           animationDuration={1.2}
@@ -61,21 +61,21 @@ export default function LandingHero({
           scrollContainerRef={landingScrollRef}
           textClassName="font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 max-w-2xl font-light text-left"
         >
-          Pioneering the Next Frontier of Satellite Logistics and Orbital Infrastructure.
+          Exploring the Next Frontier of Space Travel and Flight Paths.
         </ScrollReveal>
         
         <div className="flex flex-wrap gap-4">
           <button 
             onClick={() => setIsSimulatorRunning(true)}
-            className="px-10 py-4 bg-primary-container text-on-primary-container font-label-caps text-label-caps tracking-widest glow-primary hover:scale-105 active:scale-95 transition-all cursor-pointer rounded-full flex items-center gap-2"
+            className="px-10 py-4 bg-primary-container text-on-primary-container font-label-caps text-label-caps tracking-widest hover:scale-105 active:scale-95 transition-all cursor-pointer rounded-full flex items-center gap-2"
           >
-            <Play size={16} fill="currentColor" /> LAUNCH TERMINAL
+            <Play size={16} fill="currentColor" /> START SIMULATOR
           </button>
           <a 
             href="https://github.com/UtkarshSharma000/MapG"
             target="_blank"
             rel="noreferrer"
-            className="px-10 py-4 glass-panel border border-tertiary/40 text-tertiary font-label-caps text-label-caps tracking-widest glow-blue hover:scale-105 hover:bg-white/5 active:scale-95 transition-all rounded-full cursor-pointer inline-flex items-center gap-2"
+            className="px-10 py-4 bg-gray-800 border border-gray-700 text-tertiary font-label-caps text-label-caps tracking-widest hover:scale-105 hover:bg-gray-700 active:scale-95 transition-all rounded-full cursor-pointer inline-flex items-center gap-2"
           >
             <Github size={16} /> VIEW SOURCE
           </a>
