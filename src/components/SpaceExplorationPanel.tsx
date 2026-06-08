@@ -58,12 +58,6 @@ export default function SpaceExplorationPanel({
           void hudStatusRef.current.offsetWidth; // trigger reflow
           hudStatusRef.current.style.animation = 'pulse 0.2s 3';
         }
-
-        if (maxTextRef.current) {
-          if (phase === 0) maxTextRef.current.textContent = "SOLAR";
-          else if (phase === 1) maxTextRef.current.textContent = "ORBITAL";
-          else maxTextRef.current.textContent = "INTERCEPT";
-        }
         
         if (hudStatusRef.current && hudRouteRef.current && hudPathRef.current) {
           if (phase === 0) {
@@ -91,7 +85,7 @@ export default function SpaceExplorationPanel({
       }
 
       if (maxTextRef.current) {
-         maxTextRef.current.style.transform = `translateX(${(0.5 - scrollProgress) * 30}%)`;
+         maxTextRef.current.style.transform = `translateX(${ -scrollProgress * 50 }%)`;
       }
 
       const applyBoxStyle = (ref: React.RefObject<HTMLDivElement | null>, opacity: number, transform: string, visibility: string) => {
@@ -142,13 +136,14 @@ export default function SpaceExplorationPanel({
   return (
     <>
       {/* Cinematic Interactive Space Exploration Panel */}
-      <section ref={cinematicSectionRef} className="relative h-[400vh] bg-transparent z-10 w-full overflow-visible">
+      <section ref={cinematicSectionRef} className="relative h-[800vh] bg-transparent z-10 w-full overflow-visible">
         {/* Invisible snapping anchors */}
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
           <div className="absolute top-[0vh] h-screen w-full snap-start" />
-          <div className="absolute top-[100vh] h-screen w-full snap-start" />
           <div className="absolute top-[200vh] h-screen w-full snap-start" />
-          <div className="absolute top-[300vh] h-screen w-full snap-start" />
+          <div className="absolute top-[400vh] h-screen w-full snap-start" />
+          <div className="absolute top-[600vh] h-screen w-full snap-start" />
+          <div className="absolute top-[800vh] h-screen w-full snap-start" />
         </div>
 
         {/* Sticky viewport content container */}
@@ -159,9 +154,9 @@ export default function SpaceExplorationPanel({
             <h1 
               ref={maxTextRef}
               className="text-[25vw] sm:text-[30vw] font-headline-md italic font-black leading-none whitespace-nowrap text-white select-none"
-              style={{ transform: 'translateX(0%)', textShadow: '0 0 40px rgba(255,255,255,0.1)' }}
+              style={{ transform: 'translateX(0%)', textShadow: '0 0 40px rgba(255,255,255,0.1)', willChange: 'transform' }}
             >
-              SOLAR
+              SOLAR &nbsp;&nbsp;&nbsp;&nbsp; ORBITAL &nbsp;&nbsp;&nbsp;&nbsp; INTERCEPT &nbsp;&nbsp;&nbsp;&nbsp; SOLAR &nbsp;&nbsp;&nbsp;&nbsp; ORBITAL &nbsp;&nbsp;&nbsp;&nbsp; INTERCEPT &nbsp;&nbsp;&nbsp;&nbsp; SOLAR
             </h1>
           </div>
           
