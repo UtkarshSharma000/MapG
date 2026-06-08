@@ -38,7 +38,7 @@ export default function MathPhysicsShowcase({
         <div className="max-w-4xl mx-auto text-center relative z-10 flex flex-col justify-center mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 mb-6 self-center">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_var(--color-primary)]"></span>
-            <span className="font-mono text-[9px] text-primary tracking-widest uppercase">MAP G CORE PROJECT</span>
+            <span className="font-mono text-[9px] text-primary tracking-widest uppercase">SRINIVASA CORE PROJECT</span>
           </div>
           
           <div className="mb-6">
@@ -52,7 +52,7 @@ export default function MathPhysicsShowcase({
               scrollContainerRef={landingScrollRef}
               textClassName="font-display-lg text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2 block"
             >
-              MAP G is
+              SRINIVASA is
             </ScrollFloat>
             <ScrollFloat
               animationDuration={3.5}
@@ -235,13 +235,13 @@ export default function MathPhysicsShowcase({
                 </div>
                 <span className="font-mono text-[10px] text-white/40">GUI REPO</span>
               </div>
-              <h4 className="font-display-lg text-lg font-bold text-white mb-2">UtkarshSharma000/MapG</h4>
+              <h4 className="font-display-lg text-lg font-bold text-white mb-2">UtkarshSharma000/Srinivasa</h4>
               <p className="text-white/60 text-xs font-light leading-relaxed mb-6">
                 A fully interactive 3D solar system simulation and flight tracking screen. Check out all the code on GitHub.
               </p>
             </div>
             <a 
-              href="https://github.com/UtkarshSharma000/MapG" 
+              href="https://github.com/UtkarshSharma000/Srinivasa" 
               target="_blank" 
               rel="noreferrer"
               className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-mono font-bold text-xs uppercase px-6 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] pointer-events-auto"
@@ -253,44 +253,19 @@ export default function MathPhysicsShowcase({
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="px-8 md:px-[32px] py-24 relative overflow-hidden bg-[#030611] w-full">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-primary/5 rounded-full pointer-events-none"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-primary/10 rounded-full pointer-events-none"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-primary/20 rounded-full pointer-events-none"></div>
-        <div className="max-w-4xl mx-auto text-center relative z-10 bg-gray-900 p-12 border border-gray-700 rounded-3xl">
-          <h3 className="font-display-lg text-4xl md:text-5xl font-bold mb-4 relative z-10 tracking-tighter text-white">READY TO FLY?</h3>
-          <p className="text-on-surface-variant font-light mb-10 max-w-xl mx-auto relative z-10 text-white/50">Access real-time flight data, control systems, and mission logs via the secure data screen.</p>
-          <div className="flex flex-col md:flex-row justify-center gap-4 relative z-10">
-            <button 
-              onClick={() => setIsSimulatorRunning(true)}
-              className="px-12 py-4 bg-primary text-black font-label-caps tracking-widest hover:scale-105 active:scale-95 transition-all rounded-md font-bold cursor-pointer"
-            >
-              START PROJECT
-            </button>
-            <a 
-              href="https://github.com/UtkarshSharma000/MapG"
-              target="_blank"
-              rel="noreferrer"
-              className="px-12 py-4 bg-gray-800 border border-gray-700 text-on-surface-variant font-label-caps tracking-widest hover:scale-105 active:scale-95 transition-all rounded font-bold cursor-pointer inline-block text-white"
-            >
-              PROJECT CODE
-            </a>
-          </div>
-        </div>
-      </section>
+
 
       {/* Footer */}
       <footer className="w-full py-[32px] px-8 md:px-[32px] flex flex-col md:flex-row justify-between items-center gap-[16px] bg-[#030611] border-t border-white/10">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>target</span>
-          <span className="font-display-lg text-lg text-primary tracking-tighter font-bold">MAP G</span>
+          <span className="font-display-lg text-lg text-primary tracking-tighter font-bold">SRINIVASA</span>
         </div>
         <div className="flex gap-8">
-          <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="https://github.com/UtkarshSharma000/MapG" target="_blank" rel="noreferrer">GitHub</a>
+          <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="https://github.com/UtkarshSharma000/Srinivasa" target="_blank" rel="noreferrer">GitHub</a>
         </div>
         <div className="text-right">
-          <p className="font-label-caps text-[10px] text-tertiary tracking-widest">© 2026 MAP G. ALL SYSTEMS OPERATIONAL.</p>
+          <p className="font-label-caps text-[10px] text-tertiary tracking-widest">© 2026 SRINIVASA. ALL SYSTEMS OPERATIONAL.</p>
         </div>
       </footer>
     </>

@@ -50,7 +50,7 @@ export default function LandingHero({
           scrollContainerRef={landingScrollRef}
           textClassName="font-display-lg text-primary glow-primary text-6xl md:text-[80px] font-bold mb-6 leading-none tracking-tighter block text-left"
         >
-          MAP G
+          SRINIVASA
         </ScrollFloat>
         
         <ScrollReveal
