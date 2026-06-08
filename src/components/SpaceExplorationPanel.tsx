@@ -85,7 +85,7 @@ export default function SpaceExplorationPanel({
       }
 
       if (maxTextRef.current) {
-         maxTextRef.current.style.transform = `translateX(${ -scrollProgress * 50 }%)`;
+         maxTextRef.current.style.transform = `translateX(${ -scrollProgress * 12 }%)`;
       }
 
       const applyBoxStyle = (ref: React.RefObject<HTMLDivElement | null>, opacity: number, transform: string, visibility: string) => {
