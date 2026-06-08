@@ -4,15 +4,82 @@ import ScrollFloat from "./ScrollFloat";
 
 interface SpaceExplorationPanelProps {
   cinematicSectionRef: React.RefObject<HTMLDivElement | null>;
-  scrollProgress: number;
+  scrollProgressRef: React.MutableRefObject<number>;
   landingScrollRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export default function SpaceExplorationPanel({
   cinematicSectionRef,
-  scrollProgress,
+  scrollProgressRef,
   landingScrollRef,
 }: SpaceExplorationPanelProps) {
+  const panelRef = React.useRef<HTMLElement>(null);
+  const scaleTextRef = React.useRef<HTMLDivElement>(null);
+  const progressBarRef = React.useRef<HTMLDivElement>(null);
+  
+  const box1Ref = React.useRef<HTMLDivElement>(null);
+  const box2Ref = React.useRef<HTMLDivElement>(null);
+  const box3Ref = React.useRef<HTMLDivElement>(null);
+  const box4Ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    let frame: number;
+    const update = () => {
+      const scrollProgress = scrollProgressRef.current;
+      
+      if (scaleTextRef.current) {
+        scaleTextRef.current.textContent = `SCALE: ${(1.0 + scrollProgress * 4.5).toFixed(3)}x`;
+      }
+      
+      if (progressBarRef.current) {
+        progressBarRef.current.style.width = `${scrollProgress * 100}%`;
+      }
+
+      const applyBoxStyle = (ref: React.RefObject<HTMLDivElement | null>, opacity: number, transform: string, visibility: string) => {
+        if (ref.current) {
+          ref.current.style.opacity = String(opacity);
+          ref.current.style.transform = transform;
+          ref.current.style.visibility = visibility;
+        }
+      };
+
+      // Box 1
+      applyBoxStyle(
+        box1Ref,
+        scrollProgress < 0.28 ? 1 : Math.max(0, 1 - (scrollProgress - 0.28) / 0.04),
+        `translateY(${scrollProgress < 0.30 ? '0px' : '20px'})`,
+        scrollProgress < 0.32 ? 'visible' : 'hidden'
+      );
+
+      // Box 2
+      applyBoxStyle(
+        box2Ref,
+        scrollProgress < 0.25 ? 0 : scrollProgress < 0.29 ? (scrollProgress - 0.25) / 0.04 : scrollProgress < 0.53 ? 1 : Math.max(0, 1 - (scrollProgress - 0.53) / 0.04),
+        `translateY(${scrollProgress >= 0.25 && scrollProgress <= 0.57 ? '0px' : '20px'})`,
+        scrollProgress >= 0.25 && scrollProgress <= 0.57 ? 'visible' : 'hidden'
+      );
+
+      // Box 3
+      applyBoxStyle(
+        box3Ref,
+        scrollProgress < 0.50 ? 0 : scrollProgress < 0.54 ? (scrollProgress - 0.50) / 0.04 : scrollProgress < 0.78 ? 1 : Math.max(0, 1 - (scrollProgress - 0.78) / 0.04),
+        `translateY(${scrollProgress >= 0.50 && scrollProgress <= 0.82 ? '0px' : '20px'})`,
+        scrollProgress >= 0.50 && scrollProgress <= 0.82 ? 'visible' : 'hidden'
+      );
+
+      // Box 4
+      applyBoxStyle(
+        box4Ref,
+        scrollProgress < 0.75 ? 0 : scrollProgress < 0.79 ? (scrollProgress - 0.75) / 0.04 : 1,
+        `translateY(${scrollProgress >= 0.75 ? '0px' : '20px'})`,
+        scrollProgress >= 0.75 ? 'visible' : 'hidden'
+      );
+
+      frame = requestAnimationFrame(update);
+    };
+    frame = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(frame);
+  }, [scrollProgressRef]);
   return (
     <>
       {/* Cinematic Interactive Space Exploration Panel */}
@@ -41,7 +108,7 @@ export default function SpaceExplorationPanel({
               </div>
               <div className="flex flex-col items-end gap-1 font-mono text-[9px] text-white/40">
                 <div>ZOOM LEVEL</div>
-                <div className="text-primary font-bold">SCALE: {(1.0 + scrollProgress * 4.5).toFixed(3)}x</div>
+                <div ref={scaleTextRef} className="text-primary font-bold">SCALE: 1.000x</div>
               </div>
             </div>
 
@@ -56,8 +123,9 @@ export default function SpaceExplorationPanel({
                 <span className="font-mono text-[9px] text-white/40 uppercase">FLIGHT PROGRESS</span>
                 <div className="w-48 bg-white/5 h-1 border border-white/10 rounded-full overflow-hidden">
                   <div 
+                    ref={progressBarRef}
                     className="bg-primary h-full transition-all duration-75 relative" 
-                    style={{ width: `${scrollProgress * 100}%` }}
+                    style={{ width: `0%` }}
                   >
                     <span className="absolute right-0 top-0 w-1.5 h-1.5 bg-white glow-primary rounded-full"></span>
                   </div>
@@ -71,12 +139,8 @@ export default function SpaceExplorationPanel({
             
             {/* Narrative Step 1: Core Star System Nucleus */}
             <div 
+              ref={box1Ref}
               className="absolute left-6 md:left-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left"
-              style={{ 
-                opacity: scrollProgress < 0.28 ? 1 : Math.max(0, 1 - (scrollProgress - 0.28) / 0.04),
-                transform: `translateY(${scrollProgress < 0.30 ? '0px' : '20px'})`,
-                visibility: scrollProgress < 0.32 ? 'visible' : 'hidden'
-              }}
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
@@ -90,12 +154,8 @@ export default function SpaceExplorationPanel({
 
             {/* Narrative Step 2: Inner Terrestrial Zones */}
             <div 
+              ref={box2Ref}
               className="absolute right-6 md:right-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left"
-              style={{ 
-                opacity: scrollProgress < 0.25 ? 0 : scrollProgress < 0.29 ? (scrollProgress - 0.25) / 0.04 : scrollProgress < 0.53 ? 1 : Math.max(0, 1 - (scrollProgress - 0.53) / 0.04),
-                transform: `translateY(${scrollProgress >= 0.25 && scrollProgress <= 0.57 ? '0px' : '20px'})`,
-                visibility: scrollProgress >= 0.25 && scrollProgress <= 0.57 ? 'visible' : 'hidden'
-              }}
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
@@ -109,12 +169,8 @@ export default function SpaceExplorationPanel({
 
             {/* Narrative Step 3: Celestial Home World */}
             <div 
+              ref={box3Ref}
               className="absolute left-6 md:left-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left"
-              style={{ 
-                opacity: scrollProgress < 0.50 ? 0 : scrollProgress < 0.54 ? (scrollProgress - 0.50) / 0.04 : scrollProgress < 0.78 ? 1 : Math.max(0, 1 - (scrollProgress - 0.78) / 0.04),
-                transform: `translateY(${scrollProgress >= 0.50 && scrollProgress <= 0.82 ? '0px' : '20px'})`,
-                visibility: scrollProgress >= 0.50 && scrollProgress <= 0.82 ? 'visible' : 'hidden'
-              }}
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
@@ -128,12 +184,8 @@ export default function SpaceExplorationPanel({
 
             {/* Narrative Step 4: Deeper Frontiers */}
             <div 
+              ref={box4Ref}
               className="absolute right-6 md:right-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left"
-              style={{ 
-                opacity: scrollProgress < 0.75 ? 0 : scrollProgress < 0.79 ? (scrollProgress - 0.75) / 0.04 : 1,
-                transform: `translateY(${scrollProgress >= 0.75 ? '0px' : '20px'})`,
-                visibility: scrollProgress >= 0.75 ? 'visible' : 'hidden'
-              }}
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>

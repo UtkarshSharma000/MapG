@@ -145,7 +145,7 @@ export default function App() {
   const globalTimeRef = React.useRef<number>(Date.now() / 1000);
   const landingScrollRef = React.useRef<HTMLDivElement>(null);
   const cinematicSectionRef = React.useRef<HTMLDivElement>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const scrollProgressRef = useRef(0);
 
   useEffect(() => {
     const scroller = landingScrollRef.current;
@@ -166,9 +166,9 @@ export default function App() {
       if (scrollableDistance > 0) {
         const currentScroll = -sectionTop;
         const rawProgress = Math.max(0, Math.min(1, currentScroll / scrollableDistance));
-        setScrollProgress(rawProgress);
+        scrollProgressRef.current = rawProgress;
       } else {
-        setScrollProgress(0);
+        scrollProgressRef.current = 0;
       }
     };
 
@@ -730,7 +730,7 @@ export default function App() {
       {!isSimulatorRunning && (
         <>
           <div className="fixed inset-0 z-0 pointer-events-none">
-            <Galaxy transparent={false} mouseInteraction={false} scrollProgress={scrollProgress} />
+            <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={scrollProgressRef} />
           </div>
         </>
       )}
@@ -829,7 +829,7 @@ export default function App() {
 
           <SpaceExplorationPanel
             cinematicSectionRef={cinematicSectionRef}
-            scrollProgress={scrollProgress}
+            scrollProgressRef={scrollProgressRef}
             landingScrollRef={landingScrollRef}
           />
 

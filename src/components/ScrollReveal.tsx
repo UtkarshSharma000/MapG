@@ -36,51 +36,36 @@ const ScrollReveal = ({
     const el = containerRef.current;
     if (!el) return;
 
+    let ctx: gsap.Context;
+
     const timer = setTimeout(() => {
       const scroller = scrollContainerRef?.current || document.querySelector('.landing-scroller') || window;
 
-      gsap.fromTo(
-        el,
-        { transformOrigin: '0% 50%', rotate: baseRotation },
-        {
-          ease: 'none',
-          rotate: 0,
-          scrollTrigger: {
-            trigger: el,
-            scroller: scroller as any,
-            start: 'top bottom',
-            end: rotationEnd,
-            scrub: true
-          }
-        }
-      );
-
-      const wordElements = el.querySelectorAll('.word');
-
-      gsap.fromTo(
-        wordElements,
-        { opacity: baseOpacity, willChange: 'opacity' },
-        {
-          ease: 'none',
-          opacity: 1,
-          stagger: 0.05,
-          scrollTrigger: {
-            trigger: el,
-            scroller: scroller as any,
-            start: 'top bottom-=20%',
-            end: wordAnimationEnd,
-            scrub: true
-          }
-        }
-      );
-
-      if (enableBlur) {
+      ctx = gsap.context(() => {
         gsap.fromTo(
-          wordElements,
-          { filter: `blur(${blurStrength}px)` },
+          el,
+          { transformOrigin: '0% 50%', rotate: baseRotation },
           {
             ease: 'none',
-            filter: 'blur(0px)',
+            rotate: 0,
+            scrollTrigger: {
+              trigger: el,
+              scroller: scroller as any,
+              start: 'top bottom',
+              end: rotationEnd,
+              scrub: true
+            }
+          }
+        );
+
+        const wordElements = el.querySelectorAll('.word');
+
+        gsap.fromTo(
+          wordElements,
+          { opacity: baseOpacity, willChange: 'opacity' },
+          {
+            ease: 'none',
+            opacity: 1,
             stagger: 0.05,
             scrollTrigger: {
               trigger: el,
@@ -91,12 +76,31 @@ const ScrollReveal = ({
             }
           }
         );
-      }
+
+        if (enableBlur) {
+          gsap.fromTo(
+            wordElements,
+            { filter: `blur(${blurStrength}px)` },
+            {
+              ease: 'none',
+              filter: 'blur(0px)',
+              stagger: 0.05,
+              scrollTrigger: {
+                trigger: el,
+                scroller: scroller as any,
+                start: 'top bottom-=20%',
+                end: wordAnimationEnd,
+                scrub: true
+              }
+            }
+          );
+        }
+      }, el);
     }, 150);
 
     return () => {
       clearTimeout(timer);
-      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      if (ctx) ctx.revert();
     };
   }, [scrollContainerRef, enableBlur, baseRotation, baseOpacity, rotationEnd, wordAnimationEnd, blurStrength]);
 

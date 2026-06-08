@@ -273,7 +273,7 @@ export default function Galaxy({
   rotationSpeed = 0.1,
   autoCenterRepulsion = 0,
   transparent = true,
-  scrollProgress = 0,
+  scrollProgressRef,
   ...rest
 }: any) {
   const ctnDom = useRef<HTMLDivElement>(null);
@@ -281,16 +281,16 @@ export default function Galaxy({
   const smoothMousePos = useRef({ x: 0.5, y: 0.5 });
   const targetMouseActive = useRef(0.0);
   const smoothMouseActive = useRef(0.0);
-  const scrollProgressRef = useRef(scrollProgress);
+  
+  // We don't need a local scrollProgressRef if one is passed from the parent. 
+  // If one is not passed, use a default ref.
+  const localScrollProgressRef = useRef(0);
+  const activeScrollRef = scrollProgressRef || localScrollProgressRef;
 
   const focalX = focal && focal.length === 2 ? focal[0] : 0.5;
   const focalY = focal && focal.length === 2 ? focal[1] : 0.5;
   const rotX = rotation && rotation.length === 2 ? rotation[0] : 1.0;
   const rotY = rotation && rotation.length === 2 ? rotation[1] : 0.0;
-
-  useEffect(() => {
-    scrollProgressRef.current = scrollProgress;
-  }, [scrollProgress]);
 
   useEffect(() => {
     if (!ctnDom.current) return;
@@ -362,7 +362,7 @@ export default function Galaxy({
     function update(t: number) {
       animateId = requestAnimationFrame(update);
       if (program) {
-        program.uniforms.uScrollProgress.value = scrollProgressRef.current;
+        program.uniforms.uScrollProgress.value = activeScrollRef.current;
       }
       if (!disableAnimation) {
         program.uniforms.uTime.value = t * 0.001;
