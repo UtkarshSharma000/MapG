@@ -216,11 +216,11 @@ export default function SpaceExplorationPanel({
             >
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-2 h-2 bg-white"></span>
-                <span className="font-mono text-[10px] text-white tracking-[0.2em] uppercase">SUN // STAGE 1</span>
+                <span className="font-mono text-[10px] text-white tracking-[0.2em] uppercase">RAMANUJAN // INITIAL INTUITION</span>
               </div>
-              <h4 className="font-headline-md italic text-3xl text-white mb-2 leading-tight">Nucleus</h4>
+              <h4 className="font-headline-md italic text-3xl text-white mb-2 leading-tight">Symmetry</h4>
               <p className="font-body-rg text-sm text-white/70 leading-relaxed uppercase tracking-wider">
-                The massive gravity well dictating planetary motion. Precision mathematics starts here.
+                Srinivasa Ramanujan possessed an extraordinary raw intuition, seeing exquisite symmetries and periodic equations where others saw only chaos.
               </p>
             </div>
 
@@ -231,11 +231,11 @@ export default function SpaceExplorationPanel({
             >
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-2 h-2 bg-white"></span>
-                <span className="font-mono text-[10px] text-white tracking-[0.2em] uppercase">MERCURY & VENUS // STAGE 2</span>
+                <span className="font-mono text-[10px] text-white tracking-[0.2em] uppercase">THE INFINITE CANVAS // PATHWAYS</span>
               </div>
-              <h4 className="font-headline-md italic text-3xl text-white mb-2 leading-tight">Terrestrial</h4>
+              <h4 className="font-headline-md italic text-3xl text-white mb-2 leading-tight">Infinite Series</h4>
               <p className="font-body-rg text-sm text-white/70 leading-relaxed uppercase tracking-wider">
-                Heavy gravity and heat distort classical trajectories. Navigation requires higher delta-v.
+                His modular equations and infinite series opened a rare window into new mathematical realms, mapping pathways of elegant structure across the infinite.
               </p>
             </div>
 
@@ -246,11 +246,11 @@ export default function SpaceExplorationPanel({
             >
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-2 h-2 bg-white"></span>
-                <span className="font-mono text-[10px] text-white tracking-[0.2em] uppercase">EARTH & MOON // STAGE 3</span>
+                <span className="font-mono text-[10px] text-white tracking-[0.2em] uppercase">CELESTIAL HARMONY // THE MATRIX</span>
               </div>
-              <h4 className="font-headline-md italic text-3xl text-white mb-2 leading-tight">Origin</h4>
+              <h4 className="font-headline-md italic text-3xl text-white mb-2 leading-tight">Periodic Orbits</h4>
               <p className="font-body-rg text-sm text-white/70 leading-relaxed uppercase tracking-wider">
-                The launch pad. We exploit planetary velocity to fling deeper into the void.
+                Just as Ramanujan charted silent terrains of pure mathematics, this orbital system tracks the intricate, periodic orbits of planets across the cosmos.
               </p>
             </div>
 
@@ -261,12 +261,16 @@ export default function SpaceExplorationPanel({
             >
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-2 h-2 bg-white"></span>
-                <span className="font-mono text-[10px] text-white tracking-[0.2em] uppercase">DEEP MAP // STAGE 4</span>
+                <span className="font-mono text-[10px] text-white tracking-[0.2em] uppercase">THE HIGHER ORDER // FINAL TRUTH</span>
               </div>
-              <h4 className="font-headline-md italic text-3xl text-white mb-2 leading-tight">Intercept</h4>
-              <p className="font-body-rg text-sm text-white/70 leading-relaxed uppercase tracking-wider">
-                Mars transit achieved. Aligning inclination and matching orbital speed for capture.
+              <h4 className="font-headline-md italic text-3xl text-white mb-2 leading-tight">Infinite Vision</h4>
+              <p className="font-body-rg text-sm text-white/70 leading-relaxed uppercase tracking-wider mb-4">
+                In the ultimate elegance of gravity and orbit, Ramanujan's legacy reminds us that equations are a medium of absolute cosmic truth.
               </p>
+              <blockquote className="border-l-2 border-primary/50 pl-4 py-1 italic font-sans text-xs text-primary bg-primary/5 rounded-r">
+                "An equation for me has no meaning, unless it expresses a thought of God."
+                <cite className="block text-[10px] not-italic text-white/50 mt-1 font-mono uppercase tracking-widest">— Srinivasa Ramanujan</cite>
+              </blockquote>
             </div>
 
           </div>

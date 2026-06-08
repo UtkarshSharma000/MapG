@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from 'react-router-dom';
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
-import TrajectoryOptimizer, { OptimizeResult } from "./TrajectoryOptimizer";
+import { OptimizeResult } from "./TrajectoryOptimizer";
 import { scanPorkchop } from "./workers/trajectory.worker";
 import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
@@ -838,18 +838,7 @@ export default function App() {
       <div
         className={`absolute inset-0 z-30 pointer-events-none flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-100" : "opacity-0"}`}
       >
-        {isSimulatorRunning && showMissionPanel && (
-          <Draggable nodeRef={trajectoryNodeRef} handle=".trajectory-drag-handle" position={trajectoryPos} onStop={onDragStopTrajectory}>
-            <div ref={trajectoryNodeRef} className="fixed z-40 pointer-events-auto" style={{ left: 32 + 310, top: 144 }}>
-              <TrajectoryOptimizer
-                originId={getSimulatedOriginId()}
-                destId={getSimulatedDestId()}
-                globalTimeRef={globalTimeRef}
-                onApply={handleApply}
-              />
-            </div>
-          </Draggable>
-        )}
+        {/* TrajectoryOptimizer removed per user request */}
         {isSimulatorRunning && (
           <LaunchHUD
             selectedTarget={selectedTarget}
