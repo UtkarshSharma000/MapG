@@ -156,7 +156,7 @@ export default function SpaceExplorationPanel({
               className="text-[25vw] sm:text-[30vw] font-headline-md italic font-black leading-none whitespace-nowrap text-white select-none"
               style={{ transform: 'translateX(0%)', textShadow: '0 0 40px rgba(255,255,255,0.1)', willChange: 'transform' }}
             >
-              SOLAR &nbsp;&nbsp;&nbsp;&nbsp; ORBITAL &nbsp;&nbsp;&nbsp;&nbsp; INTERCEPT &nbsp;&nbsp;&nbsp;&nbsp; SOLAR &nbsp;&nbsp;&nbsp;&nbsp; ORBITAL &nbsp;&nbsp;&nbsp;&nbsp; INTERCEPT &nbsp;&nbsp;&nbsp;&nbsp; SOLAR
+              THE ODYSSEY 2026 &nbsp;&nbsp;&nbsp;&nbsp; THE ODYSSEY 2026 &nbsp;&nbsp;&nbsp;&nbsp; THE ODYSSEY 2026 &nbsp;&nbsp;&nbsp;&nbsp; THE ODYSSEY 2026
             </h1>
           </div>
           

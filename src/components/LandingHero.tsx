@@ -55,10 +55,10 @@ export default function LandingHero({
       >
         <div className="w-full md:w-1/2 pt-[30vh]">
           <h2 className="text-white text-5xl md:text-7xl lg:text-[100px] leading-[0.9] font-headline-md font-bold italic mb-6">
-            Astral <br/> Mechanics
+            Orbital <br/> Paths
           </h2>
           <p className="text-[#a0a0a0] font-label-caps text-sm md:text-base uppercase tracking-[0.2em] max-w-sm mb-12">
-            The mathematical manifestation of orbital trajectories. Simulating deep space pathways with high precision.
+            High-precision simulation of celestial trajectories.
           </p>
 
           <div className="flex items-center gap-6">
