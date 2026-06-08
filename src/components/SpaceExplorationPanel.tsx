@@ -27,6 +27,7 @@ export default function SpaceExplorationPanel({
   const hudStatusRef = React.useRef<HTMLSpanElement>(null);
   const hudRouteRef = React.useRef<HTMLSpanElement>(null);
   const hudPathRef = React.useRef<HTMLSpanElement>(null);
+  const maxTextRef = React.useRef<HTMLHeadingElement>(null);
 
   React.useEffect(() => {
     let frame: number;
@@ -58,33 +59,39 @@ export default function SpaceExplorationPanel({
           hudStatusRef.current.style.animation = 'pulse 0.2s 3';
         }
 
-        if (hudGlowRef.current) {
-          hudGlowRef.current.className = "absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,180,255,0.02)_0%,transparent_70%)] pointer-events-none z-10 transition-colors duration-1000";
+        if (maxTextRef.current) {
+          if (phase === 0) maxTextRef.current.textContent = "SOLAR";
+          else if (phase === 1) maxTextRef.current.textContent = "ORBITAL";
+          else maxTextRef.current.textContent = "INTERCEPT";
         }
         
         if (hudStatusRef.current && hudRouteRef.current && hudPathRef.current) {
           if (phase === 0) {
-            hudStatusRef.current.className = "text-primary font-bold transition-colors";
+            hudStatusRef.current.className = "text-white font-bold transition-colors";
             hudStatusRef.current.textContent = "ONLINE";
-            hudRouteRef.current.className = "text-emerald-400 font-bold transition-colors";
-            hudPathRef.current.className = "text-blue-400 font-bold transition-colors";
-            if (progressBarRef.current) progressBarRef.current.className = "bg-primary h-full transition-all duration-75 relative";
+            hudRouteRef.current.className = "text-white font-bold transition-colors";
+            hudPathRef.current.className = "text-white font-bold transition-colors";
+            if (progressBarRef.current) progressBarRef.current.className = "bg-white h-full transition-all duration-75 relative";
           } else if (phase === 1) {
-            hudStatusRef.current.className = "text-amber-500 font-bold transition-colors";
-            hudStatusRef.current.textContent = "HOHMANN TRANSFER";
-            hudRouteRef.current.className = "text-amber-400 font-bold transition-colors";
-            hudPathRef.current.className = "text-orange-400 font-bold animate-pulse transition-colors";
-            if (progressBarRef.current) progressBarRef.current.className = "bg-amber-500 h-full transition-all duration-75 relative";
+            hudStatusRef.current.className = "text-white font-bold transition-colors";
+            hudStatusRef.current.textContent = "TRANSFER";
+            hudRouteRef.current.className = "text-white font-bold transition-colors";
+            hudPathRef.current.className = "text-white font-bold animate-pulse transition-colors";
+            if (progressBarRef.current) progressBarRef.current.className = "bg-white h-full transition-all duration-75 relative";
           } else {
-            hudStatusRef.current.className = "text-red-500 font-bold animate-pulse transition-colors";
-            hudStatusRef.current.textContent = "INTERCEPT ALIGNMENT";
-            hudRouteRef.current.className = "text-rose-500 font-bold transition-colors";
-            hudPathRef.current.className = "text-red-600 font-bold animate-pulse transition-colors";
-            if (progressBarRef.current) progressBarRef.current.className = "bg-red-500 h-full transition-all duration-75 relative";
+            hudStatusRef.current.className = "text-white font-bold animate-pulse transition-colors";
+            hudStatusRef.current.textContent = "ALIGNMENT";
+            hudRouteRef.current.className = "text-white font-bold transition-colors";
+            hudPathRef.current.className = "text-white font-bold animate-pulse transition-colors";
+            if (progressBarRef.current) progressBarRef.current.className = "bg-white h-full transition-all duration-75 relative";
           }
         }
 
         oldPhase = phase;
+      }
+
+      if (maxTextRef.current) {
+         maxTextRef.current.style.transform = `translateX(${(0.5 - scrollProgress) * 30}%)`;
       }
 
       const applyBoxStyle = (ref: React.RefObject<HTMLDivElement | null>, opacity: number, transform: string, visibility: string) => {
@@ -147,8 +154,19 @@ export default function SpaceExplorationPanel({
         {/* Sticky viewport content container */}
         <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden pointer-events-none">
           
+          {/* Maximalist Background Typography */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-75 mix-blend-overlay z-0 pointer-events-none overflow-hidden">
+            <h1 
+              ref={maxTextRef}
+              className="text-[25vw] sm:text-[30vw] font-headline-md italic font-black leading-none whitespace-nowrap text-white select-none"
+              style={{ transform: 'translateX(0%)', textShadow: '0 0 40px rgba(255,255,255,0.1)' }}
+            >
+              SOLAR
+            </h1>
+          </div>
+          
           {/* Subtle tech background grids exclusively visible here */}
-          <div ref={hudGlowRef} className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,180,255,0.03)_0%,transparent_70%)] pointer-events-none z-10 transition-colors duration-1000"></div>
+          <div ref={hudGlowRef} className="absolute inset-0 z-10 transition-colors duration-1000"></div>
           
           {/* Graphical Telemetry Overlay */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-50 stroke-primary/30" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -199,60 +217,60 @@ export default function SpaceExplorationPanel({
             {/* Narrative Step 1: Core Star System Nucleus */}
             <div 
               ref={box1Ref}
-              className="absolute left-6 md:left-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left opacity-0 invisible"
+              className="absolute left-6 md:left-24 max-w-xs md:max-w-sm bg-black border border-white/20 p-8 transition-all duration-500 text-left opacity-0 invisible"
             >
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-                <span className="font-mono text-[9px] text-primary tracking-widest uppercase">SUN // STAGE 1</span>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-2 h-2 bg-white"></span>
+                <span className="font-mono text-[10px] text-white tracking-[0.2em] uppercase">SUN // STAGE 1</span>
               </div>
-              <h4 className="font-display-lg text-sm font-bold text-white uppercase tracking-wide mb-1">The Center of the Solar System</h4>
-              <p className="text-[11px] text-white/60 leading-relaxed font-light">
-                The sun is the starting point. Its strong gravity pulls everything and sets the rules for how planets move.
+              <h4 className="font-headline-md italic text-3xl text-white mb-2 leading-tight">Nucleus</h4>
+              <p className="font-body-rg text-sm text-white/70 leading-relaxed uppercase tracking-wider">
+                The massive gravity well dictating planetary motion. Precision mathematics starts here.
               </p>
             </div>
 
             {/* Narrative Step 2: Inner Terrestrial Zones */}
             <div 
               ref={box2Ref}
-              className="absolute right-6 md:right-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left opacity-0 invisible"
+              className="absolute right-6 md:right-24 max-w-xs md:max-w-sm bg-black border border-white/20 p-8 transition-all duration-500 text-left opacity-0 invisible"
             >
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                <span className="font-mono text-[9px] text-amber-400 tracking-widest uppercase">HOT PLANETS // STAGE 2</span>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-2 h-2 bg-white"></span>
+                <span className="font-mono text-[10px] text-white tracking-[0.2em] uppercase">MERCURY & VENUS // STAGE 2</span>
               </div>
-              <h4 className="font-display-lg text-sm font-bold text-white uppercase tracking-wide mb-1">Mercury & Venus</h4>
-              <p className="text-[11px] text-white/60 leading-relaxed font-light">
-                Plotting paths near the sun is hard because the gravity is very strong, requiring careful math.
+              <h4 className="font-headline-md italic text-3xl text-white mb-2 leading-tight">Terrestrial</h4>
+              <p className="font-body-rg text-sm text-white/70 leading-relaxed uppercase tracking-wider">
+                Heavy gravity and heat distort classical trajectories. Navigation requires higher delta-v.
               </p>
             </div>
 
             {/* Narrative Step 3: Celestial Home World */}
             <div 
               ref={box3Ref}
-              className="absolute left-6 md:left-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left opacity-0 invisible"
+              className="absolute left-6 md:left-24 max-w-xs md:max-w-sm bg-black border border-white/20 p-8 transition-all duration-500 text-left opacity-0 invisible"
             >
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
-                <span className="font-mono text-[9px] text-blue-400 tracking-widest uppercase">EARTH BASE // STAGE 3</span>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-2 h-2 bg-white"></span>
+                <span className="font-mono text-[10px] text-white tracking-[0.2em] uppercase">EARTH & MOON // STAGE 3</span>
               </div>
-              <h4 className="font-display-lg text-sm font-bold text-white uppercase tracking-wide mb-1">Earth and Moon</h4>
-              <p className="text-[11px] text-white/60 leading-relaxed font-light">
-                The Earth and moon make a great starting block, using their movement to help push spacecraft into deep space.
+              <h4 className="font-headline-md italic text-3xl text-white mb-2 leading-tight">Origin</h4>
+              <p className="font-body-rg text-sm text-white/70 leading-relaxed uppercase tracking-wider">
+                The launch pad. We exploit planetary velocity to fling deeper into the void.
               </p>
             </div>
 
             {/* Narrative Step 4: Deeper Frontiers */}
             <div 
               ref={box4Ref}
-              className="absolute right-6 md:right-12 max-w-xs md:max-w-sm bg-gray-900 border border-gray-700 p-6 rounded-xl transition-all duration-500 text-left opacity-0 invisible"
+              className="absolute right-6 md:right-24 max-w-xs md:max-w-sm bg-black border border-white/20 p-8 transition-all duration-500 text-left opacity-0 invisible"
             >
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
-                <span className="font-mono text-[9px] text-purple-400 tracking-widest uppercase">GIANT PLANETS // STAGE 4</span>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-2 h-2 bg-white"></span>
+                <span className="font-mono text-[10px] text-white tracking-[0.2em] uppercase">DEEP MAP // STAGE 4</span>
               </div>
-              <h4 className="font-display-lg text-sm font-bold text-white uppercase tracking-wide mb-1">To Mars & Jupiter</h4>
-              <p className="text-[11px] text-white/60 leading-relaxed font-light">
-                As we look further out, the heavy gravity of big planets like Jupiter changes how paths are calculated.
+              <h4 className="font-headline-md italic text-3xl text-white mb-2 leading-tight">Intercept</h4>
+              <p className="font-body-rg text-sm text-white/70 leading-relaxed uppercase tracking-wider">
+                Mars transit achieved. Aligning inclination and matching orbital speed for capture.
               </p>
             </div>
 

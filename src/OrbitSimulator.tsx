@@ -1245,7 +1245,7 @@ function SystemEngine({
       const rawS = cinematicScrollRef.current;
       
       // Smooth the scroll target
-      const lerpSpeed = 1 - Math.exp(-safeDelta * 5);
+      const lerpSpeed = 1 - Math.exp(-safeDelta * 3);
       smoothedScrollRef.current += (rawS - smoothedScrollRef.current) * lerpSpeed;
       const s = smoothedScrollRef.current;
 
@@ -1261,25 +1261,38 @@ function SystemEngine({
       const tpM = new THREE.Vector3(pM[0]*POS_SCALE, pM[2]*POS_SCALE, -pM[1]*POS_SCALE);
 
       // Camera Choreography
-      // Top down (0.0), Horizon burn (0.5), Intercept (1.0)
-      if (s < 0.25) {
-        // Blueprint view (top-down)
-        state.camera.position.lerp(new THREE.Vector3(0, 400, 0), lerpSpeed);
-        if (controlsRef.current) {
-          controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), lerpSpeed);
-        }
-      } else if (s < 0.65) {
-        // Horizon Burn / inner solar system tracking Earth exactly (no delay on the target itself)
-        state.camera.position.lerp(new THREE.Vector3(tpE.x + 15, tpE.y + 5, tpE.z + 15), lerpSpeed);
-        if (controlsRef.current) {
-          controlsRef.current.target.copy(tpE);
-        }
+      let camPos = new THREE.Vector3();
+      let camLook = new THREE.Vector3();
+
+      if (s < 0.2) {
+        // Blueprint view
+        camPos.set(0, 400, 0);
+        camLook.set(0, 0, 0);
+      } else if (s < 0.4) {
+        // Transition: Blueprint -> Earth
+        const t = (s - 0.2) / 0.2;
+        const ease = t * t * (3 - 2 * t);
+        camPos.set(0, 400, 0).lerp(new THREE.Vector3(tpE.x + 15, tpE.y + 5, tpE.z + 15), ease);
+        camLook.set(0, 0, 0).lerp(tpE, ease);
+      } else if (s < 0.6) {
+        // Track Earth exactly
+        camPos.set(tpE.x + 15, tpE.y + 5, tpE.z + 15);
+        camLook.copy(tpE);
+      } else if (s < 0.8) {
+        // Transition: Earth -> Mars
+        const t = (s - 0.6) / 0.2;
+        const ease = t * t * (3 - 2 * t);
+        camPos.set(tpE.x + 15, tpE.y + 5, tpE.z + 15).lerp(new THREE.Vector3(tpM.x + 20, tpM.y + 10, tpM.z + 20), ease);
+        camLook.copy(tpE).lerp(tpM, ease);
       } else {
-        // Intercept Mars tracking exactly
-        state.camera.position.lerp(new THREE.Vector3(tpM.x + 20, tpM.y + 10, tpM.z + 20), lerpSpeed);
-        if (controlsRef.current) {
-          controlsRef.current.target.copy(tpM);
-        }
+        // Track Mars exactly
+        camPos.set(tpM.x + 20, tpM.y + 10, tpM.z + 20);
+        camLook.copy(tpM);
+      }
+
+      state.camera.position.copy(camPos);
+      if (controlsRef.current) {
+        controlsRef.current.target.copy(camLook);
       }
 
       if (controlsRef.current) {
