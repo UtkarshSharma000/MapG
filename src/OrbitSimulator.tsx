@@ -1179,6 +1179,7 @@ function SystemEngine({
 }) {
   const controlsRef = useRef<any>(null);
   const currentTargetName = useRef(selectedTarget?.name || "Sun");
+  const lastActiveTargetPosRef = useRef<THREE.Vector3 | null>(null);
   const [isLocked, setIsLocked] = useState(true);
   const [realTimeSeconds, setRealTimeSeconds] = useState(0);
 
@@ -1204,7 +1205,20 @@ function SystemEngine({
   useEffect(() => {
     setIsLocked(true);
     setSpectatedLabel(null);
-  }, [selectedTarget]);
+
+    if (!isCinematic) {
+      let targetPos = new THREE.Vector3(0, 0, 0);
+      if (selectedTarget) {
+        const [x, y, z] = propagateOrbit(selectedTarget.elements, globalTimeRef.current);
+        targetPos.set(x * POS_SCALE, z * POS_SCALE, -y * POS_SCALE);
+      }
+      camera.position.set(targetPos.x, targetPos.y + 150, targetPos.z + 400);
+      if (controlsRef.current) {
+        controlsRef.current.target.copy(targetPos);
+        controlsRef.current.update();
+      }
+    }
+  }, [selectedTarget, isCinematic, camera]);
 
   // Save preset trigger
   useEffect(() => {
@@ -1236,6 +1250,23 @@ function SystemEngine({
       controlsRef.current.update();
     }
   }, [resetCameraTrigger, camera]);
+
+  // Handle transition from landing-page cinematic mode back to engine mode
+  useEffect(() => {
+    if (!isCinematic) {
+      let targetPos = new THREE.Vector3(0, 0, 0);
+      if (selectedTarget) {
+        const [x, y, z] = propagateOrbit(selectedTarget.elements, globalTimeRef.current);
+        targetPos.set(x * POS_SCALE, z * POS_SCALE, -y * POS_SCALE);
+      }
+      camera.position.set(targetPos.x, targetPos.y + 150, targetPos.z + 400);
+      if (controlsRef.current) {
+        controlsRef.current.target.copy(targetPos);
+        controlsRef.current.update();
+      }
+      setIsLocked(true);
+    }
+  }, [isCinematic, selectedTarget, camera]);
 
   useFrame((state, delta) => {
     // Limit delta to prevent huge jumps from tab switching
@@ -1317,63 +1348,47 @@ function SystemEngine({
         setSpectatedLabel(null);
       }
 
-      if (controlsRef.current && isLocked) {
-        let finalLerpedTarget: THREE.Vector3;
-        const currentTarget = controlsRef.current.target;
+      if (controlsRef.current) {
+        let activeTargetPos = new THREE.Vector3(0, 0, 0);
 
         if (spectatedLabel && spectatingObjRef.current) {
-          const pos = new THREE.Vector3();
-          spectatingObjRef.current.getWorldPosition(pos);
-          
-          const lerpFactor = 1 - Math.exp(-safeDelta * 6);
-          finalLerpedTarget = currentTarget.clone().lerp(pos, lerpFactor);
-        } else {
-          let targetX = 0,
-            targetY = 0,
-            targetZ = 0;
-
-          if (selectedTarget) {
-            const [x, y, z] = propagateOrbit(
-              selectedTarget.elements,
-              globalTimeRef.current,
-            );
-            targetX = x * POS_SCALE;
-            targetY = z * POS_SCALE;
-            targetZ = -y * POS_SCALE;
-          }
-
-          const newTarget = new THREE.Vector3(targetX, targetY, targetZ);
-          const targetName = selectedTarget ? selectedTarget.name : "Sun";
-
-          if (currentTargetName.current !== targetName) {
-            currentTargetName.current = targetName;
-          }
-
-          const lerpFactor = 1 - Math.exp(-safeDelta * 6);
-          finalLerpedTarget = currentTarget.clone().lerp(newTarget, lerpFactor);
+          spectatingObjRef.current.getWorldPosition(activeTargetPos);
+        } else if (selectedTarget) {
+          const [x, y, z] = propagateOrbit(
+            selectedTarget.elements,
+            globalTimeRef.current,
+          );
+          activeTargetPos.set(x * POS_SCALE, z * POS_SCALE, -y * POS_SCALE);
         }
 
-        const displacement = finalLerpedTarget.clone().sub(currentTarget);
+        const targetName = spectatedLabel || (selectedTarget ? selectedTarget.name : "Sun");
+        const targetChanged = currentTargetName.current !== targetName;
 
-        // Update target and camera position to track smoothly
-        controlsRef.current.target.copy(finalLerpedTarget);
+        if (targetChanged) {
+          currentTargetName.current = targetName;
+          lastActiveTargetPosRef.current = activeTargetPos.clone();
+        }
+
+        let displacement = new THREE.Vector3(0, 0, 0);
+        if (lastActiveTargetPosRef.current && !targetChanged) {
+          displacement.copy(activeTargetPos).sub(lastActiveTargetPosRef.current);
+        }
+
+        // Apply orbital motion translation displacement to track perfectly
+        controlsRef.current.target.add(displacement);
         state.camera.position.add(displacement);
-      }
 
-      // Camera and orbit target logging on every frame
-      console.log("camera", state.camera.position.toArray());
-      if (controlsRef.current) {
-        console.log("target", controlsRef.current.target.toArray());
-      }
+        // If locked to target, smoothly slide the target centered (correcting any manual panning)
+        if (isLocked) {
+          const lerpFactor = 1 - Math.exp(-safeDelta * 6);
+          const beforeLerp = controlsRef.current.target.clone();
+          controlsRef.current.target.lerp(activeTargetPos, lerpFactor);
+          const correction = controlsRef.current.target.clone().sub(beforeLerp);
+          state.camera.position.add(correction);
+        }
 
-      // Instrumentation and debugging logs (throttled)
-      if (state.clock.getElapsedTime() % 2.0 < 0.05) {
-        console.log("[OrbitControls Instrumentation] Status:", {
-          controlsEnabled: controlsRef.current?.enabled,
-          controlsTarget: controlsRef.current?.target?.clone(),
-          cameraPosition: state.camera.position.clone(),
-          pointer: { x: state.pointer.x, y: state.pointer.y }
-        });
+        // Cache position for next frame
+        lastActiveTargetPosRef.current = activeTargetPos.clone();
       }
 
       // CRITICAL camera fix: controls update must be called after modifications and for damping every frame
@@ -1483,9 +1498,7 @@ function SystemEngine({
         enableDamping={true}
         dampingFactor={0.05}
         maxDistance={2000000}
-        onStart={() => console.log("ORBIT START")}
-        onChange={() => console.log("ORBIT CHANGE")}
-        onEnd={() => console.log("ORBIT END")}
+        onStart={() => setIsLocked(false)}
         makeDefault
       />
     </>
@@ -1539,7 +1552,7 @@ export default function OrbitSimulator({
 
   return (
     <div
-      className={`absolute inset-0 transition-opacity duration-1000 ${isRunning ? "opacity-100 z-10 pointer-events-auto bg-[#03060f]" : "opacity-100 z-[-10] pointer-events-none"}`}
+      className={`absolute inset-0 transition-opacity duration-1000 ${isRunning ? "opacity-100 z-25 pointer-events-auto bg-[#03060f]" : "opacity-100 z-[-10] pointer-events-none"}`}
     >
       {isCalculating && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">
