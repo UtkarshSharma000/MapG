@@ -13,6 +13,13 @@ import { scanPorkchop } from "./workers/trajectory.worker";
 import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
 
+// Modular Extracted Components
+import LandingHero from "./components/LandingHero";
+import InteractiveBridge from "./components/InteractiveBridge";
+import SpaceExplorationPanel from "./components/SpaceExplorationPanel";
+import MathPhysicsShowcase from "./components/MathPhysicsShowcase";
+import StaggeredMenu from "./components/StaggeredMenu";
+
 const J2000_UNIX = 946728000;
 
 const PLANET_STATS: Record<string, { mass: string; gravity: string; atmosphere: string; temp: string }> = {
@@ -1334,39 +1341,43 @@ export default function App() {
 
       {/* Landing Page Content */}
       <div className={`transition-opacity duration-1000 ${!isSimulatorRunning ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none z-[-1]'}`}>
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black overflow-hidden">
-          {/* Simple Animated Grid Background */}
-          <div className="absolute inset-0 tech-grid-bg opacity-30"></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
-            className="text-center z-20"
+          <div
+            ref={landingScrollRef}
+            className="landing-scroller absolute inset-0 z-20 flex flex-col pointer-events-auto overflow-y-auto"
           >
-            <motion.h1 
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 2, ease: "easeOut" }}
-              className="text-6xl md:text-8xl font-black text-white tracking-widest uppercase mb-4 jitter-text"
-            >
-              SOLAR<span className="text-primary-fixed">_OS</span>
-            </motion.h1>
-            <p className="text-secondary text-xs w-full max-w-sm md:max-w-none mx-auto md:text-base tracking-[0.3em] uppercase mb-16 border-y border-white/10 py-4 opacity-80">
-              Orbital Mechanics & Astrodynamics Simulator
-            </p>
-            
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsSimulatorRunning(true)}
-              className="px-8 py-4 border-2 border-primary-fixed text-primary-fixed text-sm md:text-base font-bold tracking-widest uppercase hover:bg-primary-fixed hover:text-black transition-colors"
-            >
-              INITIALIZE SYSTEM
-            </motion.button>
-          </motion.div>
-        </div>
+            <StaggeredMenu
+              position="right"
+              onLaunchCore={() => setIsSimulatorRunning(true)}
+              items={[
+                { 
+                  label: 'Launch Simulator', 
+                  onClick: () => setIsSimulatorRunning(true),
+                },
+                { 
+                  label: 'Srinivasa Project', 
+                  link: 'https://Srinivasa.2bd.net',
+                },
+              ]}
+            />
+
+            <main className="bg-black">
+              <LandingHero
+                isSimulatorRunning={isSimulatorRunning}
+                setIsSimulatorRunning={setIsSimulatorRunning}
+                landingScrollRef={landingScrollRef}
+              />
+              <InteractiveBridge />
+              <SpaceExplorationPanel
+                cinematicSectionRef={cinematicSectionRef}
+                scrollProgressRef={scrollProgressRef}
+                landingScrollRef={landingScrollRef}
+              />
+              <MathPhysicsShowcase
+                setIsSimulatorRunning={setIsSimulatorRunning}
+                landingScrollRef={landingScrollRef}
+              />
+            </main>
+          </div>
       </div>
 
       {showMobileBlock && (

@@ -77,6 +77,10 @@ body {
   animation: gridPulse 4s infinite alternate;
 }
 
+.stargate-gradient {
+  background: radial-gradient(circle at center, rgba(255, 176, 0, 0.2) 0%, transparent 60%);
+}
+
 @keyframes gridPulse {
   0% { opacity: 0.8; }
   100% { opacity: 1; }
