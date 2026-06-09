@@ -810,10 +810,6 @@ export default function App() {
   return (
     <div className="w-full h-screen relative bg-background text-on-background overflow-hidden tech-grid-bg flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed">
 
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={scrollProgressRef} />
-      </div>
-
       <div className={`absolute inset-0 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? 'opacity-100 pointer-events-auto z-10' : 'opacity-0 pointer-events-none z-[-1]'}`}>
         <div className="scanline z-50 pointer-events-none"></div>
         <div className="crosshair z-50 pointer-events-none"></div>
