@@ -39,179 +39,220 @@ uniform float uScrollProgress;
 
 varying vec2 vUv;
 
-float hash(vec2 p) {
-    p = fract(p * vec2(123.34, 456.21));
-    p += dot(p, p + 45.32);
-    return fract(p.x * p.y);
+#define NUM_LAYER 4.0
+#define STAR_COLOR_CUTOFF 0.2
+#define MAT45 mat2(0.7071, -0.7071, 0.7071, 0.7071)
+#define PERIOD 3.0
+
+float Hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
 }
 
-float noise(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    float a = hash(i);
-    float b = hash(i + vec2(1.0, 0.0));
-    float c = hash(i + vec2(0.0, 1.0));
-    float d = hash(i + vec2(1.0, 1.0));
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+float tri(float x) {
+  return abs(fract(x) * 2.0 - 1.0);
 }
 
-float fbm(vec2 p) {
-    float v = 0.0;
-    float a = 0.5;
-    vec2 shift = vec2(100.0);
-    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
-    for (int i = 0; i < 5; ++i) {
-        v += a * noise(p);
-        p = rot * p * 2.0 + shift;
-        a *= 0.5;
+float tris(float x) {
+  float t = fract(x);
+  return 1.0 - smoothstep(0.0, 1.0, abs(2.0 * t - 1.0));
+}
+
+float trisn(float x) {
+  float t = fract(x);
+  return 2.0 * (1.0 - smoothstep(0.0, 1.0, abs(2.0 * t - 1.0))) - 1.0;
+}
+
+vec3 hsv2rgb(vec3 c) {
+  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+float Star(vec2 uv, float flare) {
+  float d = length(uv);
+  float m = (0.05 * uGlowIntensity) / d;
+  float rays = smoothstep(0.0, 1.0, 1.0 - abs(uv.x * uv.y * 1000.0));
+  m += rays * flare * uGlowIntensity;
+  uv *= MAT45;
+  rays = smoothstep(0.0, 1.0, 1.0 - abs(uv.x * uv.y * 1000.0));
+  m += rays * 0.3 * flare * uGlowIntensity;
+  m *= smoothstep(1.0, 0.2, d);
+  return m;
+}
+
+vec3 StarLayer(vec2 uv) {
+  vec3 col = vec3(0.0);
+
+  vec2 gv = fract(uv) - 0.5; 
+  vec2 id = floor(uv);
+
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      vec2 offset = vec2(float(x), float(y));
+      vec2 si = id + vec2(float(x), float(y));
+      float seed = Hash21(si);
+      float size = fract(seed * 345.32);
+      float glossLocal = tri(uStarSpeed / (PERIOD * seed + 1.0));
+      float flareSize = smoothstep(0.9, 1.0, size) * glossLocal;
+
+      float red = smoothstep(STAR_COLOR_CUTOFF, 1.0, Hash21(si + 1.0)) + STAR_COLOR_CUTOFF;
+      float blu = smoothstep(STAR_COLOR_CUTOFF, 1.0, Hash21(si + 3.0)) + STAR_COLOR_CUTOFF;
+      float grn = min(red, blu) * seed;
+      vec3 base = vec3(red, grn, blu);
+      
+      float hue = atan(base.g - base.r, base.b - base.r) / (2.0 * 3.14159) + 0.5;
+      hue = fract(hue + uHueShift / 360.0);
+      float sat = length(base - vec3(dot(base, vec3(0.299, 0.587, 0.114)))) * uSaturation;
+      float val = max(max(base.r, base.g), base.b);
+      base = hsv2rgb(vec3(hue, sat, val));
+
+      vec2 pad = vec2(tris(seed * 34.0 + uTime * uSpeed / 10.0), tris(seed * 38.0 + uTime * uSpeed / 30.0)) - 0.5;
+
+      float star = Star(gv - offset - pad, flareSize);
+      vec3 color = base;
+
+      float twinkle = trisn(uTime * uSpeed + seed * 6.2831) * 0.5 + 1.0;
+      twinkle = mix(1.0, twinkle, uTwinkleIntensity);
+      star *= twinkle;
+      
+      col += star * size * color;
     }
-    return v;
+  }
+
+  return col;
 }
 
 void main() {
-    vec2 uv = vUv;
-    vec2 p = (uv - 0.5) * 2.0;
-    p.x *= uResolution.x / uResolution.y;
+  vec2 focalPx = uFocal * uResolution.xy;
+  vec2 uv = (vUv * uResolution.xy - focalPx) / uResolution.y;
 
-    float n = fbm(p * 0.8 + uTime * 0.05);
-    vec3 color1 = vec3(0.005, 0.008, 0.015); 
-    vec3 color2 = vec3(0.01, 0.02, 0.04); 
-    vec3 color3 = vec3(0.02, 0.035, 0.06);  
+  vec2 mouseNorm = uMouse - vec2(0.5);
+  
+  if (uAutoCenterRepulsion > 0.0) {
+    vec2 centerUV = vec2(0.0, 0.0);
+    float centerDist = length(uv - centerUV);
+    vec2 repulsion = normalize(uv - centerUV) * (uAutoCenterRepulsion / (centerDist + 0.1));
+    uv += repulsion * 0.05;
+  } else if (uMouseRepulsion) {
+    vec2 mousePosUV = (uMouse * uResolution.xy - focalPx) / uResolution.y;
+    float mouseDist = length(uv - mousePosUV);
+    vec2 repulsion = normalize(uv - mousePosUV) * (uRepulsionStrength / (mouseDist + 0.1));
+    uv += repulsion * 0.05 * uMouseActiveFactor;
+  } else {
+    vec2 mouseOffset = mouseNorm * 0.1 * uMouseActiveFactor;
+    uv += mouseOffset;
+  }
 
-    vec3 finalColor = mix(color1, color2, fbm(p + uTime * 0.02));
-    finalColor = mix(finalColor, color3, fbm(p * 1.5 - uTime * 0.03));
+  // Camera Zoom Out cinematic effect as you scroll
+  float zoom = 1.0 + uScrollProgress * 4.5;
+  uv *= zoom;
+
+  float autoRotAngle = uTime * uRotationSpeed;
+  mat2 autoRot = mat2(cos(autoRotAngle), -sin(autoRotAngle), sin(autoRotAngle), cos(autoRotAngle));
+  uv = autoRot * uv;
+
+  uv = mat2(uRotation.x, -uRotation.y, uRotation.y, uRotation.x) * uv;
+
+  vec3 col = vec3(0.0);
+
+  // Render original layered nebula starfield
+  for (float i = 0.0; i < 1.0; i += 1.0 / NUM_LAYER) {
+    float depth = fract(i + uStarSpeed * uSpeed);
+    float scale = mix(20.0 * uDensity, 0.5 * uDensity, depth);
+    float fade = depth * smoothstep(1.0, 0.9, depth);
+    col += StarLayer(uv * scale + i * 453.32) * fade;
+  }
+
+  // Render Interactive Solar System
+  vec3 solarCol = vec3(0.0);
+  float sProgress = uScrollProgress;
+  if (sProgress > 0.01) {
+    float d = length(uv);
     
-    float glow = pow(n, 3.0) * 1.5;
-    finalColor += glow * vec3(0.3, 0.5, 0.8) * 0.3;
-
-    float stars = pow(hash(uv + floor(uTime * 0.0001)), 500.0);
-    stars += pow(hash(uv * 1.2 + 0.5), 1000.0) * (0.5 + 0.5 * sin(uTime + hash(uv)*10.0));
-    finalColor += stars * 0.8;
-
-    vec2 mouse = uMouse;
-    float mouseGlow = 0.05 / (length(uv - mouse) + 0.01);
-    finalColor += mouseGlow * vec3(0.4, 0.6, 1.0) * 0.15 * uMouseActiveFactor;
-
-    vec3 col = finalColor;
-
-    // Render Interactive Solar System
-    vec3 solarCol = vec3(0.0);
-    float sProgress = uScrollProgress;
-    if (sProgress > 0.01) {
-      vec2 focalPx = uFocal * uResolution.xy;
-      vec2 solUV = (vUv * uResolution.xy - focalPx) / uResolution.y;
-      vec2 mouseNorm = uMouse - vec2(0.5);
-
-      if (uAutoCenterRepulsion > 0.0) {
-        vec2 centerUV = vec2(0.0, 0.0);
-        float centerDist = length(solUV - centerUV);
-        vec2 repulsion = normalize(solUV - centerUV) * (uAutoCenterRepulsion / (centerDist + 0.1));
-        solUV += repulsion * 0.05;
-      } else if (uMouseRepulsion) {
-        vec2 mousePosUV = (uMouse * uResolution.xy - focalPx) / uResolution.y;
-        float mouseDist = length(solUV - mousePosUV);
-        vec2 repulsion = normalize(solUV - mousePosUV) * (uRepulsionStrength / (mouseDist + 0.1));
-        solUV += repulsion * 0.05 * uMouseActiveFactor;
-      } else {
-        vec2 mouseOffset = mouseNorm * 0.1 * uMouseActiveFactor;
-        solUV += mouseOffset;
-      }
-
-      // Camera Zoom Out cinematic effect as you scroll
-      float zoom = 1.0 + sProgress * 4.5;
-      solUV *= zoom;
-
-      float autoRotAngle = uTime * uRotationSpeed;
-      mat2 autoRot = mat2(cos(autoRotAngle), -sin(autoRotAngle), sin(autoRotAngle), cos(autoRotAngle));
-      solUV = autoRot * solUV;
-
-      solUV = mat2(uRotation.x, -uRotation.y, uRotation.y, uRotation.x) * solUV;
-
-      float d = length(solUV);
+    // 1. Central Core Sun
+    float sunGlow = 0.12 / (d + 0.04);
+    solarCol += vec3(1.0, 0.82, 0.35) * sunGlow * smoothstep(0.0, 0.3, sProgress);
+    
+    // Orbit 1 (Mercury)
+    {
+      float r = 0.35;
+      float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.001);
+      solarCol += vec3(0.4, 0.65, 1.0) * ring * 0.35 * sProgress;
       
-      // 1. Central Core Sun
-      float sunGlow = 0.12 / (d + 0.04);
-      solarCol += vec3(1.0, 0.82, 0.35) * sunGlow * smoothstep(0.0, 0.3, sProgress);
-      
-      // Orbit 1 (Mercury)
-      {
-        float r = 0.35;
-        float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.001);
-        solarCol += vec3(0.4, 0.65, 1.0) * ring * 0.35 * sProgress;
-        
-        float angle = uTime * 1.5 + 1.2;
-        vec2 pPos = vec2(cos(angle), sin(angle)) * r;
-        float pGlow = 0.005 / (length(solUV - pPos) + 0.004);
-        solarCol += vec3(0.5, 0.75, 1.0) * pGlow * sProgress;
-      }
-      
-      // Orbit 2 (Venus)
-      {
-        float r = 0.7;
-        float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.001);
-        solarCol += vec3(0.85, 0.55, 0.3) * ring * 0.3 * sProgress;
-        
-        float angle = uTime * 0.95 + 2.8;
-        vec2 pPos = vec2(cos(angle), sin(angle)) * r;
-        float pGlow = 0.007 / (length(solUV - pPos) + 0.005);
-        solarCol += vec3(0.9, 0.6, 0.4) * pGlow * sProgress;
-      }
-      
-      // Orbit 3 (Earth & Moon)
-      {
-        float r = 1.1;
-        float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.0012);
-        solarCol += vec3(0.0, 0.65, 1.0) * ring * 0.4 * sProgress;
-        
-        float angle = uTime * 0.55 + 4.5;
-        vec2 pPos = vec2(cos(angle), sin(angle)) * r;
-        float pGlow = 0.012 / (length(solUV - pPos) + 0.008);
-        
-        // Orbiting Moon
-        float mAngle = uTime * 2.8;
-        vec2 mPos = pPos + vec2(cos(mAngle), sin(mAngle)) * 0.055;
-        float mGlow = 0.0035 / (length(solUV - mPos) + 0.003);
-        
-        solarCol += vec3(0.2, 0.75, 1.0) * pGlow * sProgress;
-        solarCol += vec3(0.85, 0.85, 0.88) * mGlow * sProgress;
-      }
-      
-      // Orbit 4 (Mars)
-      {
-        float r = 1.6;
-        float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.001);
-        solarCol += vec3(1.0, 0.4, 0.2) * ring * 0.35 * sProgress;
-        
-        float angle = uTime * 0.35 + 0.5;
-        vec2 pPos = vec2(cos(angle), sin(angle)) * r;
-        float pGlow = 0.007 / (length(solUV - pPos) + 0.005);
-        solarCol += vec3(1.0, 0.42, 0.25) * pGlow * sProgress;
-      }
-      
-      // Orbit 5 (Jupiter)
-      {
-        float r = 2.2;
-        float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.0015);
-        solarCol += vec3(0.9, 0.75, 0.5) * ring * 0.25 * sProgress;
-        
-        float angle = uTime * 0.18 + 3.1;
-        vec2 pPos = vec2(cos(angle), sin(angle)) * r;
-        float pGlow = 0.015 / (length(solUV - pPos) + 0.01);
-        solarCol += vec3(0.9, 0.75, 0.5) * pGlow * sProgress;
-      }
+      float angle = uTime * 1.5 + 1.2;
+      vec2 pPos = vec2(cos(angle), sin(angle)) * r;
+      float pGlow = 0.005 / (length(uv - pPos) + 0.004);
+      solarCol += vec3(0.5, 0.75, 1.0) * pGlow * sProgress;
     }
     
-    col += solarCol;
-
-    if (uTransparent) {
-        float alpha = length(col);
-        alpha = smoothstep(0.0, 0.3, alpha);
-        alpha = min(alpha, 1.0);
-        gl_FragColor = vec4(col, alpha);
-    } else {
-        gl_FragColor = vec4(col, 1.0);
+    // Orbit 2 (Venus)
+    {
+      float r = 0.7;
+      float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.001);
+      solarCol += vec3(0.85, 0.55, 0.3) * ring * 0.3 * sProgress;
+      
+      float angle = uTime * 0.95 + 2.8;
+      vec2 pPos = vec2(cos(angle), sin(angle)) * r;
+      float pGlow = 0.007 / (length(uv - pPos) + 0.005);
+      solarCol += vec3(0.9, 0.6, 0.4) * pGlow * sProgress;
     }
+    
+    // Orbit 3 (Earth & Moon)
+    {
+      float r = 1.1;
+      float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.0012);
+      solarCol += vec3(0.0, 0.65, 1.0) * ring * 0.4 * sProgress;
+      
+      float angle = uTime * 0.55 + 4.5;
+      vec2 pPos = vec2(cos(angle), sin(angle)) * r;
+      float pGlow = 0.012 / (length(uv - pPos) + 0.008);
+      
+      // Orbiting Moon
+      float mAngle = uTime * 2.8;
+      vec2 mPos = pPos + vec2(cos(mAngle), sin(mAngle)) * 0.055;
+      float mGlow = 0.0035 / (length(uv - mPos) + 0.003);
+      
+      solarCol += vec3(0.2, 0.75, 1.0) * pGlow * sProgress;
+      solarCol += vec3(0.85, 0.85, 0.88) * mGlow * sProgress;
+    }
+    
+    // Orbit 4 (Mars)
+    {
+      float r = 1.6;
+      float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.001);
+      solarCol += vec3(1.0, 0.4, 0.2) * ring * 0.35 * sProgress;
+      
+      float angle = uTime * 0.35 + 0.5;
+      vec2 pPos = vec2(cos(angle), sin(angle)) * r;
+      float pGlow = 0.007 / (length(uv - pPos) + 0.005);
+      solarCol += vec3(1.0, 0.42, 0.25) * pGlow * sProgress;
+    }
+    
+    // Orbit 5 (Jupiter)
+    {
+      float r = 2.2;
+      float ring = smoothstep(3.0 / uResolution.y * zoom, 0.0, abs(d - r) - 0.0015);
+      solarCol += vec3(0.9, 0.75, 0.5) * ring * 0.25 * sProgress;
+      
+      float angle = uTime * 0.18 + 3.1;
+      vec2 pPos = vec2(cos(angle), sin(angle)) * r;
+      float pGlow = 0.015 / (length(uv - pPos) + 0.01);
+      solarCol += vec3(0.9, 0.75, 0.5) * pGlow * sProgress;
+    }
+  }
+  
+  col += solarCol;
+
+  if (uTransparent) {
+    float alpha = length(col);
+    alpha = smoothstep(0.0, 0.3, alpha);
+    alpha = min(alpha, 1.0);
+    gl_FragColor = vec4(col, alpha);
+  } else {
+    gl_FragColor = vec4(col, 1.0);
+  }
 }
 `;
 

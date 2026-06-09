@@ -913,8 +913,6 @@ export default function App() {
       <div
         className={`absolute inset-0 z-30 pointer-events-none flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-100" : "opacity-0"}`}
       >
-        {/* CRT Scanline horizontal banding filter */}
-        <div className="scanlines z-50 pointer-events-none absolute inset-0"></div>
         {/* TrajectoryOptimizer removed per user request */}
         {isSimulatorRunning && (
           <LaunchHUD
