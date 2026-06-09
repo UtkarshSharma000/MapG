@@ -948,14 +948,14 @@ export default function App() {
             {/* TopAppBar */}
             <header className="border-draw flex justify-between items-center w-full px-margin h-16 border-b-2 border-primary-container bg-background/90 backdrop-blur-sm flex-shrink-0 z-50 pointer-events-auto" style={{ animationDelay: "0.1s" }}>
               <div className="flex items-center gap-gutter">
-                <h1 className="text-headline-lg font-bold text-primary-container tracking-tighter uppercase jitter-text text-xl md:text-3xl">SOLAR_OS//V.02</h1>
+                <h1 className="text-headline-lg font-bold text-primary-container tracking-tighter uppercase text-xl md:text-3xl">SRINIVASA</h1>
               </div>
               <div className="flex items-center gap-margin text-telemetry-xs font-telemetry-xs">
-                <span className="text-secondary tracking-widest hidden md:inline">SEQ_ALIGN: <span className="text-primary-fixed fast-pulse">OK</span></span>
+                <span className="text-secondary tracking-widest hidden md:inline">SEQ_ALIGN: <span className="text-primary-fixed">OK</span></span>
                 <span className="text-secondary">{new Date(globalTimeRef.current * 1000 + J2000_UNIX * 1000).toISOString().split('T')[1].split('.')[0]} UTC</span>
                 <span className="text-primary-fixed border-l-2 border-primary-container pl-4 hidden md:inline">[OP_ID: 8829_BETA]</span>
                 <div className="flex gap-2 text-primary-container">
-                  <Radio size={14} className="fast-pulse" />
+                  <Radio size={14} className="opacity-80" />
                 </div>
               </div>
             </header>
@@ -997,7 +997,6 @@ export default function App() {
 
               {/* Main Canvas Area */}
               <main className="flex-1 relative flex flex-col p-panel-padding gap-panel-padding overflow-hidden z-10 bg-transparent pointer-events-none">
-                <div className="scanline"></div>
                 <div className="crosshair"></div>
                 <div className="framing-corner corner-tl"></div>
                 <div className="framing-corner corner-tr"></div>
@@ -1009,12 +1008,12 @@ export default function App() {
                 <div className="border-draw absolute top-panel-padding left-panel-padding border-2 border-outline-variant bg-surface-container-lowest/90 backdrop-blur-md p-2 w-56 z-20 pointer-events-none" style={{ animationDelay: "0.8s" }}>
                   <div className="border-b-2 border-outline-variant pb-1 mb-1 flex justify-between items-center">
                     <span className="text-label-sm font-bold text-on-surface uppercase tracking-widest">ORBITAL_VECTORS</span>
-                    <span className="w-1 h-1 bg-primary-fixed fast-pulse"></span>
+                    <span className="w-1 h-1 bg-primary-fixed"></span>
                   </div>
                   <div className="text-[10px] text-secondary flex flex-col gap-[2px]">
-                    <div className="flex justify-between"><span>TARGET:</span> <span className="text-primary-fixed jitter-text font-bold">{selectedTarget.name.toUpperCase()}</span></div>
-                    <div className="flex justify-between"><span>RADIUS:</span> <span className="text-primary-fixed jitter-text">{selectedTarget.radius.toLocaleString()} KM</span></div>
-                    <div className="flex justify-between"><span>T_AXIS:</span> <span className="text-primary-fixed jitter-text">{parseFloat((selectedTarget.elements.a / 149597870700).toFixed(4))} AU</span></div>
+                    <div className="flex justify-between"><span>TARGET:</span> <span className="text-primary-fixed font-bold">{selectedTarget.name.toUpperCase()}</span></div>
+                    <div className="flex justify-between"><span>RADIUS:</span> <span className="text-primary-fixed">{selectedTarget.radius.toLocaleString()} KM</span></div>
+                    <div className="flex justify-between"><span>T_AXIS:</span> <span className="text-primary-fixed">{parseFloat((selectedTarget.elements.a / 149597870700).toFixed(4))} AU</span></div>
                     <div className="flex justify-between mt-1 pt-1 border-t border-outline-variant">
                       <span className="text-primary-fixed">STATUS:</span> <span className="text-primary-fixed font-bold">NOMINAL</span>
                     </div>
@@ -1028,14 +1027,14 @@ export default function App() {
                   <div className="border-2 border-outline-variant bg-surface-container-lowest/90 backdrop-blur-md p-2 w-56 flex gap-2 justify-between">
                     <div className="flex flex-col items-center gap-1">
                       <div className="w-6 h-6 border-2 border-primary-fixed rounded-full flex items-center justify-center relative">
-                        <div className="absolute w-4 h-4 border border-primary-fixed rounded-full fast-pulse"></div>
+                        <div className="absolute w-4 h-4 border border-primary-fixed rounded-full"></div>
                         <span className="text-[6px] text-primary-fixed">9.8</span>
                       </div>
                       <span className="text-[8px] text-secondary">G_TERRA</span>
                     </div>
                     <div className="flex flex-col items-center gap-1">
                       <div className="w-6 h-6 border-2 border-primary-fixed rounded-full flex items-center justify-center relative">
-                        <div className="absolute w-4 h-4 border border-primary-fixed rounded-full fast-pulse"></div>
+                        <div className="absolute w-4 h-4 border border-primary-fixed rounded-full"></div>
                         <span className="text-[6px] text-primary-fixed">24.8</span>
                       </div>
                       <span className="text-[8px] text-secondary">G_JOVIAN</span>
@@ -1062,7 +1061,7 @@ export default function App() {
                     </div>
                     <div className="mt-2 pt-1 border-t border-outline-variant flex justify-between items-center">
                       <span className="text-[6px] opacity-50">REF: G_CONST_V1.0</span>
-                      <span className="w-1 h-1 bg-primary-fixed fast-pulse"></span>
+                      <span className="w-1 h-1 bg-primary-fixed"></span>
                     </div>
                   </div>
                 </div>
@@ -1072,7 +1071,7 @@ export default function App() {
                   <div className="absolute bottom-32 right-1/4 text-[8px] text-secondary/40 font-mono pointer-events-none">TRK_ID: A99-2X</div>
                   <div className="absolute top-1/2 right-20 text-[8px] text-secondary/60 font-mono rotate-90 tracking-widest pointer-events-none">ORBITAL_PHASE</div>
                   <div className="absolute bottom-2 left-2 text-[8px] text-secondary font-telemetry-xs flex gap-2 items-center bg-black/80 px-1 border border-outline-variant pointer-events-none">
-                    <span className="text-primary-fixed fast-pulse">TRK</span><span className="text-primary-fixed jitter-text">[SYS NOMINAL]</span>
+                    <span className="text-primary-fixed">TRK</span><span className="text-primary-fixed">[SYS NOMINAL]</span>
                   </div>
                 </div>
 
@@ -1081,8 +1080,8 @@ export default function App() {
                   <div className="p-2 flex flex-col md:flex-row justify-between items-center flex-wrap gap-2 border-b-2 border-outline-variant">
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1 border-2 border-outline-variant p-1 bg-black">
-                        <span className="w-2 h-2 bg-primary-fixed fast-pulse"></span>
-                        <span className="text-[10px] font-bold text-primary-fixed uppercase fast-pulse">LIVE.STRM</span>
+                        <span className="w-2 h-2 bg-primary-fixed"></span>
+                        <span className="text-[10px] font-bold text-primary-fixed uppercase">LIVE.STRM</span>
                       </div>
                       <span className="text-[10px] text-on-surface uppercase bg-black px-2 py-1 border border-outline-variant block min-w-[80px]">
                         {new Date(globalTimeRef.current * 1000 + J2000_UNIX * 1000).toISOString().split('T')[0]}
@@ -1115,7 +1114,7 @@ export default function App() {
                   <div className="h-6 bg-black flex items-center px-2 text-[8px] text-secondary font-mono overflow-hidden">
                     <span className="text-primary-fixed mr-2">&gt; SYS_OUT:</span>
                     <div className="flex-1 whitespace-nowrap overflow-hidden">
-                      <span className="jitter-text inline-block">INIT_SEQ_001 [OK] | LOADING_SECTOR_G1.V2 | STAT: NOMINAL | T+ {Math.floor(globalTimeRef.current/86400)} DAYS </span>
+                      <span className="inline-block">INIT_SEQ_001 [OK] | LOADING_SECTOR_G1.V2 | STAT: NOMINAL | T+ {Math.floor(globalTimeRef.current/86400)} DAYS </span>
                     </div>
                     <span className="cursor-blink text-primary-fixed">_</span>
                   </div>

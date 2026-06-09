@@ -25,10 +25,10 @@ export default function LandingHero({
         className="absolute top-1/2 -translate-y-1/2 left-0 w-full pointer-events-none flex justify-center z-0 mix-blend-difference"
       >
         <h1 
-          className="text-[#ffffff] leading-none whitespace-nowrap text-[35vw] font-black select-none tracking-tighter"
+          className="text-[#ffffff] leading-none whitespace-nowrap text-[18vw] font-black select-none tracking-tighter"
           style={{ fontFamily: "'Oi', cursive", opacity: 0.15 }}
         >
-          ORBIT
+          SRINIVASA
         </h1>
       </motion.div>
 
@@ -54,8 +54,8 @@ export default function LandingHero({
         className="relative z-20 w-full max-w-7xl mx-auto px-8 md:px-16 flex flex-col md:flex-row items-end justify-between gap-12"
       >
         <div className="w-full md:w-1/2 pt-[30vh]">
-          <h2 className="text-white text-5xl md:text-7xl lg:text-[100px] leading-[0.9] font-headline-md font-bold italic mb-6">
-            Orbital <br/> Paths
+          <h2 className="text-white text-5xl md:text-7xl lg:text-[100px] leading-[0.9] font-headline-md font-bold uppercase tracking-tight mb-6">
+            Srinivasa
           </h2>
           <p className="text-[#a0a0a0] font-label-caps text-sm md:text-base uppercase tracking-[0.2em] max-w-sm mb-12">
             High-precision simulation of celestial trajectories.

@@ -217,8 +217,8 @@ export default function MathPhysicsShowcase({
               </p>
             </div>
             <a 
-              href="/greninja_engine.zip" 
-              download="greninja_engine.zip"
+              href="/srinivasa_engine.zip" 
+              download="srinivasa_engine.zip"
               className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/80 text-black font-mono font-bold text-xs uppercase px-6 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all hover:shadow-[0_0_15px_rgba(170,221,255,0.4)] pointer-events-auto"
             >
               <Download size={14} className="stroke-[3]" />
