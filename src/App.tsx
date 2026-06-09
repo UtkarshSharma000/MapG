@@ -117,16 +117,10 @@ export default function App() {
   const handleSelectPlanet = (planetName: string) => {
     if (planetName === "Sol (Sun)") {
       setSelectedTarget(null);
-      setTargetPlanet(null);
     } else {
       const found = PLANETS.find(p => p.name === planetName);
       if (found) {
         setSelectedTarget(found);
-        if (planetName !== "Earth") {
-          setTargetPlanet(planetName);
-        } else {
-          setTargetPlanet(null);
-        }
       }
     }
   };

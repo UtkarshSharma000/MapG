@@ -1266,8 +1266,36 @@ function SystemEngine({
     setIsLocked(true);
   };
 
-  const { camera, scene } = useThree();
+  const { camera, scene, gl } = useThree();
   const presetsRef = useRef<Record<number, { position: THREE.Vector3, target: THREE.Vector3 }>>({});
+
+  useEffect(() => {
+    const domElement = gl.domElement;
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (e.buttons & 1 || e.buttons & 2 || e.buttons & 4) {
+        setIsLocked(false);
+      }
+    };
+
+    const handleWheel = () => {
+      setIsLocked(false);
+    };
+
+    domElement.addEventListener('contextmenu', handleContextMenu);
+    domElement.addEventListener('pointerdown', handlePointerDown);
+    domElement.addEventListener('wheel', handleWheel, { passive: true });
+
+    return () => {
+      domElement.removeEventListener('contextmenu', handleContextMenu);
+      domElement.removeEventListener('pointerdown', handlePointerDown);
+      domElement.removeEventListener('wheel', handleWheel);
+    };
+  }, [gl]);
 
   useEffect(() => {
     // Sync to J2000 real time
