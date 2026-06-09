@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Canvas } from "@react-three/fiber";
 import * as THREE from 'three';
 import Draggable from 'react-draggable';
+import { motion } from "framer-motion";
 import {
   LogOut,
   Move,
@@ -12,15 +12,6 @@ import { OptimizeResult } from "./TrajectoryOptimizer";
 import { scanPorkchop } from "./workers/trajectory.worker";
 import { LaunchHUD } from "./components/LaunchHUD";
 import { Planet2DMap } from "./components/Planet2DMap";
-import Galaxy from "./components/Galaxy";
-import StaggeredMenu from "./components/StaggeredMenu";
-
-// Modular Extracted Components
-import { InteractiveGlobe } from "./components/InteractiveGlobe";
-import LandingHero from "./components/LandingHero";
-import InteractiveBridge from "./components/InteractiveBridge";
-import SpaceExplorationPanel from "./components/SpaceExplorationPanel";
-import MathPhysicsShowcase from "./components/MathPhysicsShowcase";
 
 const J2000_UNIX = 946728000;
 
@@ -106,8 +97,6 @@ export default function App() {
   const [cameraPresetToSave, setCameraPresetToSave] = useState<number | null>(null);
   const [resetCameraTrigger, setResetCameraTrigger] = useState(0);
   const [showMissionPanel, setShowMissionPanel] = useState(true); 
-  const [showWireframe, setShowWireframe] = useState(false);
-  const [showOrbits, setShowOrbits] = useState(true);
   const lastTimeMultRef = useRef(86400); // 1 Day/sec
 
   const handleSelectPlanet = (planetName: string) => {
@@ -710,10 +699,7 @@ export default function App() {
           </span>
         </div>
         <div className="flex items-center gap-5 mb-8">
-          <div className="relative w-20 h-20 rounded-full border border-white/10 overflow-hidden cursor-grab active:cursor-grabbing">
-            <Canvas camera={{ position: [0, 0, 3] }}>
-              <InteractiveGlobe url={selectedTarget.texture} color={selectedTarget.color} />
-            </Canvas>
+          <div className="relative w-20 h-20 rounded-full border border-white/10 overflow-hidden bg-[#ffcc00] shadow-[0_0_20px_rgba(255,204,0,0.5)]">
             <div className="absolute inset-0 rounded-full ring-2 ring-primary/20 pointer-events-none animate-ping"></div>
           </div>
           <div>
@@ -1352,56 +1338,39 @@ export default function App() {
 
       {/* Landing Page Content */}
       <div className={`transition-opacity duration-1000 ${!isSimulatorRunning ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none z-[-1]'}`}>
-
-          <div
-            ref={landingScrollRef}
-            className="landing-scroller absolute inset-0 z-20 flex flex-col pointer-events-auto overflow-y-auto"
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black overflow-hidden">
+          {/* Simple Animated Grid Background */}
+          <div className="absolute inset-0 tech-grid-bg opacity-30"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
+            className="text-center z-20"
           >
-            <StaggeredMenu
-              isFixed={true}
-              position="right"
-              colors={['#082f49', '#0c4a6e', '#164e63']}
-              logoUrl="/logo.svg"
-              menuButtonColor="#ffb000"
-              openMenuButtonColor="#ffffff"
-              accentColor="#ffb000"
-              onLaunchCore={() => setIsSimulatorRunning(true)}
-              items={[
-                { 
-                  label: 'Launch Simulator', 
-                  ariaLabel: 'Launch Simulator', 
-                  link: '#', 
-                  onClick: () => setIsSimulatorRunning(true),
-                  image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop'
-                },
-                { 
-                  label: 'Srinivasa Project', 
-                  ariaLabel: 'Srinivasa Project Site', 
-                  link: 'https://Srinivasa.2bd.net',
-                  image: 'https://images.unsplash.com/photo-1618477247222-ac60c7477123?q=80&w=2064&auto=format&fit=crop'
-                },
-              ]}
-              socialItems={[]}
-            />
-
-            <main className="">
-              <LandingHero
-                isSimulatorRunning={isSimulatorRunning}
-                setIsSimulatorRunning={setIsSimulatorRunning}
-                landingScrollRef={landingScrollRef}
-              />
-              <InteractiveBridge />
-              <SpaceExplorationPanel
-                cinematicSectionRef={cinematicSectionRef}
-                scrollProgressRef={scrollProgressRef}
-                landingScrollRef={landingScrollRef}
-              />
-              <MathPhysicsShowcase
-                setIsSimulatorRunning={setIsSimulatorRunning}
-                landingScrollRef={landingScrollRef}
-              />
-            </main>
-          </div>
+            <motion.h1 
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 2, ease: "easeOut" }}
+              className="text-6xl md:text-8xl font-black text-white tracking-widest uppercase mb-4 jitter-text"
+            >
+              SOLAR<span className="text-primary-fixed">_OS</span>
+            </motion.h1>
+            <p className="text-secondary text-xs w-full max-w-sm md:max-w-none mx-auto md:text-base tracking-[0.3em] uppercase mb-16 border-y border-white/10 py-4 opacity-80">
+              Orbital Mechanics & Astrodynamics Simulator
+            </p>
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsSimulatorRunning(true)}
+              className="px-8 py-4 border-2 border-primary-fixed text-primary-fixed text-sm md:text-base font-bold tracking-widest uppercase hover:bg-primary-fixed hover:text-black transition-colors"
+            >
+              INITIALIZE SYSTEM
+            </motion.button>
+          </motion.div>
+        </div>
       </div>
 
       {showMobileBlock && (
