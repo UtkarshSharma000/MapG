@@ -95,6 +95,13 @@ export default function App() {
   const [showMissionPanel, setShowMissionPanel] = useState(true); 
   const lastTimeMultRef = useRef(86400); // 1 Day/sec
 
+  // Elastic Timeline Speed Slider States
+  const [elasticValue, setElasticValue] = useState(0); // 0 to 100
+  const [elasticOverflow, setElasticOverflow] = useState(0); // pixel overflow
+  const [isDraggingElastic, setIsDraggingElastic] = useState(false);
+  const elasticTrackRef = useRef<HTMLDivElement>(null);
+  const elasticDragStartRef = useRef({ x: 0, val: 0 });
+
   const timeControlNodeRef = React.useRef<HTMLDivElement>(null);
   const [timeControlPos, setTimeControlPos] = useState(() => {
     const saved = localStorage.getItem('TimeControl_pos');
@@ -272,6 +279,74 @@ export default function App() {
     setTimeMult(newMult);
     if (isLaunched && !activeReplay) {
       setRecordedTimeEvents(prev => [...prev, { elapsedMs: Date.now() - missionStartRealTime, mult: newMult }]);
+    }
+  };
+
+  // Synchronize dynamic elasticValue with external timeMult changes (e.g. keyboard triggers)
+  useEffect(() => {
+    if (!isDraggingElastic) {
+      const speedMap = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
+      const idx = speedMap.indexOf(timeMult);
+      if (idx !== -1) {
+        setElasticValue(idx * 20);
+      }
+    }
+  }, [timeMult, isDraggingElastic]);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!elasticTrackRef.current) return;
+    const rect = elasticTrackRef.current.getBoundingClientRect();
+    const startX = e.clientX;
+    setIsDraggingElastic(true);
+    
+    const clickedVal = Math.min(100, Math.max(0, ((startX - rect.left) / rect.width) * 100));
+    setElasticValue(clickedVal);
+    elasticDragStartRef.current = { x: startX, val: clickedVal };
+    
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingElastic || !elasticTrackRef.current) return;
+    const rect = elasticTrackRef.current.getBoundingClientRect();
+    const width = rect.width;
+    const deltaX = e.clientX - elasticDragStartRef.current.x;
+    
+    let newValue = elasticDragStartRef.current.val + (deltaX / width) * 100;
+    
+    const MAX_OVERFLOW = 45;
+    const sigmoid = (x: number) => {
+      return x / (1 + Math.abs(x / MAX_OVERFLOW));
+    };
+    
+    if (newValue < 0) {
+      setElasticValue(0);
+      const rawOverflow = (newValue / 100) * width;
+      setElasticOverflow(sigmoid(rawOverflow));
+    } else if (newValue > 100) {
+      setElasticValue(100);
+      const rawOverflow = ((newValue - 100) / 100) * width;
+      setElasticOverflow(sigmoid(rawOverflow));
+    } else {
+      setElasticValue(newValue);
+      setElasticOverflow(0);
+      
+      const stepIdx = Math.min(5, Math.max(0, Math.round(newValue / 20)));
+      const speedMap = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
+      if (timeMult !== speedMap[stepIdx]) {
+        handleTimeMultChange(speedMap[stepIdx]);
+      }
+    }
+  };
+
+  const handlePointerUp = () => {
+    setIsDraggingElastic(false);
+    setElasticOverflow(0);
+    
+    const speedMap = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
+    const idx = speedMap.indexOf(timeMult);
+    if (idx !== -1) {
+      setElasticValue(idx * 20);
     }
   };
 
@@ -838,6 +913,8 @@ export default function App() {
       <div
         className={`absolute inset-0 z-30 pointer-events-none flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-100" : "opacity-0"}`}
       >
+        {/* CRT Scanline horizontal banding filter */}
+        <div className="scanlines z-50 pointer-events-none absolute inset-0"></div>
         {/* TrajectoryOptimizer removed per user request */}
         {isSimulatorRunning && (
           <LaunchHUD
@@ -1024,75 +1101,241 @@ export default function App() {
               </div>
             )}
 
-            {/* Bottom Right: Time Controls */}
-            <Draggable nodeRef={timeControlNodeRef} handle=".drag-handle" position={timeControlPos} onStop={onDragStopTC}>
-              <div ref={timeControlNodeRef} className="fixed z-40 pointer-events-auto" style={{ right: 32, bottom: 32 }}>
-                <div className="p-8 w-[320px] h-[160px] flex flex-col justify-end border border-cyan-500/20 bg-[#07131e]/70 shadow-[0_0_30px_rgba(0,180,255,0.1)] backdrop-blur-xl text-white rounded-tl-[100px] rounded-bl-xl rounded-tr-xl rounded-br-2xl">
-                  <div className="absolute top-6 left-12 right-6 flex justify-between items-center drag-handle cursor-move select-none pb-2">
-                    <span className="font-mono text-[9px] tracking-[0.2em] text-cyan-200/50"></span>
-                    <span className="font-mono tracking-widest text-[#aaddff] uppercase text-sm mt-3">
-                      {timeMult === 1
-                        ? "REALTIME"
-                        : `x${timeMult.toLocaleString()}`}
+          </main>
+        </div>
+
+          {/* New Interactive Cockpit Footer Simulation Control Center */}
+          <footer className="absolute bottom-4 left-0 w-full z-45 px-8 pointer-events-auto select-none">
+            <div className="w-full max-w-5xl mx-auto glass-panel rounded-2xl flex flex-col bg-cyan-950/20 border border-cyan-500/20 shadow-[0_0_30px_rgba(30,130,246,0.15)] backdrop-blur-xl">
+              {/* Top curved header section for 'REAL RATE' */}
+              <div className="relative flex justify-center -mt-3.5">
+                <div className="glass-panel px-6 py-1 rounded-t-lg text-[10px] font-bold neon-text bg-cyan-950/80 border-b-0 border-cyan-500/30 font-mono tracking-[0.2em] text-[#aaddff]">
+                  {timeMult === 0 ? "STATUS: PAUSED" : timeMult === 1 ? "REALTIME VELOCITY" : `WARP SPEED: x${timeMult.toLocaleString()}`}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 md:p-6 gap-4 font-mono">
+                {/* Left Side: Status & Heartbeat */}
+                <div className="flex items-center gap-4 w-1/4">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full pulse-dot ${timeMult === 0 ? 'bg-amber-500' : 'bg-cyan-400'}`}></div>
+                    <span className="text-white font-bold tracking-widest text-xs">
+                      {timeMult === 0 ? "PAUSED" : "ACTIVE"}
                     </span>
                   </div>
+                  <div className="text-[10px] text-cyan-200/50 tracking-widest hidden lg:block">
+                    J2000 +{Math.max(0, Math.floor(globalTimeRef.current)).toString().padStart(8, '0')}s
+                  </div>
+                </div>
 
-                  <div className="relative w-full mb-2">
-                    <input
-                      type="range"
-                      min="0"
-                      max="5"
-                      step="1"
-                      value={
-                        timeMult === 1
-                          ? 0
-                          : timeMult === 86400
-                            ? 1 // days
-                            : timeMult === 86400 * 30
-                              ? 2 // months
-                              : timeMult === 86400 * 365.25
-                                ? 3 // years
-                                : timeMult === 86400 * 365.25 * 10
-                                  ? 4 // decades
-                                  : 5 // centuries
-                      }
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value);
-                        if (val === 0) handleTimeMultChange(1);
-                        else if (val === 1) handleTimeMultChange(86400);
-                        else if (val === 2) handleTimeMultChange(86400 * 30);
-                        else if (val === 3) handleTimeMultChange(86400 * 365.25);
-                        else if (val === 4) handleTimeMultChange(86400 * 365.25 * 10);
-                        else handleTimeMultChange(86400 * 365.25 * 100);
+                {/* Center: Playback Speed Control Timeline with Sigmoid Stretching */}
+                <div className="flex-1 flex flex-col items-center gap-3">
+                  {/* Digital Controls buttons */}
+                  <div className="flex items-center gap-3">
+                    {/* Slow down button */}
+                    <button 
+                      onClick={() => {
+                        const warpSpeeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
+                        const currIdx = warpSpeeds.indexOf(timeMult);
+                        if (currIdx > 0) {
+                          handleTimeMultChange(warpSpeeds[currIdx - 1]);
+                        } else if (timeMult === 0) {
+                          handleTimeMultChange(1);
+                        }
                       }}
-                      className="w-full h-1 bg-cyan-900/40 rounded-full appearance-none cursor-pointer accent-cyan-200"
-                    />
-                    
-                    {/* Tick Marks for the range input to look more futuristic */}
-                    <div className="pointer-events-none absolute -top-4 w-full h-[60px] flex justify-between px-[2px]">
-                      {[...Array(6)].map((_, i) => (
-                        <div key={i} className="flex flex-col items-center gap-1 justify-end">
-                           <span className="text-[8px] font-mono tracking-widest text-cyan-200/40 -rotate-45 -translate-y-4 translate-x-2">
-                            {["1S", "DAY", "MON", "YR", "DEC", "CEN"][i]}
-                           </span>
-                           {/* Small tick mark */}
-                           <div className="w-[1px] h-2 bg-cyan-500/40"></div>
+                      className="control-btn p-1.5 bg-cyan-950/30 rounded border border-cyan-500/10 text-cyan-200/80 hover:text-white hover:border-cyan-400 focus:outline-none"
+                      title="Decrease Velocity Rate"
+                    >
+                      <svg fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="14">
+                        <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                        <line x1="5" x2="5" y1="19" y2="5"></line>
+                      </svg>
+                    </button>
+
+                    {/* Pause / Play button */}
+                    <button 
+                      onClick={() => {
+                        if (timeMult > 0) {
+                          lastTimeMultRef.current = timeMult;
+                          handleTimeMultChange(0);
+                        } else {
+                          handleTimeMultChange(lastTimeMultRef.current || 86400);
+                        }
+                      }}
+                      className={`control-btn px-3 py-1.5 rounded border text-xs focus:outline-none transition-all duration-300 ${
+                        timeMult === 0 
+                          ? 'bg-amber-500/10 border-amber-400 text-amber-300 font-bold shadow-[0_0_10px_rgba(245,158,11,0.2)]' 
+                          : 'bg-cyan-950/30 border-cyan-500/20 text-cyan-200 hover:text-white'
+                      }`}
+                      title={timeMult === 0 ? "Resume Simulation" : "Pause Simulation"}
+                    >
+                      {timeMult === 0 ? (
+                        <div className="flex items-center gap-1.5">
+                          <svg fill="currentColor" height="10" viewBox="0 0 24 24" width="10" className="relative top-px">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                          </svg>
+                          RESUME
                         </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <svg fill="currentColor" height="10" viewBox="0 0 24 24" width="10">
+                            <rect height="16" width="4" x="6" y="4"></rect>
+                            <rect height="16" width="4" x="14" y="4"></rect>
+                          </svg>
+                          PAUSE
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Speed up button */}
+                    <button 
+                      onClick={() => {
+                        const warpSpeeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
+                        const currIdx = warpSpeeds.indexOf(timeMult);
+                        if (currIdx !== -1 && currIdx < warpSpeeds.length - 1) {
+                          handleTimeMultChange(warpSpeeds[currIdx + 1]);
+                        } else if (timeMult === 0) {
+                          handleTimeMultChange(lastTimeMultRef.current || 86400);
+                        }
+                      }}
+                      className="control-btn p-1.5 bg-cyan-950/30 rounded border border-cyan-500/10 text-cyan-200/80 hover:text-white hover:border-cyan-400 focus:outline-none"
+                      title="Increase Velocity Rate"
+                    >
+                      <svg fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="14">
+                        <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                        <line x1="19" x2="19" y1="5" y2="19"></line>
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Tactile elastic drag container */}
+                  <div className="w-full px-6 relative">
+                    <div 
+                      ref={elasticTrackRef}
+                      onPointerDown={handlePointerDown}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerCancel={handlePointerUp}
+                      className="elastic-slider-container"
+                      id="elastic-slider"
+                    >
+                      {/* Elastic Left Warp-Backward icon */}
+                      <svg 
+                        className={`elastic-icon left-icon ${elasticOverflow < -5 ? 'active' : ''}`} 
+                        fill="none" 
+                        height="12" 
+                        stroke="currentColor" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth="2.5" 
+                        viewBox="0 0 24 24" 
+                        width="12"
+                        style={{
+                          transform: `translateY(-50%) translateX(${elasticOverflow < 0 ? elasticOverflow : 0}px)`,
+                          left: `${-20 + (elasticOverflow < 0 ? elasticOverflow : 0)}px`,
+                          transition: isDraggingElastic ? 'none' : 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                        }}
+                      >
+                        <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"></path>
+                      </svg>
+
+                      {/* Elastic stretch track component */}
+                      <div 
+                        className="elastic-track-wrapper w-full h-[3px]"
+                        style={{
+                          transform: `scaleX(${
+                            elasticTrackRef.current
+                              ? (elasticTrackRef.current.getBoundingClientRect().width + Math.abs(elasticOverflow)) / elasticTrackRef.current.getBoundingClientRect().width
+                              : 1
+                          })`,
+                          transformOrigin: elasticOverflow < 0 ? 'right center' : 'left center',
+                          transition: isDraggingElastic ? 'none' : 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                        }}
+                      >
+                        <div 
+                          className="elastic-track-fill" 
+                          style={{
+                            width: `${elasticOverflow < 0 ? 0 : elasticOverflow > 0 ? 100 : elasticValue}%`,
+                            transition: isDraggingElastic ? 'none' : 'width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                          }}
+                        ></div>
+                        <div 
+                          className="elastic-thumb" 
+                          style={{
+                            left: `${elasticOverflow < 0 ? 0 : elasticOverflow > 0 ? 100 : elasticValue}%`,
+                            transition: isDraggingElastic ? 'none' : 'left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                          }}
+                        ></div>
+                      </div>
+
+                      {/* Elastic Right Warp-Forward icon */}
+                      <svg 
+                        className={`elastic-icon right-icon ${elasticOverflow > 5 ? 'active' : ''}`} 
+                        fill="none" 
+                        height="12" 
+                        stroke="currentColor" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth="2.5" 
+                        viewBox="0 0 24 24" 
+                        width="12"
+                        style={{
+                          transform: `translateY(-50%) translateX(${elasticOverflow > 0 ? elasticOverflow : 0}px)`,
+                          right: `${-20 - (elasticOverflow > 0 ? elasticOverflow : 0)}px`,
+                          transition: isDraggingElastic ? 'none' : 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                        }}
+                      >
+                        <path d="M13 17l5-5-5-5M6 17l5-5-5-5"></path>
+                      </svg>
+                    </div>
+
+                    {/* Highly aesthetic metric reference timeline index steps */}
+                    <div className="w-full flex justify-between text-cyan-200/30 text-[8px] tracking-[0.16em] -mt-2.5 px-2 select-none">
+                      {["(1 SEC)", "DAY", "MONTH", "YEAR", "DECADE", "CENTURY"].map((label, idx) => (
+                        <span 
+                          key={idx} 
+                          className={`transition-all duration-200 cursor-pointer hover:text-cyan-200 text-center flex flex-col items-center gap-0.5 ${
+                            timeMult === [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100][idx]
+                              ? 'text-cyan-300 font-bold drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] scale-105'
+                              : ''
+                          }`}
+                          onClick={() => {
+                            const speedMap = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
+                            handleTimeMultChange(speedMap[idx]);
+                          }}
+                        >
+                          <div className={`w-[1px] h-1.5 bg-cyan-500/30 mb-0.5 ${timeMult === [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100][idx] ? 'bg-cyan-300 h-2.5' : ''}`}></div>
+                          {label}
+                        </span>
                       ))}
                     </div>
                   </div>
                 </div>
-              </div>
-            </Draggable>
-          </main>
-        </div>
 
-        {/* Footer */}
-        <footer className="absolute bottom-0 w-full flex justify-center items-center py-4 z-10 bg-transparent pointer-events-auto">
-          <div className="font-mono text-[9px] tracking-[0.2em] text-white/30 uppercase">
-            © 2026 ODYSSEY ASTRODYNAMICS LABORATORY
-          </div>
-        </footer>
+                {/* Right Side: Re-trigger solar centering & current system clock */}
+                <div className="flex items-center justify-end gap-5 w-1/4">
+                  <div className="text-[11px] text-cyan-100 tracking-[0.15em] hidden lg:block text-right">
+                    UTC {new Date().toISOString().split('T')[1].slice(0, 8)}
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setSelectedTarget(null);
+                      setResetCameraTrigger(prev => prev + 1);
+                    }}
+                    className="control-btn px-4 py-1.5 rounded border border-cyan-500/20 bg-cyan-950/20 hover:border-cyan-400/50 hover:bg-cyan-500/10 text-cyan-200 font-bold text-[9px] tracking-widest uppercase transition-all"
+                    title="Recenter Camera on Sun"
+                  >
+                    RECENTER SOL
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Fine print lab citation in margin to ground the deck beautifully */}
+            <div className="w-full text-center text-[7px] tracking-[0.3em] text-cyan-500/20 mt-3 uppercase font-mono">
+              ODYSSEY ASTRODYNAMICS RESEARCH LAB • MISSION CODES: GRENINJA
+            </div>
+          </footer>
       </div>
     </div>
   );
