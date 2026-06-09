@@ -1136,6 +1136,74 @@ function ArchivedShuttle({ mission, globalTimeRef, onDoubleClick }: { mission: a
   );
 }
 
+function EclipticGrid() {
+  const rings = [0.387, 0.723, 1.0, 1.524, 2.77, 5.204, 9.582, 19.201, 30.047]; // mercury, venus, earth, mars, asteroid belt center, jupiter, saturn, uranus, neptune
+  const circlePoints = useMemo(() => {
+    return rings.map(auDist => {
+      const radius = auDist * 100;
+      const pts: THREE.Vector3[] = [];
+      for (let i = 0; i <= 100; i++) {
+        const theta = (i / 100) * Math.PI * 2;
+        pts.push(new THREE.Vector3(Math.cos(theta) * radius, 0, Math.sin(theta) * radius));
+      }
+      return { dist: auDist, points: pts };
+    });
+  }, []);
+
+  const radialLines = useMemo(() => {
+    const lines: THREE.Vector3[][] = [];
+    const maxRadius = 31 * 100; // outward to Neptune
+    for (let i = 0; i < 12; i++) {
+      const theta = (i / 12) * Math.PI * 2;
+      const x = Math.cos(theta) * maxRadius;
+      const z = Math.sin(theta) * maxRadius;
+      lines.push([new THREE.Vector3(0, 0, 0), new THREE.Vector3(x, 0, z)]);
+    }
+    return lines;
+  }, []);
+
+  return (
+    <group>
+      {/* Concentric ecliptic reference rings */}
+      {circlePoints.map((ring, idx) => (
+        <group key={idx}>
+          <Line
+            points={ring.points}
+            color="#22d3ee"
+            opacity={0.05}
+            transparent
+            lineWidth={0.5}
+          />
+          {ring.dist <= 10 && (
+            <Html
+              position={[ring.dist * 100, 0, 0]}
+              distanceFactor={180}
+              className="pointer-events-none select-none"
+              wrapperClass="pointer-events-none select-none"
+            >
+              <span className="text-[7px] text-cyan-300/30 font-mono tracking-widest whitespace-nowrap">
+                {ring.dist.toFixed(2)} AU
+              </span>
+            </Html>
+          )}
+        </group>
+      ))}
+
+      {/* Radial right ascension guidelines */}
+      {radialLines.map((line, idx) => (
+        <Line
+          key={idx}
+          points={line}
+          color="#0891b2"
+          opacity={0.02}
+          transparent
+          lineWidth={0.5}
+        />
+      ))}
+    </group>
+  );
+}
+
 function SystemEngine({
   timeMult,
   selectedTarget,
@@ -1407,17 +1475,17 @@ function SystemEngine({
       <Html fullscreen className="pointer-events-none" wrapperClass="pointer-events-none">
         <div className="absolute top-24 left-8 pointer-events-auto flex flex-col gap-2">
           {/* Date and Time Header */}
-          <div className="px-4 py-2 bg-[#0a0a0c]/95 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-4">
+          <div className="flex items-center gap-4 py-2 opacity-80 pl-16">
             <div className="flex flex-col">
-              <span className="text-[8px] text-white/40 font-mono tracking-[0.2em] uppercase">Epoch Reference</span>
-              <span className="text-xs text-white font-mono font-bold tracking-tight">
+              <span className="text-[9px] text-[#8ab4f8] font-mono tracking-[0.25em] uppercase pb-1">Epoch Reference</span>
+              <span className="text-[13px] text-white font-mono tracking-wider">
                 {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ').slice(0, 4).join(' ')}
               </span>
             </div>
-            <div className="w-px h-6 bg-white/15"></div>
+            <div className="w-[1px] h-6 bg-white/20 mx-2"></div>
             <div className="flex flex-col">
-              <span className="text-[8px] text-white/40 font-mono tracking-[0.2em] uppercase">Mission Time</span>
-              <span className="text-xs text-white font-mono font-bold">
+              <span className="text-[9px] text-[#8ab4f8] font-mono tracking-[0.25em] uppercase pb-1">Mission Time</span>
+              <span className="text-[13px] text-white font-mono tracking-wider">
                 {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ')[4]}
               </span>
             </div>
@@ -1442,16 +1510,44 @@ function SystemEngine({
         </div>
       </Html>
 
-      {/* The Sun */}
-      <mesh>
-        <sphereGeometry args={[SUN_SIZE, 64, 64]} />
-        <meshBasicMaterial color="#ffcc00" />
+      {/* The Sun with additive corona layers */}
+      <group>
+        {/* Core */}
+        <mesh>
+          <sphereGeometry args={[SUN_SIZE, 64, 64]} />
+          <meshBasicMaterial color="#fffbeb" />
+        </mesh>
+        {/* Tight glow */}
+        <mesh>
+          <sphereGeometry args={[SUN_SIZE * 1.3, 32, 32]} />
+          <meshBasicMaterial 
+            color="#eab308" 
+            transparent 
+            opacity={0.2} 
+            blending={THREE.AdditiveBlending} 
+            side={THREE.BackSide} 
+          />
+        </mesh>
+        {/* Wide atmosphere corona */}
+        <mesh>
+          <sphereGeometry args={[SUN_SIZE * 2.2, 32, 32]} />
+          <meshBasicMaterial 
+            color="#ca8a04" 
+            transparent 
+            opacity={0.07} 
+            blending={THREE.AdditiveBlending} 
+            side={THREE.BackSide} 
+          />
+        </mesh>
         <Html distanceFactor={100} className="pointer-events-none" wrapperClass="pointer-events-none">
-          <div className="text-xs uppercase font-bold text-[#ffcc00] tracking-widest translate-x-4 drop-shadow-lg">
+          <div className="text-xs uppercase font-bold text-[#facc15] tracking-widest translate-x-4 drop-shadow-[0_0_10px_rgba(234,179,8,0.6)] font-mono">
             SUN
           </div>
         </Html>
-      </mesh>
+      </group>
+
+      {/* Astronomical reference plane J2000 Keplerian grid */}
+      <EclipticGrid />
 
       <AsteroidBelt timeMult={timeMult} />
       <KuiperBelt timeMult={timeMult} />
@@ -1563,10 +1659,15 @@ export default function OrbitSimulator({
         </div>
       )}
       <Canvas camera={{ position: [0, 150, 400], fov: 45, far: 5000000, near: 0.1 }}>
-        <ambientLight intensity={0.2} />
+        <ambientLight intensity={0.15} />
+        <hemisphereLight
+          color="#0f172a"
+          groundColor="#020308"
+          intensity={0.65}
+        />
         <pointLight
           position={[0, 0, 0]}
-          intensity={1.8}
+          intensity={3.5}
           color="#fffcf5"
           decay={0}
         />
