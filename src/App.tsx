@@ -944,7 +944,7 @@ export default function App() {
         className={`absolute inset-0 z-30 pointer-events-none flex transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-100" : "opacity-0"}`}
       >
         {isSimulatorRunning && (
-          <div className="text-on-background h-full w-full overflow-hidden flex flex-col tech-grid-bg selection:bg-primary-fixed selection:text-on-primary-fixed pointer-events-auto relative z-40 font-mono">
+          <div className="text-on-background h-full w-full overflow-hidden flex flex-col tech-grid-bg selection:bg-primary-fixed selection:text-on-primary-fixed pointer-events-none relative z-40 font-mono">
             {/* TopAppBar */}
             <header className="border-draw flex justify-between items-center w-full px-margin h-16 border-b-2 border-primary-container bg-background/90 backdrop-blur-sm flex-shrink-0 z-50 pointer-events-auto" style={{ animationDelay: "0.1s" }}>
               <div className="flex items-center gap-gutter">
