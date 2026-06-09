@@ -824,18 +824,25 @@ export default function App() {
 
   return (
     <div className="w-full h-screen relative bg-background text-on-background overflow-hidden tech-grid-bg flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed">
-      {isSimulatorRunning && (
-        <>
-          <ShaderBackground />
-          <div className="scanline"></div>
-          <div className="crosshair"></div>
-          <div className="framing-corner corner-tl"></div>
-          <div className="framing-corner corner-tr"></div>
-          <div className="framing-corner corner-bl"></div>
-          <div className="framing-corner corner-br"></div>
+      {/* Backgrounds - Always mounted for WebGL stability */}
+      <div className={`absolute inset-0 transition-opacity duration-1000 z-0 pointer-events-none ${isSimulatorRunning ? 'opacity-100' : 'opacity-0'}`}>
+        <ShaderBackground />
+      </div>
 
-          {/* TopAppBar - Kinetic Brutalism */}
-          <header className="border-draw flex justify-between items-center w-full px-margin h-16 border-b-2 border-outline-variant bg-surface-container-lowest/90 backdrop-blur-sm flex-shrink-0 z-50">
+      <div className={`fixed inset-0 transition-opacity duration-1000 z-0 ${!isSimulatorRunning ? 'opacity-100 pointer-events-none' : 'opacity-0 pointer-events-none'}`}>
+        <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={scrollProgressRef} />
+      </div>
+
+      <div className={`absolute inset-0 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? 'opacity-100 pointer-events-auto z-10' : 'opacity-0 pointer-events-none z-[-1]'}`}>
+        <div className="scanline z-50 pointer-events-none"></div>
+        <div className="crosshair z-50 pointer-events-none"></div>
+        <div className="framing-corner corner-tl z-50 pointer-events-none"></div>
+        <div className="framing-corner corner-tr z-50 pointer-events-none"></div>
+        <div className="framing-corner corner-bl z-50 pointer-events-none"></div>
+        <div className="framing-corner corner-br z-50 pointer-events-none"></div>
+
+        {/* TopAppBar - Kinetic Brutalism */}
+        <header className="border-draw flex justify-between items-center w-full px-margin h-16 border-b-2 border-outline-variant bg-surface-container-lowest/90 backdrop-blur-sm flex-shrink-0 z-50">
             <div className="flex items-center gap-gutter">
               <h1 className="text-headline-lg font-bold text-primary-fixed tracking-tighter uppercase jitter-text">SOLAR_OS//V.02</h1>
             </div>
@@ -1026,44 +1033,34 @@ export default function App() {
             </nav>
 
             {/* 3D Canvas Main */}
-            <main className="flex-1 relative flex flex-col bg-transparent z-10 p-0 m-[12px] border-2 border-outline-variant bg-black">
+            <main className="flex-1 relative flex flex-col bg-transparent z-10 p-0 m-[12px] border-2 border-outline-variant">
               <div className="absolute inset-0 z-0 pointer-events-auto">
-                <Canvas camera={{ position: [0, 50, 80], fov: 45 }}>
-                  <OrbitSimulator 
-                    isRunning={true}
-                    isCinematic={false}
-                    cinematicScrollRef={scrollProgressRef}
-                    globalTimeRef={globalTimeRef} 
-                    launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs }}
-                    timeMult={timeMult} 
-                    activeReplay={activeReplay}
-                    archivedMissions={archivedMissions}
-                    showWireframe={showWireframe}
-                    showOrbits={showOrbits}
-                    resetCameraTrigger={resetCameraTrigger}
-                    selectedTarget={selectedTarget}
-                    mapPlanet={mapPlanet}
-                    setMapPlanet={setMapPlanet}
-                    setTargetLocation={setTargetLocation}
-                    setMissionStatus={setMissionStatus}
-                    teiAppliedRef={teiAppliedRef}
-                    currentLaunchPoints={currentLaunchPoints}
-                    currentReturnPoints={currentReturnPoints}
-                    onPointsCalculated={(pts, isReturn) => {
-                      if (isReturn) {
-                        setCurrentReturnPoints(pts);
-                      } else {
-                        setCurrentLaunchPoints(pts);
-                      }
-                    }}
-                    orbitPathsVisible={orbitPathsVisible}
-                    planetaryLabelsVisible={planetaryLabelsVisible}
-                    followSpacecraft={followSpacecraft}
-                    cameraPresetToLoad={cameraPresetToLoad}
-                    cameraPresetToSave={cameraPresetToSave}
-                    onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
-                  />
-                </Canvas>
+                <OrbitSimulator 
+                  isRunning={true}
+                  isCinematic={false}
+                  cinematicScrollRef={scrollProgressRef}
+                  globalTimeRef={globalTimeRef} 
+                  launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs }}
+                  timeMult={timeMult} 
+                  activeReplay={activeReplay}
+                  archivedMissions={archivedMissions}
+                  resetCameraTrigger={resetCameraTrigger}
+                  selectedTarget={selectedTarget}
+                  onStatusUpdate={setMissionStatus}
+                  onPointsCalculated={(pts, isReturn) => {
+                    if (isReturn) {
+                      setCurrentReturnPoints(pts);
+                    } else {
+                      setCurrentLaunchPoints(pts);
+                    }
+                  }}
+                  orbitPathsVisible={orbitPathsVisible}
+                  planetaryLabelsVisible={planetaryLabelsVisible}
+                  followSpacecraft={followSpacecraft}
+                  cameraPresetToLoad={cameraPresetToLoad}
+                  cameraPresetToSave={cameraPresetToSave}
+                  onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
+                />
               </div>
 
               {/* Telemetry Overlays ON TOP of Canvas */}
@@ -1356,12 +1353,10 @@ export default function App() {
               <span className="cursor-blink text-primary-fixed bg-primary-fixed w-1.5 h-3 ml-1 block"></span>
             </div>
           </div>
-        </>
-      )}
+      </div>
 
       {/* Landing Page Content */}
-      {!isSimulatorRunning && (
-        <>
+      <div className={`transition-opacity duration-1000 ${!isSimulatorRunning ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none z-[-1]'}`}>
           <div className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000">
             <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={scrollProgressRef} />
           </div>
@@ -1415,8 +1410,7 @@ export default function App() {
               />
             </main>
           </div>
-        </>
-      )}
+      </div>
 
       {showMobileBlock && (
         <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#131313] text-white p-6 text-center select-none pointer-events-auto rounded">
