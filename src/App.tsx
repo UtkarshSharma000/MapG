@@ -21,6 +21,7 @@ import LandingHero from "./components/LandingHero";
 import InteractiveBridge from "./components/InteractiveBridge";
 import SpaceExplorationPanel from "./components/SpaceExplorationPanel";
 import MathPhysicsShowcase from "./components/MathPhysicsShowcase";
+import ShaderBackground from "./components/ShaderBackground";
 
 const J2000_UNIX = 946728000;
 
@@ -820,397 +821,461 @@ export default function App() {
   }, [activeReplay, activeReplayStartTime]);
 
   return (
-    <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-transparent">
+    <div className="w-full h-screen relative bg-background text-on-background overflow-hidden tech-grid-bg flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed">
       {isSimulatorRunning && (
-        <div className="absolute inset-0 z-0">
-          <Galaxy transparent={false} mouseInteraction={false} />
-        </div>
-      )}
-      {!isSimulatorRunning && (
-        <div className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000">
-          <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={scrollProgressRef} />
-        </div>
-      )}
-      {showMobileBlock && (
-        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#03060f] text-white p-6 text-center select-none pointer-events-auto">
-          <div className="max-w-xs flex flex-col items-center">
-            <svg 
-              className="w-10 h-10 text-primary/70 mb-5" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="1.5" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
-              <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-              <line x1="12" y1="18" x2="12.01" y2="18" />
-            </svg>
-            <h1 className="text-xs font-bold tracking-[0.25em] text-[#aaddff] uppercase mb-2">
-              DESKTOP ONLY
-            </h1>
-            <p className="text-[11px] text-white/40 tracking-wider leading-relaxed">
-              Mobile support has not been added. Please connect using a desktop display.
-            </p>
-          </div>
-        </div>
-      )}
+        <>
+          <ShaderBackground />
+          <div className="scanline"></div>
+          <div className="crosshair"></div>
+          <div className="framing-corner corner-tl"></div>
+          <div className="framing-corner corner-tr"></div>
+          <div className="framing-corner corner-bl"></div>
+          <div className="framing-corner corner-br"></div>
 
-      <OrbitSimulator
-        isRunning={isSimulatorRunning}
-        isCinematic={!isSimulatorRunning}
-        cinematicScrollRef={scrollProgressRef}
-        timeMult={timeMult}
-        selectedTarget={selectedTarget}
-        launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs }}
-        globalTimeRef={globalTimeRef}
-        onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
-        onStatusUpdate={setMissionStatus}
-        completedMissions={completedMissions}
-        archivedMissions={archivedMissions}
-        activeReplay={activeReplay}
-        onPointsCalculated={(pts, isReturn) => {
-          if (isReturn) {
-            setCurrentReturnPoints(pts);
-          } else {
-            setCurrentLaunchPoints(pts);
-          }
-        }}
-        orbitPathsVisible={orbitPathsVisible}
-        planetaryLabelsVisible={planetaryLabelsVisible}
-        followSpacecraft={followSpacecraft}
-        cameraPresetToLoad={cameraPresetToLoad}
-        cameraPresetToSave={cameraPresetToSave}
-        resetCameraTrigger={resetCameraTrigger}
-      />
-
-      {/* Landing Page Content */}
-      <div
-        ref={landingScrollRef}
-        className={`landing-scroller absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
-      >
-        {/* TopNavBar */}
-        <StaggeredMenu
-          isFixed={true}
-          position="right"
-          colors={['#082f49', '#0c4a6e', '#164e63']}
-          logoUrl="/logo.svg"
-          menuButtonColor="#00ffff"
-          openMenuButtonColor="#ffffff"
-          accentColor="#00ffff"
-          onLaunchCore={() => setIsSimulatorRunning(true)}
-          items={[
-            { 
-              label: 'Launch Simulator', 
-              ariaLabel: 'Launch Simulator', 
-              link: '#', 
-              onClick: () => setIsSimulatorRunning(true),
-              image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop'
-            },
-            { 
-              label: 'GitHub Repo', 
-              ariaLabel: 'GitHub Srinivasa', 
-              link: 'https://github.com/UtkarshSharma000/Srinivasa',
-              image: 'https://images.unsplash.com/photo-1618477247222-ac60c7477123?q=80&w=2064&auto=format&fit=crop'
-            },
-          ]}
-          socialItems={[]}
-        />
-
-        <main className="">
-          <LandingHero
-            isSimulatorRunning={isSimulatorRunning}
-            setIsSimulatorRunning={setIsSimulatorRunning}
-            landingScrollRef={landingScrollRef}
-          />
-
-          <InteractiveBridge />
-
-          <SpaceExplorationPanel
-            cinematicSectionRef={cinematicSectionRef}
-            scrollProgressRef={scrollProgressRef}
-            landingScrollRef={landingScrollRef}
-          />
-
-          <MathPhysicsShowcase
-            setIsSimulatorRunning={setIsSimulatorRunning}
-            landingScrollRef={landingScrollRef}
-          />
-        </main>
-      </div>
-
-      {/* Simulator Overlay UI */}
-      <div
-        className={`absolute inset-0 z-30 pointer-events-none flex transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-100" : "opacity-0"}`}
-      >
-        {isSimulatorRunning && (
-          <div className="relative w-full h-full flex pointer-events-none">
-            {/* System Select Sidebar (Left) */}
-            <div className="w-72 h-full border-r border-zinc-850 bg-[#020202]/95 text-white flex flex-col pointer-events-auto z-40 font-mono">
-              <div className="p-6 border-b border-zinc-90 w-full flex flex-col gap-1 select-none">
-                <span className="text-[11px] font-bold tracking-[0.25em] text-white uppercase font-display-lg">SYSTEM SELECT</span>
-                <span className="text-[8px] text-zinc-500 tracking-[0.1em] uppercase">Centering focal target</span>
+          {/* TopAppBar - Kinetic Brutalism */}
+          <header className="border-draw flex justify-between items-center w-full px-margin h-16 border-b-2 border-outline-variant bg-surface-container-lowest/90 backdrop-blur-sm flex-shrink-0 z-50">
+            <div className="flex items-center gap-gutter">
+              <h1 className="text-headline-lg font-bold text-primary-fixed tracking-tighter uppercase jitter-text">SOLAR_OS//V.02</h1>
+            </div>
+            <div className="flex items-center gap-margin text-telemetry-xs">
+              <span className="text-secondary tracking-widest hidden sm:inline">SEQ_ALIGN: <span className="text-primary-fixed fast-pulse">OK</span></span>
+              <span className="text-secondary tracking-widest hidden sm:inline">23:59:01 UTC</span>
+              <span className="text-primary-fixed border-l-2 border-outline-variant pl-4 hidden md:inline">[OP_ID: 8829_BETA]</span>
+              <div className="flex gap-2 text-primary-fixed">
+                <span className="material-symbols-outlined fast-pulse text-[14px]">sensors</span>
               </div>
+              <button onClick={() => setIsSimulatorRunning(false)} className="border-draw nav-item-hover flex items-center justify-center p-2 bg-black border-2 border-outline-variant text-[10px] text-secondary hover:text-primary-fixed transition-none uppercase cursor-pointer">
+                <LogOut size={14} className="rotate-180 mr-1" /> EXIT
+              </button>
+            </div>
+          </header>
 
-              {/* Planet Menu List */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-1.5 scrollbar-none select-none">
-                <button
-                  onClick={() => handleSelectPlanet("Sol (Sun)")}
-                  className={`w-full text-left px-4 py-2.5 text-[10px] tracking-wider uppercase font-medium flex items-center justify-between border transition-all cursor-pointer ${
-                    !selectedTarget
-                      ? 'bg-white text-black border-white font-bold'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-900 border-transparent'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span className={`w-1.5 h-1.5 rounded-full ${!selectedTarget ? 'bg-black' : 'bg-zinc-650'}`}></span>
-                    SOL (SUN)
-                  </span>
-                </button>
-
-                {PLANETS.map((p) => {
-                  const isSel = selectedTarget?.name === p.name;
-                  return (
-                    <button
-                      key={p.name}
-                      onClick={() => handleSelectPlanet(p.name)}
-                      className={`w-full text-left px-4 py-2 text-[10px] tracking-wider uppercase font-medium flex items-center justify-between border transition-all cursor-pointer ${
-                        isSel
-                          ? 'bg-white text-black border-white font-bold'
-                          : 'text-zinc-400 hover:text-white hover:bg-zinc-900 border-transparent'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className={`w-1.5 h-1.5 rounded-full ${isSel ? 'bg-black' : 'bg-zinc-650'}`}></span>
-                        {p.name.toUpperCase()}
-                      </span>
-                    </button>
-                  );
-                })}
+          <div className="flex flex-1 overflow-hidden relative w-full h-full">
+            {/* SideNavBar (Desktop) */}
+            <nav className="border-draw hidden lg:flex flex-col h-full border-r-2 border-outline-variant p-panel-padding bg-surface-container-lowest/90 backdrop-blur-md w-64 flex-shrink-0 z-40">
+              <div className="mb-4 border-b-2 border-outline-variant pb-2 stagger-in">
+                <h2 className="text-label-sm font-bold text-on-surface tracking-widest uppercase">TACTICAL_NAV</h2>
+                <p className="text-[9px] text-secondary mt-1 tracking-widest uppercase">Select Target</p>
               </div>
-
-              {/* Mission Control Panel (Integrated Launch Control) */}
-              <div className="p-5 border-t border-zinc-850 bg-[#050505]/60 flex flex-col gap-3.5 w-full">
-                <div className="flex flex-col gap-0.5 select-none">
-                  <span className="text-[9px] tracking-[0.2em] text-zinc-500 font-bold uppercase">MISSION CONTROL</span>
-                  {isLaunched ? (
-                    <span className="text-[8px] text-emerald-400 tracking-wider">ACTIVE FLIGHT PATH</span>
-                  ) : (
-                    <span className="text-[8px] text-zinc-500 tracking-wider">STANDBY FOR IGNITION</span>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-1.5 p-3 border border-zinc-800 bg-[#08080a] text-[9px] font-mono leading-relaxed select-none">
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">LAUNCHPAD</span>
-                    <span className="text-zinc-300 font-bold uppercase">{launchPlanet || "Earth"}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-zinc-900 pt-1.5 mt-1">
-                    <span className="text-zinc-500">TARGET</span>
-                    <span className="text-zinc-300 font-bold uppercase">{targetPlanet || selectedTarget?.name || "NONE"}</span>
-                  </div>
-                </div>
-
-                {/* Primary Control Buttons */}
-                <div className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-1 flex-1 overflow-y-auto pr-1">
+                <li className="stagger-in">
                   <button
-                    onClick={() => {
-                      if (isLaunched) {
-                        setIsLaunched(false);
-                        setMissionLegs(null);
-                        setTargetPlanet(null);
-                        setReturnWindow(null);
-                        setLaunchPlanet("Earth");
-                        teiAppliedRef.current = false;
-                        setCurrentLaunchPoints([]);
-                        setCurrentReturnPoints([]);
-                        setMissionStatus("STANDBY");
-                      } else {
-                        handleLaunch();
-                      }
-                    }}
-                    className={`w-full py-2.5 px-4 font-mono font-bold tracking-widest text-[9px] uppercase border transition-all cursor-pointer ${
-                      isLaunched
-                        ? 'border-red-500/30 text-red-400 bg-red-950/20 hover:bg-red-950/40'
-                        : 'border-white text-white bg-transparent hover:bg-white hover:text-black font-semibold'
+                    onClick={() => handleSelectPlanet("Sol (Sun)")}
+                    className={`w-full nav-item-hover flex items-center justify-between p-1.5 text-[10px] uppercase font-bold border-2 transition-none cursor-pointer ${
+                      !selectedTarget
+                        ? 'bg-primary-container text-on-primary-container border-primary-fixed'
+                        : 'text-secondary border-transparent'
                     }`}
                   >
-                    {isLaunched ? "ABORT FLIGHT" : "ENGAGE FLIGHT"}
-                  </button>
-
-                  {isLaunched && missionStatus === 'EARTH_ORBIT' && (
-                    <button
-                      onClick={() => {
-                        const missionArchive = {
-                          id: completedMissions,
-                          targetPlanet: selectedTarget?.name || targetPlanet,
-                          returnPlanet: "Earth",
-                          orbitType: missionStatus,
-                          offset: completedMissions * (Math.PI / 4),
-                          missionLegs: missionLegs,
-                          launchPlanet: initialLaunchPlanet,
-                          originalTargetPlanet: initialTargetPlanet,
-                          launchTime: currentLaunchTime,
-                          teiApplied: teiAppliedRef.current,
-                          launchPoints: currentLaunchPoints,
-                          returnPoints: currentReturnPoints,
-                          recordedTimeEvents: [...recordedTimeEvents],
-                        };
-                        setArchivedMissions(prev => [...prev, missionArchive]);
-                        setCompletedMissions(prev => prev + 1);
-                        setIsLaunched(false);
-                        setMissionLegs(null);
-                        setTargetPlanet(null);
-                        setReturnWindow(null);
-                        setLaunchPlanet("Earth");
-                        setMissionStatus("STANDBY");
-                        teiAppliedRef.current = false;
-                        setCurrentLaunchPoints([]);
-                        setCurrentReturnPoints([]);
-                        setRecordedTimeEvents([]);
-                        setActiveReplay(null);
-                      }}
-                      className="w-full py-2 px-4 font-mono font-bold tracking-widest text-[9px] uppercase border border-emerald-500/30 text-emerald-400 bg-emerald-950/20 hover:bg-emerald-950/40 rounded transition-colors cursor-pointer"
-                    >
-                      SAVE FLIGHT RECORD
-                    </button>
-                  )}
-
-                  {isLaunched && missionStatus && missionStatus.includes('ORBIT') && missionStatus !== 'EARTH_ORBIT' && (
-                    <div className="flex flex-col gap-2 mt-1">
-                      <button
-                        onClick={() => planReturn()}
-                        className="w-full py-2 text-zinc-300 hover:text-white border border-zinc-700 bg-zinc-900 rounded font-mono tracking-widest text-[8px] uppercase transition-colors cursor-pointer"
-                      >
-                        PLAN RETURN
-                      </button>
-
-                      {returnWindow && (
-                        <div className="p-3 bg-zinc-950 rounded border border-zinc-805 flex flex-col gap-2 text-[8px]">
-                          <div className="flex justify-between">
-                            <span className="text-zinc-500">TIME OF FLIGHT</span>
-                            <span className="text-zinc-300">{returnWindow.tof_days} DAYS</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-zinc-505">SPEED CHANGE:</span>
-                            <span className="text-zinc-300">{returnWindow.dv1_kms.toFixed(2)} KM/S</span>
-                          </div>
-                          <button
-                            onClick={() => {
-                              handleApply(returnWindow);
-                              setIsLaunched(true);
-                            }}
-                            className="w-full py-1.5 bg-white text-black hover:bg-zinc-200 uppercase tracking-wider rounded font-bold text-[8px] transition-colors cursor-pointer"
-                          >
-                            ENGAGE RETURN
-                          </button>
-                        </div>
-                      )}
+                    <div className="flex items-center gap-2">
+                      <span className={`w-1.5 h-1.5 rounded-none ${!selectedTarget ? 'bg-on-primary-fixed' : 'bg-primary-fixed fast-pulse'}`}></span>
+                      0.0 SOL [SUN]
                     </div>
-                  )}
+                    {!selectedTarget && <span className="text-[8px] opacity-70 tracking-widest">LOCKED</span>}
+                  </button>
+                </li>
+
+                {PLANETS.map((p, idx) => {
+                  const isSel = selectedTarget?.name === p.name;
+                  return (
+                    <li key={p.name} className="stagger-in text-left">
+                      <button
+                        onClick={() => handleSelectPlanet(p.name)}
+                        className={`w-full nav-item-hover flex items-center justify-between p-1.5 text-[10px] uppercase font-bold border-2 transition-none cursor-pointer ${
+                          isSel
+                            ? 'bg-primary-container text-on-primary-container border-primary-fixed'
+                            : 'text-secondary border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`w-1.5 h-1.5 rounded-none ${isSel ? 'bg-on-primary-fixed' : 'bg-primary-fixed'}`}></span>
+                          {idx + 1}.0 {p.name.toUpperCase()}
+                        </div>
+                        {isSel && <span className="text-[8px] opacity-70 tracking-widest">LOCKED</span>}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              
+              <div className="mt-auto pt-2 border-t-2 border-outline-variant flex flex-col gap-1.5 stagger-in">
+                {/* Mission Action Integration */}
+                <button
+                  onClick={() => {
+                    if (isLaunched) {
+                      setIsLaunched(false);
+                      setMissionLegs(null);
+                      setTargetPlanet(null);
+                      setReturnWindow(null);
+                      setLaunchPlanet("Earth");
+                      teiAppliedRef.current = false;
+                      setCurrentLaunchPoints([]);
+                      setCurrentReturnPoints([]);
+                      setMissionStatus("STANDBY");
+                    } else {
+                      handleLaunch();
+                    }
+                  }}
+                  className={`w-full py-2 font-bold tracking-widest text-[9px] uppercase border-2 transition-none cursor-pointer nav-item-hover flex items-center justify-center gap-2 ${
+                    isLaunched
+                      ? 'border-error text-error bg-error/10'
+                      : 'border-primary-fixed text-primary-fixed bg-primary-fixed/10'
+                  }`}
+                >
+                  {isLaunched ? "ABORT FLIGHT" : "INIT_LAUNCH_SEQ"}
+                </button>
+                
+                {isLaunched && missionStatus === 'EARTH_ORBIT' && (
+                  <button
+                    onClick={() => {
+                      const missionArchive = {
+                        id: completedMissions,
+                        targetPlanet: selectedTarget?.name || targetPlanet,
+                        returnPlanet: "Earth",
+                        orbitType: missionStatus,
+                        offset: completedMissions * (Math.PI / 4),
+                        missionLegs: missionLegs,
+                        launchPlanet: initialLaunchPlanet,
+                        originalTargetPlanet: initialTargetPlanet,
+                        launchTime: currentLaunchTime,
+                        teiApplied: teiAppliedRef.current,
+                        launchPoints: currentLaunchPoints,
+                        returnPoints: currentReturnPoints,
+                        recordedTimeEvents: [...recordedTimeEvents],
+                      };
+                      setArchivedMissions(prev => [...prev, missionArchive]);
+                      setCompletedMissions(prev => prev + 1);
+                      setIsLaunched(false);
+                      setMissionLegs(null);
+                      setTargetPlanet(null);
+                      setReturnWindow(null);
+                      setLaunchPlanet("Earth");
+                      setMissionStatus("STANDBY");
+                      teiAppliedRef.current = false;
+                      setCurrentLaunchPoints([]);
+                      setCurrentReturnPoints([]);
+                      setRecordedTimeEvents([]);
+                      setActiveReplay(null);
+                    }}
+                    className="w-full py-1.5 tracking-widest text-[9px] uppercase border-2 border-primary-fixed text-primary-fixed bg-surface-container-lowest transition-none cursor-pointer nav-item-hover"
+                  >
+                    ARCHIVE RECORD
+                  </button>
+                )}
+
+                {isLaunched && missionStatus && missionStatus.includes('ORBIT') && missionStatus !== 'EARTH_ORBIT' && (
+                  <div className="flex flex-col gap-1">
+                    <button
+                      onClick={() => planReturn()}
+                      className="w-full py-1.5 text-secondary border-2 border-outline-variant rounded-none text-[8px] uppercase transition-none cursor-pointer nav-item-hover"
+                    >
+                      PLAN RETURN
+                    </button>
+
+                    {returnWindow && (
+                      <div className="p-2 border-2 border-primary-fixed bg-surface text-[8px] flex flex-col gap-1 text-primary-fixed font-bold">
+                        <div className="flex justify-between">
+                          <span className="opacity-70">TOF:</span>
+                          <span>{returnWindow.tof_days}D</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="opacity-70">∆V:</span>
+                          <span>{returnWindow.dv1_kms.toFixed(2)} KM/S</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            handleApply(returnWindow);
+                            setIsLaunched(true);
+                          }}
+                          className="w-full py-1 bg-primary-fixed text-on-primary-fixed uppercase tracking-wider text-[8px] cursor-pointer mt-1 font-black"
+                        >
+                          ENGAGE RETURN
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Deep Space Pings Terminal Logs */}
+                <div className="border-t-2 border-outline-variant pt-2 mt-2 h-28 flex flex-col pointer-events-auto">
+                  <span className="text-[8px] text-primary-fixed mb-1 uppercase font-bold tracking-widest">DEEP_SPACE_PINGS</span>
+                  <div className="flex-1 bg-black border-2 border-outline-variant p-1 text-[8px] text-secondary overflow-hidden relative font-sans leading-tight">
+                    <div className="absolute w-full h-full terminal-content flex flex-col gap-0.5">
+                      <div>&gt; PING SGNL_01.. <span className="text-primary-fixed">ACK</span></div>
+                      <div>&gt; RADAR_SWEEP... <span className="text-primary-fixed">CLR</span></div>
+                      <div>&gt; TEL_SYNC...... <span className="text-primary-fixed">OK</span></div>
+                      <div>&gt; RECALIBRATING. <span className="text-primary-fixed">DNE</span></div>
+                      <div>&gt; SYS_OP........ <span className="text-primary-fixed">RDY</span></div>
+                      <div>&gt; CALC_ORBIT.... <span className="text-primary-fixed">OK</span></div>
+                    </div>
+                  </div>
                 </div>
+
+                <button
+                  onClick={() => setIsArchiveOpen(!isArchiveOpen)}
+                  className="mt-1 nav-item-hover flex items-center justify-between p-2 text-secondary border-2 border-outline-variant bg-surface transition-none text-[9px] uppercase cursor-pointer"
+                >
+                  <span>SYS_HISTORY</span>
+                  <span className="bg-primary-fixed text-on-primary-fixed px-1 font-bold">
+                    {archivedMissions.length}
+                  </span>
+                </button>
+              </div>
+            </nav>
+
+            {/* 3D Canvas Main */}
+            <main className="flex-1 relative flex flex-col bg-transparent z-10 p-0 m-[12px] border-2 border-outline-variant bg-black">
+              <div className="absolute inset-0 z-0 pointer-events-auto">
+                <Canvas camera={{ position: [0, 50, 80], fov: 45 }}>
+                  <OrbitSimulator 
+                    isRunning={true}
+                    isCinematic={false}
+                    cinematicScrollRef={scrollProgressRef}
+                    globalTimeRef={globalTimeRef} 
+                    launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs }}
+                    timeMult={timeMult} 
+                    activeReplay={activeReplay}
+                    archivedMissions={archivedMissions}
+                    showWireframe={showWireframe}
+                    showOrbits={showOrbits}
+                    resetCameraTrigger={resetCameraTrigger}
+                    selectedTarget={selectedTarget}
+                    mapPlanet={mapPlanet}
+                    setMapPlanet={setMapPlanet}
+                    setTargetLocation={setTargetLocation}
+                    setMissionStatus={setMissionStatus}
+                    teiAppliedRef={teiAppliedRef}
+                    currentLaunchPoints={currentLaunchPoints}
+                    currentReturnPoints={currentReturnPoints}
+                    onPointsCalculated={(pts, isReturn) => {
+                      if (isReturn) {
+                        setCurrentReturnPoints(pts);
+                      } else {
+                        setCurrentLaunchPoints(pts);
+                      }
+                    }}
+                    orbitPathsVisible={orbitPathsVisible}
+                    planetaryLabelsVisible={planetaryLabelsVisible}
+                    followSpacecraft={followSpacecraft}
+                    cameraPresetToLoad={cameraPresetToLoad}
+                    cameraPresetToSave={cameraPresetToSave}
+                    onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
+                  />
+                </Canvas>
               </div>
 
-              {/* Menu Action Footers */}
-              <div className="p-5 border-t border-zinc-850 bg-[#020202] flex flex-col gap-1.5 font-mono text-[9px] w-full select-none">
-                <button
-                  onClick={() => setIsArchiveOpen(true)}
-                  className="w-full py-2 text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-950 rounded flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-xs">history</span>
-                  FLIGHT HISTORY ({archivedMissions.length})
-                </button>
+              {/* Telemetry Overlays ON TOP of Canvas */}
+              {selectedTarget ? (
+                <div className="border-draw absolute top-2 left-2 border-2 border-outline-variant bg-surface-container-lowest/80 backdrop-blur-md p-3 w-64 z-20 pointer-events-none">
+                  <div className="border-b-2 border-outline-variant pb-1.5 mb-2 flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-on-surface uppercase tracking-widest leading-none pt-0.5">{selectedTarget.name} SYS_INFO</span>
+                    <span className="w-1.5 h-1.5 bg-primary-fixed fast-pulse"></span>
+                  </div>
+                  <div className="text-telemetry-xs text-secondary flex flex-col gap-1 tracking-wider leading-snug">
+                    <div className="flex justify-between border-b border-outline-variant border-dashed pb-0.5"><span>MASS:</span> <span className="text-primary-fixed jitter-text">{PLANET_STATS[selectedTarget.name]?.mass || "N/A"}</span></div>
+                    <div className="flex justify-between border-b border-outline-variant border-dashed pb-0.5"><span>GRV :</span> <span className="text-primary-fixed jitter-text">{PLANET_STATS[selectedTarget.name]?.gravity || "N/A"}</span></div>
+                    <div className="flex justify-between border-b border-outline-variant border-dashed pb-0.5"><span>ATM :</span> <span className="text-primary-fixed text-[8px] pt-0.5 items-center flex">{PLANET_STATS[selectedTarget.name]?.atmosphere || "None"}</span></div>
+                    <div className="flex justify-between"><span>TEMP:</span> <span className="text-primary-fixed jitter-text font-bold">{PLANET_STATS[selectedTarget.name]?.temp || "N/A"}</span></div>
+                    <div className="flex justify-between mt-2 pt-1 border-t-2 border-outline-variant">
+                      <span className="text-primary-fixed uppercase font-bold">SYS_STATUS:</span> <span className="text-primary-fixed font-bold">NOMINAL</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="border-draw absolute top-2 left-2 border-2 border-outline-variant bg-surface-container-lowest/80 backdrop-blur-md p-2 w-56 z-20 pointer-events-none">
+                  <div className="border-b-2 border-outline-variant pb-1 mb-1 flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-on-surface uppercase tracking-widest pt-0.5">ORBITAL_VECTORS</span>
+                    <span className="w-1.5 h-1.5 bg-primary-fixed fast-pulse"></span>
+                  </div>
+                  <div className="text-telemetry-xs text-secondary flex flex-col gap-1 tracking-wider">
+                    <div className="flex justify-between"><span>T_AXIS:</span> <span className="text-primary-fixed jitter-text">14.9598</span></div>
+                    <div className="flex justify-between"><span>E_RAD:</span> <span className="text-primary-fixed jitter-text">6371.0</span></div>
+                    <div className="flex justify-between"><span>V_ESC:</span> <span className="text-primary-fixed jitter-text">11.186</span></div>
+                    <div className="flex justify-between mt-1 pt-1 border-t border-outline-variant">
+                      <span className="text-primary-fixed font-bold">STATUS:</span> <span className="text-primary-fixed font-bold">NOMINAL</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                <button
-                  onClick={() => setIsSimulatorRunning(false)}
-                  className="w-full py-2 text-zinc-505 hover:text-red-400 border border-transparent hover:bg-red-950/10 rounded flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              {/* Right side diagnostics */}
+              <div className="border-draw absolute top-2 right-2 flex flex-col gap-2 z-20 items-end pointer-events-none w-56">
+                <div className="border-2 border-outline-variant bg-surface-container-lowest/80 backdrop-blur-md p-2 w-full">
+                  <div className="border-b-2 border-outline-variant pb-1 mb-1 flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-on-surface uppercase tracking-widest pt-0.5">SYS_DIAGNOSTICS</span>
+                    <span className="text-[8px] text-secondary">v2.0.1</span>
+                  </div>
+                  <div className="text-telemetry-xs text-secondary flex flex-col gap-1">
+                    <div className="flex justify-between items-center">
+                      <span>CPU_LD:</span>
+                      <span className="text-primary-fixed jitter-text">88%</span>
+                    </div>
+                    <div className="w-full h-1 bg-surface-variant"><div className="h-full bg-primary-fixed w-[88%] jitter-text"></div></div>
+                    <div className="flex justify-between items-center mt-1">
+                      <span>MEM_AL:</span>
+                      <span className="text-primary-fixed jitter-text">62GB</span>
+                    </div>
+                    <div className="w-full h-1 bg-surface-variant"><div className="h-full bg-primary-fixed w-[90%] jitter-text"></div></div>
+                  </div>
+                </div>
+
+                {/* Waterfall fake component */}
+                <div className="border-2 border-outline-variant bg-surface-container-lowest/80 backdrop-blur-md p-2 w-full flex flex-col">
+                  <div className="text-[8px] text-on-surface uppercase font-bold mb-1 border-b border-outline-variant pb-1 text-center font-sans tracking-widest">SPECTRUM_ANALYSIS</div>
+                  <div className="waterfall-container">
+                    <div className="waterfall-bar" style={{animationDelay: "0.1s"}}></div>
+                    <div className="waterfall-bar" style={{animationDelay: "0.3s"}}></div>
+                    <div className="waterfall-bar" style={{animationDelay: "0.2s"}}></div>
+                    <div className="waterfall-bar" style={{animationDelay: "0.5s"}}></div>
+                    <div className="waterfall-bar" style={{animationDelay: "0.4s"}}></div>
+                    <div className="waterfall-bar" style={{animationDelay: "0.6s"}}></div>
+                    <div className="waterfall-bar" style={{animationDelay: "0.8s"}}></div>
+                    <div className="waterfall-bar" style={{animationDelay: "0.7s"}}></div>
+                    <div className="waterfall-bar" style={{animationDelay: "0.9s"}}></div>
+                    <div className="waterfall-bar" style={{animationDelay: "0.2s"}}></div>
+                  </div>
+                </div>
+
+                {/* Gravity Widgets */}
+                <div className="border-2 border-outline-variant bg-surface-container-lowest/80 backdrop-blur-md p-2 w-full flex justify-between">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="w-6 h-6 border-2 border-primary-fixed rounded-full flex items-center justify-center relative">
+                      <div className="absolute w-4 h-4 border border-primary-fixed rounded-full fast-pulse"></div>
+                      <span className="text-[6px] text-primary-fixed font-bold leading-none translate-y-[1px]">9.8</span>
+                    </div>
+                    <span className="text-[7px] text-secondary tracking-widest leading-none translate-y-0.5">G_TERRA</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="w-6 h-6 border-2 border-primary-fixed rounded-full flex items-center justify-center relative">
+                      <div className="absolute w-4 h-4 border border-primary-fixed rounded-full fast-pulse"></div>
+                      <span className="text-[6px] text-primary-fixed font-bold leading-none translate-y-[1px]">24.7</span>
+                    </div>
+                    <span className="text-[7px] text-secondary tracking-widest leading-none translate-y-0.5">G_JOVIAN</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="w-6 h-6 border-2 border-secondary rounded-full flex items-center justify-center relative">
+                      <div className="absolute w-4 h-4 border border-secondary rounded-full"></div>
+                      <span className="text-[6px] text-secondary font-bold leading-none translate-y-[1px]">3.7</span>
+                    </div>
+                    <span className="text-[7px] text-secondary tracking-widest leading-none translate-y-0.5">G_MARS</span>
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={() => {
+                    setSelectedTarget(null);
+                    setResetCameraTrigger(prev => prev + 1);
+                  }}
+                  className="mt-auto pointer-events-auto border-2 border-outline-variant bg-black text-[9px] text-secondary hover:text-primary-fixed px-3 py-1.5 w-full uppercase tracking-widest text-center cursor-pointer nav-item-hover font-bold"
                 >
-                  <LogOut size={10} className="rotate-180" />
-                  EXIT SIMULATOR
+                  [ RECENTER SOL ]
                 </button>
+              </div>
+
+              <div className="absolute bottom-2 left-2 text-[8px] text-secondary font-telemetry-xs flex gap-2 items-center bg-black/80 px-1 border border-outline-variant pointer-events-none z-20">
+                <span className="text-primary-fixed fast-pulse font-bold tracking-widest">TRK</span>
+                <span className="tracking-widest">COORD:</span> 
+                <span className="text-primary-fixed jitter-text tracking-widest">
+                  [X: -45.2, Y: 12.8, Z: 0.0]
+                </span>
+              </div>
+            </main>
+          </div>
+          
+          {/* Flight History Archive (Modal mapped as Kinetic Brutalism window) */}
+          {isArchiveOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto font-sans p-6">
+              <div className="bg-surface-container-lowest p-6 border-2 border-primary-fixed w-full max-w-2xl flex flex-col max-h-[80vh] relative shadow-[0_0_0_4px_rgba(255,176,0,0.2)] staggering-in">
+                <div className="framing-corner corner-tl"></div>
+                <div className="framing-corner corner-tr"></div>
+                <div className="framing-corner corner-bl"></div>
+                <div className="framing-corner corner-br"></div>
+                
+                <div className="flex justify-between items-center mb-4 pb-2 border-b-2 border-outline-variant">
+                  <h2 className="text-[12px] font-bold tracking-[0.2em] text-primary-fixed uppercase jitter-text">SYS_HISTORY // {archivedMissions.length} RECORDS</h2>
+                  <button 
+                    onClick={() => setIsArchiveOpen(false)}
+                    className="px-2 text-[10px] text-secondary border-2 border-transparent hover:border-primary-fixed hover:text-primary-fixed transition-none cursor-pointer tracking-widest uppercase bg-black"
+                  >
+                    [X] CLOSE
+                  </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto pr-2 space-y-2 scrollbar-none">
+                  {archivedMissions.length === 0 ? (
+                    <div className="text-center py-12 text-secondary text-[10px] tracking-widest uppercase fast-pulse border-2 border-dashed border-outline-variant mx-4 my-8">
+                      NO_RECORDS_FOUND
+                    </div>
+                  ) : (
+                    archivedMissions.map((m) => (
+                      <div key={m.id} className="p-3 border-2 border-outline-variant bg-black flex justify-between items-center group hover:border-primary-fixed hover:bg-surface transition-none">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="px-1 py-[1px] bg-primary-fixed text-on-primary-fixed text-[8px] font-bold tracking-widest uppercase border-2 border-primary-fixed">
+                              REC_0{String(m.id + 1)}
+                            </span>
+                            <span className="text-[8px] text-secondary tracking-widest uppercase font-bold">
+                              {m.orbitType ? m.orbitType.replace("_", " ") : "TRANSFER"}
+                            </span>
+                          </div>
+                          <div className="text-[11px] font-bold text-white mt-1 uppercase tracking-widest">
+                            [{m.launchPlanet}] &rarr; [{m.targetPlanet?.toUpperCase() || "DEEP SPACE"}]
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            setActiveReplay(m);
+                            setIsArchiveOpen(false);
+                          }}
+                          className="px-3 py-1 border-2 border-outline-variant text-[9px] tracking-wider uppercase flex items-center gap-1.5 cursor-pointer nav-item-hover text-secondary font-bold bg-transparent"
+                        >
+                           &gt;_ REPLAY
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+                
+                <div className="h-4 bg-primary-fixed mt-4 flex items-center px-2">
+                  <span className="text-[8px] text-on-primary-fixed font-bold tracking-widest">AWAITING_INPUT<span className="cursor-blink">_</span></span>
+                </div>
               </div>
             </div>
+          )}
 
-            {/* Planet Detail Information Card (Top Right) */}
-            {selectedTarget && (
-              <div className="absolute top-8 right-8 pointer-events-auto z-40 select-none">
-                <div className="w-80 border border-zinc-850 bg-[#020202]/95 text-white p-5 rounded font-mono">
-                  <div className="flex justify-between items-center border-b border-zinc-85 w-full pb-3 mb-4">
-                    <div className="flex flex-col gap-0.5">
-                      <h2 className="text-xs font-bold tracking-[0.25em] text-white uppercase font-display-lg">{selectedTarget.name}</h2>
-                      <span className="text-[8px] text-zinc-500 tracking-[0.1em] uppercase">SYSTEM COORDINATES</span>
-                    </div>
-                    {/* Double Concentric SVG Radar Ring Animation */}
-                    <div className="relative w-8 h-8 flex items-center justify-center">
-                      <div className="absolute w-7 h-7 rounded-full border border-dashed border-zinc-700 animate-[spin_20s_linear_infinite]" />
-                      <div className="absolute w-5 h-5 rounded-full border border-dashed border-zinc-500 animate-[spin_10s_linear_infinite]" />
-                      <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                    </div>
-                  </div>
-
-                  {/* Physical Metrics */}
-                  <div className="flex flex-col text-[9px] gap-2.5">
-                    <div className="flex justify-between border-b border-dashed border-zinc-90 pb-1.5">
-                      <span className="text-zinc-500 uppercase tracking-wider">MASS</span>
-                      <span className="text-zinc-300 font-medium">
-                        {PLANET_STATS[selectedTarget.name]?.mass || "1.99 × 10³⁰ kg"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-b border-dashed border-zinc-90 pb-1.5">
-                      <span className="text-zinc-500 uppercase tracking-wider">GRAVITY</span>
-                      <span className="text-zinc-300 font-medium">
-                        {PLANET_STATS[selectedTarget.name]?.gravity || "274 m/s²"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-b border-dashed border-zinc-90 pb-1.5">
-                      <span className="text-zinc-500 uppercase tracking-wider">ATMOSPHERE</span>
-                      <span className="text-zinc-300 font-medium text-right">
-                        {PLANET_STATS[selectedTarget.name]?.atmosphere || "None"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between pb-0.5">
-                      <span className="text-zinc-500 uppercase tracking-wider">TEMP (AVG)</span>
-                      <span className="text-zinc-300 font-medium font-sans">
-                        {PLANET_STATS[selectedTarget.name]?.temp || "5500 °C"}
-                      </span>
-                    </div>
-                  </div>
+          {/* Bottom Control Panel & Terminal */}
+          <div className="border-draw flex flex-col border-t-2 border-outline-variant bg-surface-container-lowest z-40 relative px-panel-padding" style={{animationDelay: "1.1s"}}>
+            <div className="py-2 flex flex-col md:flex-row justify-between items-center flex-wrap gap-2 border-b-2 border-outline-variant">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 border-2 border-outline-variant px-2 py-0.5 bg-black w-24 justify-center">
+                  <span className={`w-1.5 h-1.5 ${timeMult === 0 ? 'bg-error' : 'bg-primary-fixed fast-pulse'}`}></span>
+                  <span className={`text-[10px] font-bold uppercase ${timeMult === 0 ? 'text-error' : 'text-primary-fixed fast-pulse'}`}>
+                    {timeMult === 0 ? 'PAUSED' : 'LIVE'}
+                  </span>
                 </div>
+                <span className="text-[10px] text-on-surface uppercase bg-black px-2 py-0.5 border border-outline-variant font-bold tracking-wider">
+                  {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ').slice(1,4).join(' ').toUpperCase()}
+                </span>
               </div>
-            )}
 
-            {/* Playback Control Panel (Bottom Center-Right) */}
-            <div className="absolute bottom-6 left-[320px] right-8 pointer-events-auto z-40 select-none">
-              <div className="bg-[#020202]/95 border border-zinc-850 rounded p-4 flex flex-col md:flex-row items-center justify-between gap-4 font-mono text-white shadow-xl">
-                {/* Rate text indicator */}
-                <div className="flex items-center gap-3 w-full md:w-1/4">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${timeMult === 0 ? 'bg-amber-500 animate-pulse' : 'bg-white animate-pulse'}`}></span>
-                    <span className="text-[10px] font-bold tracking-widest text-zinc-300">
-                      {timeMult === 0 ? "PAUSED" : "ACTIVE: " + (timeMult === 1 ? "REAL RATE" : `WARP x${timeMult.toLocaleString()}`)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Playback Action Buttons */}
-                <div className="flex items-center gap-4">
-                  <button
+              <div className="flex-1 max-w-xl flex flex-col items-center gap-1">
+                <span className="text-[8px] text-secondary uppercase tracking-widest font-bold">
+                  SIM_RATE: {timeMult === 1 ? 'REAL' : `WARP [x${timeMult}]`}
+                </span>
+                <div className="flex items-center justify-center gap-1 w-full max-w-md mx-auto">
+                  <button 
                     onClick={() => {
                       const warpSpeeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
                       const currIdx = warpSpeeds.indexOf(timeMult);
-                      if (currIdx > 0) {
-                        handleTimeMultChange(warpSpeeds[currIdx - 1]);
-                      } else if (timeMult === 0) {
-                        handleTimeMultChange(1);
-                      }
+                      if (currIdx > 0) handleTimeMultChange(warpSpeeds[currIdx - 1]);
+                      else if (timeMult === 0) handleTimeMultChange(1);
                     }}
-                    className="p-1 px-3 border border-zinc-800 hover:border-white text-zinc-450 hover:text-white rounded text-xs cursor-pointer transition-colors"
-                    title="Decrease speed"
+                    className="nav-item-hover border-2 border-outline-variant px-2 py-[2px] text-secondary transition-none bg-black cursor-pointer w-auto flex justify-center"
                   >
-                    &lt;&lt;
+                    <span className="material-symbols-outlined text-[14px]">fast_rewind</span>
                   </button>
-
-                  <button
+                  
+                  <button 
                     onClick={() => {
                       if (timeMult > 0) {
                         lastTimeMultRef.current = timeMult;
@@ -1219,122 +1284,151 @@ export default function App() {
                         handleTimeMultChange(lastTimeMultRef.current || 86400);
                       }
                     }}
-                    className={`px-4 py-1 border rounded text-xs font-bold cursor-pointer transition-colors h-6 flex items-center justify-center ${
-                      timeMult === 0
-                        ? 'border-amber-500/50 text-amber-400 bg-amber-950/20'
-                        : 'border-zinc-800 text-zinc-350 hover:text-white hover:border-white'
+                    className={`border-2 px-6 py-[2px] transition-none cursor-pointer w-auto flex justify-center font-bold tracking-widest text-[9px] ${
+                      timeMult === 0 ? 'border-error bg-error text-on-primary-fixed hover:bg-error/80' : 'border-outline-variant text-secondary bg-black nav-item-hover'
                     }`}
                   >
-                    {timeMult === 0 ? "PLAY" : "PAUSE"}
+                    {timeMult === 0 ? '> PLAY' : '|| PAUSE'}
                   </button>
 
-                  <button
+                  <button 
                     onClick={() => {
                       const warpSpeeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
                       const currIdx = warpSpeeds.indexOf(timeMult);
-                      if (currIdx !== -1 && currIdx < warpSpeeds.length - 1) {
-                        handleTimeMultChange(warpSpeeds[currIdx + 1]);
-                      } else if (timeMult === 0) {
-                        handleTimeMultChange(lastTimeMultRef.current || 86400);
-                      }
+                      if (currIdx !== -1 && currIdx < warpSpeeds.length - 1) handleTimeMultChange(warpSpeeds[currIdx + 1]);
+                      else if (timeMult === 0) handleTimeMultChange(lastTimeMultRef.current || 86400);
                     }}
-                    className="p-1 px-3 border border-zinc-800 hover:border-white text-zinc-455 hover:text-white rounded text-xs cursor-pointer transition-colors"
-                    title="Increase speed"
+                    className="nav-item-hover border-2 border-outline-variant px-2 py-[2px] text-secondary transition-none bg-black cursor-pointer w-auto flex justify-center"
                   >
-                    &gt;&gt;
+                    <span className="material-symbols-outlined text-[14px]">fast_forward</span>
                   </button>
                 </div>
-
-                {/* Clock UTC Date Information */}
-                <div className="w-full md:w-1/3 flex flex-col md:items-end gap-0.5 text-right text-[10px] text-zinc-400 select-all">
-                  <div>
-                    SIM TIME: {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ').slice(1, 4).join('-').toUpperCase()}
-                  </div>
-                  <div className="text-[9px] text-zinc-650">
-                    SEC +{Math.max(0, Math.floor(globalTimeRef.current)).toString().padStart(9, '0')} || {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ')[4]} UTC
-                  </div>
+                {/* Speed Reference Text Array under main controls */}
+                <div className="flex w-full max-w-md justify-between px-2 pt-0.5 select-none">
+                  {["REAL", "DAY", "MTH", "YR", "10Y", "100Y"].map((label, idx) => {
+                     const speeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
+                     const active = timeMult === speeds[idx];
+                     return (
+                       <span 
+                         key={idx}
+                         onClick={() => handleTimeMultChange(speeds[idx])}
+                         className={`text-[8px] cursor-pointer tracking-wider ${active ? 'text-primary-fixed font-bold border-b border-primary-fixed' : 'text-secondary hover:text-white'}`}
+                       >
+                         {label}
+                       </span>
+                     )
+                  })}
                 </div>
               </div>
 
-              {/* Speed reference text scale marks */}
-              <div className="flex justify-between text-zinc-600 text-[8px] tracking-widest uppercase mt-1.5 px-4">
-                {["Real-time", "1 Day/s", "30 Days/s", "1 Year/s", "10 Years/s", "100 Years/s"].map((label, idx) => {
-                  const speeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
-                  const active = timeMult === speeds[idx];
-                  return (
-                    <span
-                      key={idx}
-                      onClick={() => handleTimeMultChange(speeds[idx])}
-                      className={`cursor-pointer hover:text-white transition-colors ${active ? 'text-white font-bold' : ''}`}
-                    >
-                      {label}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {mapPlanet && (
-          <Planet2DMap 
-            planetName={mapPlanet}
-            onClose={() => setMapPlanet(null)}
-            onSelectLocation={handleSelectLocation}
-            launchPlanet={launchPlanet}
-            targetPlanet={targetPlanet}
-            launchLocation={launchLocation}
-            targetLocation={targetLocation}
-          />
-        )}
-
-        {isArchiveOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 pointer-events-auto font-mono text-white p-6">
-            <div className="bg-[#020202] p-8 rounded border border-zinc-800 w-full max-w-2xl flex flex-col max-h-[80vh]">
-              <div className="flex justify-between items-center mb-6 pb-3 border-b border-zinc-800">
-                <h2 className="text-xs font-bold tracking-[0.25em] text-white uppercase">FLIGHT HISTORY</h2>
-                <button 
-                  onClick={() => setIsArchiveOpen(false)}
-                  className="px-3 py-1 text-[10px] text-zinc-400 hover:text-white border border-zinc-850 hover:border-zinc-700 rounded transition-colors cursor-pointer"
-                >
-                  CLOSE
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto pr-2 space-y-3 scrollbar-none">
-                {archivedMissions.length === 0 ? (
-                  <div className="text-center py-12 text-zinc-600 text-xs tracking-widest uppercase">
-                    NO MISSIONS ARCHIVED YET
-                  </div>
-                ) : (
-                  archivedMissions.map((m) => (
-                    <div key={m.id} className="p-4 rounded border border-zinc-900 bg-zinc-950/40 flex justify-between items-center group hover:border-white/25 transition-colors">
-                      <div>
-                        <div className="flex items-center gap-3 mb-1">
-                          <span className="px-1.5 py-0.5 rounded bg-white/10 text-white text-[8px] font-bold tracking-widest border border-white/10">
-                            MISSION {String(m.id + 1).padStart(2, '0')}
-                          </span>
-                          <span className="text-[8px] text-zinc-500 tracking-widest uppercase">
-                            {m.orbitType ? m.orbitType.replace("_", " ") : "TRANSFER"}
-                          </span>
-                        </div>
-                        <div className="text-sm font-bold text-white mt-0.5">
-                          {m.launchPlanet.toUpperCase()} &rarr; {m.targetPlanet?.toUpperCase() || "DEEP SPACE"}
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => handleReplay(m)}
-                        className="px-4 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-white hover:border-white transition-all text-[9px] tracking-wider uppercase flex items-center gap-1.5 cursor-pointer"
-                      >
-                        REPLAY
-                      </button>
-                    </div>
-                  ))
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-on-surface uppercase bg-black px-2 py-0.5 border border-outline-variant jitter-text tracking-widest font-bold hidden sm:inline-block">
+                  {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ')[4]}
+                </span>
+                {mapPlanet && (
+                  <Planet2DMap 
+                    planetName={mapPlanet}
+                    onClose={() => setMapPlanet(null)}
+                    onSelectLocation={handleSelectLocation}
+                    launchPlanet={launchPlanet}
+                    targetPlanet={targetPlanet}
+                    launchLocation={launchLocation}
+                    targetLocation={targetLocation}
+                  />
                 )}
               </div>
             </div>
+
+            {/* Rapid Terminal Output */}
+            <div className="h-6 bg-black flex items-center px-2 text-[9px] text-secondary font-mono overflow-hidden border-b-2 border-outline-variant -mx-margin pb-1">
+              <span className="text-primary-fixed mr-2 font-bold tracking-widest">&gt; SYS_OUT:</span>
+              <div className="flex-1 whitespace-nowrap overflow-hidden">
+                {timeMult === 0 ? (
+                   <span className="text-secondary tracking-widest uppercase inline-block">SIMULATION_PAUSED | AWAITING_COMMAND_INPUT | CORE_TEMP_NOMINAL...</span>
+                ) : isLaunched ? (
+                   <span className="jitter-text text-primary-fixed font-bold tracking-widest inline-block">TRAJ_COMPUTATION_ACTIVE | BURST_VELOCITY_CHECK_PASS | NAV_SYSTEM_LOCKED_ON_TARGET...</span>
+                ) : (
+                   <span className="jitter-text text-secondary tracking-widest inline-block">INIT_SEQ_001 [OK] | LOADING_SECTOR_G1 [OK] | CALC_TRAJ... | MEM_ALLOC_48GB | NOMINAL...</span>
+                )}
+              </div>
+              <span className="cursor-blink text-primary-fixed bg-primary-fixed w-1.5 h-3 ml-1 block"></span>
+            </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
+
+      {/* Landing Page Content */}
+      {!isSimulatorRunning && (
+        <>
+          <div className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000">
+            <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={scrollProgressRef} />
+          </div>
+
+          <div
+            ref={landingScrollRef}
+            className="landing-scroller absolute inset-0 z-20 flex flex-col pointer-events-auto overflow-y-auto"
+          >
+            <StaggeredMenu
+              isFixed={true}
+              position="right"
+              colors={['#082f49', '#0c4a6e', '#164e63']}
+              logoUrl="/logo.svg"
+              menuButtonColor="#ffb000"
+              openMenuButtonColor="#ffffff"
+              accentColor="#ffb000"
+              onLaunchCore={() => setIsSimulatorRunning(true)}
+              items={[
+                { 
+                  label: 'Launch Simulator', 
+                  ariaLabel: 'Launch Simulator', 
+                  link: '#', 
+                  onClick: () => setIsSimulatorRunning(true),
+                  image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop'
+                },
+                { 
+                  label: 'Srinivasa Project', 
+                  ariaLabel: 'Srinivasa Project Site', 
+                  link: 'https://Srinivasa.2bd.net',
+                  image: 'https://images.unsplash.com/photo-1618477247222-ac60c7477123?q=80&w=2064&auto=format&fit=crop'
+                },
+              ]}
+              socialItems={[]}
+            />
+
+            <main className="">
+              <LandingHero
+                isSimulatorRunning={isSimulatorRunning}
+                setIsSimulatorRunning={setIsSimulatorRunning}
+                landingScrollRef={landingScrollRef}
+              />
+              <InteractiveBridge />
+              <SpaceExplorationPanel
+                cinematicSectionRef={cinematicSectionRef}
+                scrollProgressRef={scrollProgressRef}
+                landingScrollRef={landingScrollRef}
+              />
+              <MathPhysicsShowcase
+                setIsSimulatorRunning={setIsSimulatorRunning}
+                landingScrollRef={landingScrollRef}
+              />
+            </main>
+          </div>
+        </>
+      )}
+
+      {showMobileBlock && (
+        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#131313] text-white p-6 text-center select-none pointer-events-auto rounded">
+          <div className="max-w-xs flex flex-col items-center border-2 border-primary-fixed p-6 bg-surface-container-low">
+            <span className="material-symbols-outlined text-[48px] text-primary-fixed mb-4 fast-pulse">desktop_windows</span>
+            <h1 className="text-sm font-bold tracking-[0.2em] text-primary-fixed uppercase mb-2">
+              DESKTOP ONLY
+            </h1>
+            <p className="text-[10px] text-secondary tracking-widest leading-relaxed">
+              Mobile support not present in this terminal. Please connect using a widescreen display for full operational access.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,75 +1,231 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Oswald:wght@200..700&family=JetBrains+Mono:wght@100..800&family=Oi&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-on-tertiary-fixed-variant: #004e60;
-  --color-on-surface-variant: #b0b0b0;
-  --color-primary: #aaddff;
-  --color-surface-container: #0a0a0c;
-  --color-primary-fixed-dim: #99ccff;
-  --color-on-secondary: #000000;
-  --color-error-container: #93000a;
-  --color-tertiary: #59d5fb;
-  --color-on-surface: #e0e0e0;
-  --color-background: #020203;
-  --color-surface-dim: #050505;
-  --color-on-error-container: #ffdad6;
-  --color-on-background: #ffffff;
-  --color-surface-container-low: #08080a;
-  --color-surface-container-highest: #1a1a20;
-  --color-on-primary-fixed-variant: #003366;
-  --color-on-primary-fixed: #002244;
-  --color-primary-container: #0055ff;
-  --color-surface: #0a0b0d;
-  --color-secondary-fixed-dim: #e0e0e0;
-  --color-on-secondary-fixed-variant: #444444;
-  --color-surface-variant: #222226;
-  --color-surface-container-high: #15151a;
-  --color-tertiary-container: #00a7cb;
-  --color-secondary-container: #ffffff;
-  --color-on-secondary-fixed: #111111;
-  --color-secondary: #ffffff;
-  --color-on-tertiary: #003543;
-  --color-outline: #555555;
-  --color-secondary-fixed: #f0f0f0;
+  --color-primary-fixed: #ffb000;
+  --color-secondary: #c6c6c7;
+  --color-on-primary-fixed: #241800;
+  --color-on-primary-fixed-variant: #4d3500;
+  --color-secondary-container: #454747;
+  --color-tertiary-container: #dfdcdb;
+  --color-tertiary: #fcf8f8;
+  --color-outline-variant: #4a4031;
+  --color-on-secondary-container: #b4b5b5;
+  --color-on-background: #e2e2e2;
+  --color-on-secondary-fixed: #1a1c1c;
   --color-error: #ffb4ab;
-  --color-surface-container-lowest: #000000;
-  --color-on-secondary-container: #000000;
-  --color-primary-fixed: #cceeff;
-  --color-on-primary: #001133;
-  --color-inverse-primary: #0066ff;
-  --color-tertiary-fixed-dim: #59d5fb;
-  --color-surface-tint: #44aaff;
-  --color-inverse-on-surface: #121215;
-  --color-on-tertiary-container: #003744;
-  --color-on-primary-container: #ffffff;
-  --color-outline-variant: #333333;
-  --color-tertiary-fixed: #b5ebff;
-  --color-surface-bright: #333338;
-  --color-inverse-surface: #eeeeee;
-  --color-on-tertiary-fixed: #001f28;
+  --color-on-tertiary-container: #616060;
+  --color-surface-container-highest: #353535;
+  --color-on-surface: #e2e2e2;
+  --color-on-error-container: #ffdad6;
+  --color-on-tertiary-fixed: #1c1b1b;
+  --color-background: #131313;
+  --color-surface-dim: #131313;
+  --color-surface-container-high: #2a2a2a;
+  --color-inverse-primary: #cc8c00;
+  --color-on-secondary-fixed-variant: #454747;
+  --color-surface-container-low: #1b1b1b;
+  --color-outline: #8c7a5d;
+  --color-on-surface-variant: #e6d8b8;
+  --color-inverse-on-surface: #303030;
+  --color-on-primary-container: #241800;
+  --color-surface: #131313;
+  --color-on-tertiary-fixed-variant: #474746;
+  --color-error-container: #93000a;
+  --color-surface-variant: #353535;
+  --color-tertiary-fixed: #e5e2e1;
+  --color-primary: #ffb000;
+  --color-on-primary: #241800;
+  --color-secondary-fixed-dim: #c6c6c7;
+  --color-surface-container: #1f1f1f;
   --color-on-error: #690005;
+  --color-surface-container-lowest: #0e0e0e;
+  --color-tertiary-fixed-dim: #c8c6c5;
+  --color-surface-tint: #ffb000;
+  --color-surface-bright: #393939;
+  --color-inverse-surface: #e2e2e2;
+  --color-primary-container: #ffb000;
+  --color-primary-fixed-dim: #e69e00;
+  --color-on-secondary: #2f3131;
+  --color-on-tertiary: #313030;
+  --color-secondary-fixed: #e2e2e2;
 
   --spacing-gutter: 16px;
-  --spacing-panel_padding: 24px;
-  --spacing-screen_margin: 32px;
-  --spacing-base_unit: 4px;
+  --spacing-panel-padding: 12px;
+  --spacing-screen-margin: 32px;
+  --spacing-base-unit: 4px;
 
-  --font-display-lg: "Space Grotesk", sans-serif;
-  --font-label-caps: "Share Tech Mono", monospace;
-  --font-headline-md: "Space Grotesk", sans-serif;
-  --font-data-lg: "Share Tech Mono", monospace;
-  --font-body-rg: "Space Grotesk", sans-serif;
+  --font-sans: "IBM Plex Mono", monospace;
+  --font-body-md: "IBM Plex Mono", monospace;
+  --font-headline-lg: "IBM Plex Mono", monospace;
+  --font-headline-xl: "IBM Plex Mono", monospace;
+  --font-label-sm: "IBM Plex Mono", monospace;
+  --font-telemetry-xs: "IBM Plex Mono", monospace;
 }
 
 body {
-  background-color: #020202;
+  background-color: #131313;
   overflow: hidden;
-  background-image: radial-gradient(
-    circle at 50% 50%,
-    rgba(0, 85, 255, 0.05) 0%,
-    transparent 50%
-  );
+}
+
+/* Grid Background for Brutalist Scientific Aesthetic */
+.tech-grid-bg {
+  background-size: 10px 10px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 176, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 176, 0, 0.05) 1px, transparent 1px);
+  animation: gridPulse 4s infinite alternate;
+}
+
+@keyframes gridPulse {
+  0% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+
+/* Flashing Cursor */
+.cursor-blink {
+  animation: blink 0.5s step-end infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Brutalist Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #131313;
+  border-left: 2px solid #4a4031;
+}
+::-webkit-scrollbar-thumb {
+  background: #e2e2e2;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ffb000;
+}
+
+/* Entrance Animations */
+.stagger-in {
+  opacity: 0;
+  transform: translateX(-10px);
+  animation: slideIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes slideIn {
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.border-draw {
+  animation: borderDraw 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes borderDraw {
+  0% { opacity: 0; border-color: transparent; }
+  100% { opacity: 1; border-color: inherit; }
+}
+
+/* Micro-Animations & Kinetic Overload */
+.fast-pulse {
+  animation: fastPulse 0.3s ease-in-out infinite;
+}
+
+@keyframes fastPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.jitter-text {
+  animation: textJitter 0.1s infinite;
+}
+
+@keyframes textJitter {
+  0% { transform: translate(0, 0); opacity: 0.9; }
+  25% { transform: translate(-0.5px, 0.5px); opacity: 1; }
+  50% { transform: translate(0.5px, -0.5px); opacity: 0.8; }
+  75% { transform: translate(-0.5px, -0.5px); opacity: 1; }
+  100% { transform: translate(0.5px, 0.5px); opacity: 0.9; }
+}
+
+/* Ultra-thin Prominent Scanline */
+.scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 176, 0, 0.8);
+  box-shadow: 0 0 5px rgba(255, 176, 0, 0.5);
+  opacity: 0;
+  animation: scan 4s linear infinite;
+  pointer-events: none;
+  z-index: 50;
+}
+
+@keyframes scan {
+  0% { top: 0; opacity: 1; }
+  100% { top: 100%; opacity: 1; }
+}
+
+/* Waterfall Plot CSS */
+.waterfall-container {
+  display: flex;
+  gap: 2px;
+  height: 40px;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.waterfall-bar {
+  flex: 1;
+  background-color: #ffb000;
+  animation: waterfallAnim 0.5s infinite alternate ease-in-out;
+}
+@keyframes waterfallAnim {
+  0% { height: 10%; opacity: 0.5;}
+  100% { height: 100%; opacity: 1;}
+}
+
+/* Framing Corners */
+.framing-corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: #ffb000;
+  z-index: 10;
+  pointer-events: none;
+}
+.corner-tl { top: 10px; left: 10px; border-top: 2px solid; border-left: 2px solid; }
+.corner-tr { top: 10px; right: 10px; border-top: 2px solid; border-right: 2px solid; }
+.corner-bl { bottom: 10px; left: 10px; border-bottom: 2px solid; border-left: 2px solid; }
+.corner-br { bottom: 10px; right: 10px; border-bottom: 2px solid; border-right: 2px solid; }
+
+/* Snappy Hover */
+.nav-item-hover:hover {
+  background-color: #ffb000 !important;
+  color: #241800 !important;
+  border-color: #ffb000 !important;
+  transition: none !important;
+}
+.nav-item-hover:hover .material-symbols-outlined {
+  color: #241800 !important;
+}
+
+/* Terminal Scroll */
+.terminal-scroll {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+.terminal-content {
+  animation: scrollUp 10s linear infinite;
+}
+@keyframes scrollUp {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(-100%); }
 }
 
 .fade-edge {

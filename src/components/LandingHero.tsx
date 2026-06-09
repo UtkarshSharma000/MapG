@@ -79,7 +79,7 @@ export default function LandingHero({
         <div className="w-full md:w-1/3 flex flex-col items-end text-right pb-4 border-b border-white/20">
           <span className="text-white text-4xl md:text-6xl font-headline-md italic mb-2">Manifest</span>
           <a 
-            href="https://github.com/UtkarshSharma000/Srinivasa" 
+            href="https://Srinivasa.2bd.net" 
             target="_blank" rel="noreferrer"
             className="flex items-center gap-3 text-[#cccccc] font-label-caps text-xs tracking-widest group hover:text-white transition-colors"
           >

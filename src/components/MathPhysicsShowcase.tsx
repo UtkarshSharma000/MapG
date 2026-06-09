@@ -241,13 +241,13 @@ export default function MathPhysicsShowcase({
               </p>
             </div>
             <a 
-              href="https://github.com/UtkarshSharma000/Srinivasa" 
+              href="https://Srinivasa.2bd.net" 
               target="_blank" 
               rel="noreferrer"
               className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-mono font-bold text-xs uppercase px-6 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] pointer-events-auto"
             >
               <Github size={14} className="stroke-[3]" />
-              <span>Access GitHub Repo</span>
+              <span>Access Srinivasa.2bd.net</span>
             </a>
           </div>
         </div>
@@ -262,7 +262,7 @@ export default function MathPhysicsShowcase({
           <span className="font-display-lg text-lg text-primary tracking-tighter font-bold">SRINIVASA</span>
         </div>
         <div className="flex gap-8">
-          <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="https://github.com/UtkarshSharma000/Srinivasa" target="_blank" rel="noreferrer">GitHub</a>
+          <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="https://Srinivasa.2bd.net" target="_blank" rel="noreferrer">Srinivasa.2bd.net</a>
         </div>
         <div className="text-right">
           <p className="font-label-caps text-[10px] text-tertiary tracking-widest">© 2026 SRINIVASA. ALL SYSTEMS OPERATIONAL.</p>
