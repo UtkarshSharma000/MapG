@@ -1554,9 +1554,6 @@ function SystemEngine({
       {/* Astronomical reference plane J2000 Keplerian grid */}
       <EclipticGrid />
 
-      <AsteroidBelt timeMult={timeMult} />
-      <KuiperBelt timeMult={timeMult} />
-
       {PLANETS.map((p) => (
         <Planet 
           key={p.name} 
@@ -1653,7 +1650,7 @@ export default function OrbitSimulator({
 
   return (
     <div
-      className={`absolute inset-0 transition-opacity duration-1000 ${isRunning ? "opacity-100 z-25 pointer-events-auto bg-transparent" : "opacity-0 z-[-10] pointer-events-none"}`}
+      className={`absolute inset-0 transition-opacity duration-1000 ${isRunning ? "opacity-100 z-25 pointer-events-auto bg-[#03060f]" : "opacity-100 z-[-10] pointer-events-none"}`}
     >
       {isCalculating && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">

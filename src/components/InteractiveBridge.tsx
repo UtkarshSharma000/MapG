@@ -1,26 +1,27 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React from "react";
+import TextPressure from "./TextPressure";
 
 export default function InteractiveBridge() {
   return (
-    <section className="py-24 bg-surface-container-lowest text-center border-y border-white/5 relative overflow-hidden">
-      <div className="absolute inset-0 tech-grid-bg opacity-10 pointer-events-none" />
+    <section className="relative w-full overflow-hidden bg-gradient-to-b from-[#050505] to-[#030611] py-16 flex flex-col items-center justify-center z-10 border-t border-b border-white/5 min-h-[50vh]">
+      {/* Soft decorative space glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,240,255,0.015),transparent_70%)] pointer-events-none"></div>
       
-      <motion.div 
-        initial={{ opacity: 0, y: 50 }} 
-        whileInView={{ opacity: 1, y: 0 }} 
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 1 }}
-        className="max-w-4xl mx-auto px-6 relative z-10"
-      >
-        <div className="w-12 h-12 rounded-full border border-primary-fixed/20 mx-auto flex items-center justify-center mb-8">
-          <span className="material-symbols-outlined text-primary-fixed font-light">function</span>
-        </div>
-        <h2 className="text-3xl font-light tracking-tight mb-6 text-white">Bridging Mathematics and Cosmos</h2>
-        <p className="text-secondary leading-relaxed font-mono text-sm max-w-2xl mx-auto">
-          The Srinivasa project fuses Ramanujan's profound insight into infinite series and analytical number theory with modern computational astrodynamics. Explore N-body mechanics through the lens of continuous mathematical beauty.
-        </p>
-      </motion.div>
+      <div className="w-full max-w-6xl px-6 relative z-10 select-none h-[140px] md:h-[200px] lg:h-[260px] flex items-center justify-center">
+        <TextPressure
+          text="SRINIVASA"
+          textColor="#ffffff"
+          strokeColor="rgba(0, 240, 255, 0.45)"
+          stroke={true}
+          minFontSize={45}
+          scrollDriven={false}
+          alpha={false}
+        />
+      </div>
+      {/* Subtle indicator label */}
+      <span className="font-mono text-[9px] tracking-[0.4em] uppercase text-white/20 mt-4 pointer-events-none select-none">
+        MOUSE INTERACTIVE PRESSURE ENGINE
+      </span>
     </section>
   );
 }

@@ -1,56 +1,97 @@
-import React from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import React from "react";
+import { motion } from "motion/react";
+import { Canvas } from "@react-three/fiber";
+import { Play, ArrowRight } from "lucide-react";
+import { InteractiveGlobe } from "./InteractiveGlobe";
 
 interface LandingHeroProps {
   isSimulatorRunning: boolean;
-  setIsSimulatorRunning: (v: boolean) => void;
-  landingScrollRef: React.RefObject<HTMLDivElement>;
+  setIsSimulatorRunning: (running: boolean) => void;
+  landingScrollRef: React.RefObject<HTMLDivElement | null>;
 }
 
-export default function LandingHero({ isSimulatorRunning, setIsSimulatorRunning, landingScrollRef }: LandingHeroProps) {
-  const { scrollY } = useScroll({ container: landingScrollRef });
-  const yText = useTransform(scrollY, [0, 800], [0, 400]);
-  const opacity = useTransform(scrollY, [0, 400], [1, 0]);
-
+export default function LandingHero({
+  isSimulatorRunning,
+  setIsSimulatorRunning,
+  landingScrollRef,
+}: LandingHeroProps) {
   return (
-    <section className="min-h-screen relative flex flex-col justify-center items-center overflow-hidden bg-black text-white p-6">
-      <div className="absolute inset-0 bg-gradient-to-b from-[#13111A] to-black opacity-80 mix-blend-multiply" />
-      <div className="absolute inset-0 tech-grid-bg opacity-30" />
-
+    <section className="relative min-h-screen bg-[#050505] flex flex-col justify-center overflow-hidden z-20">
+      {/* MASSIVE BACKGROUND TEXT */}
       <motion.div 
-        style={{ y: yText, opacity }}
-        initial={{ opacity: 0, scale: 0.9 }} 
-        animate={{ opacity: 1, scale: 1 }} 
-        transition={{ duration: 1.5, ease: "easeOut" }}
-        className="z-10 text-center flex flex-col items-center justify-center max-w-4xl w-full pt-20"
+        initial={{ opacity: 0, x: -100 }}
+        animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1, x: 0 }}
+        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+        className="absolute top-1/2 -translate-y-1/2 left-0 w-full pointer-events-none flex justify-center z-0 mix-blend-difference"
       >
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.5 }}
-          className="px-4 py-1 border border-primary-fixed/30 rounded-full mb-8"
+        <h1 
+          className="text-[#ffffff] leading-none whitespace-nowrap text-[35vw] font-black select-none tracking-tighter"
+          style={{ fontFamily: "'Oi', cursive", opacity: 0.15 }}
         >
-          <span className="text-secondary text-[10px] tracking-widest uppercase">Project 1729</span>
-        </motion.div>
-
-        <h1 className="text-6xl sm:text-8xl md:text-9xl font-black tracking-tighter mb-6 text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60">
-          SRINIVASA
+          ORBIT
         </h1>
-        
-        <p className="text-sm md:text-lg font-mono text-primary-fixed tracking-[0.3em] uppercase mb-12 border-y border-white/10 py-4 opacity-90 max-w-2xl mx-auto">
-          "An equation for me has no meaning, unless it expresses a thought of God." — S. Ramanujan
-        </p>
-
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsSimulatorRunning(true)}
-          className="group relative px-8 py-4 border-2 border-primary-fixed text-primary-fixed hover:bg-primary-fixed hover:text-black transition-all transition-colors uppercase tracking-widest font-bold overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-[0%] transition-transform duration-300 pointer-events-none" />
-          <span className="relative z-10">Access Dashboard</span>
-        </motion.button>
       </motion.div>
+
+      {/* FLOATING 3D GLOBE OVERLAY */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1, scale: 1 }}
+        transition={{ duration: 1.5, delay: 0.2, type: "spring" }}
+        className="absolute inset-0 z-10 hidden md:flex items-center justify-center pointer-events-none"
+      >
+        <div className="w-[50vw] aspect-square rounded-full overflow-hidden opacity-80 mix-blend-luminosity">
+          <Canvas camera={{ position: [0, 0, 2.5] }}>
+            <InteractiveGlobe url="/textures/2k_mars.jpg" color="#ffffff" />
+          </Canvas>
+        </div>
+      </motion.div>
+
+      {/* FOREGROUND CONTENT */}
+      <motion.div 
+        initial={{ opacity: 0, y: 50 }}
+        animate={isSimulatorRunning ? { opacity: 0, y: -50 } : { opacity: 1, y: 0 }}
+        transition={{ duration: 1, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-20 w-full max-w-7xl mx-auto px-8 md:px-16 flex flex-col md:flex-row items-end justify-between gap-12"
+      >
+        <div className="w-full md:w-1/2 pt-[30vh]">
+          <h2 className="text-white text-5xl md:text-7xl lg:text-[100px] leading-[0.9] font-headline-md font-bold italic mb-6">
+            Orbital <br/> Paths
+          </h2>
+          <p className="text-[#a0a0a0] font-label-caps text-sm md:text-base uppercase tracking-[0.2em] max-w-sm mb-12">
+            High-precision simulation of celestial trajectories.
+          </p>
+
+          <div className="flex items-center gap-6">
+            <button 
+              onClick={() => setIsSimulatorRunning(true)}
+              className="bg-white text-black px-8 py-5 rounded-full flex items-center gap-3 font-bold uppercase tracking-wider hover:bg-gray-200 transition-colors"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              <Play size={18} fill="currentColor" /> Initialize
+            </button>
+            <div className="flex flex-col text-white font-label-caps text-xs tracking-widest uppercase">
+              <span className="opacity-50">System Version</span>
+              <span>v.9.0.21</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full md:w-1/3 flex flex-col items-end text-right pb-4 border-b border-white/20">
+          <span className="text-white text-4xl md:text-6xl font-headline-md italic mb-2">Manifest</span>
+          <a 
+            href="https://github.com/UtkarshSharma000/Srinivasa" 
+            target="_blank" rel="noreferrer"
+            className="flex items-center gap-3 text-[#cccccc] font-label-caps text-xs tracking-widest group hover:text-white transition-colors"
+          >
+            SEE THE SOURCE CODE <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
+          </a>
+        </div>
+      </motion.div>
+      
+      {/* ABSOLUTE DECORATIVE ELEMENTS */}
+      <div className="absolute top-8 left-8 md:left-16 z-20 flex items-start gap-4 mix-blend-difference">
+        <span className="text-white font-label-caps text-xs tracking-[0.3em]">SRINIVASA // CORE</span>
+      </div>
     </section>
   );
 }

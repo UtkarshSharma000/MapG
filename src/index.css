@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -49,13 +49,16 @@
   --color-on-secondary: #2f3131;
   --color-on-tertiary: #313030;
   --color-secondary-fixed: #e2e2e2;
+  --color-warning: #ffb000;
 
-  --spacing-gutter: 16px;
-  --spacing-panel-padding: 12px;
-  --spacing-screen-margin: 32px;
-  --spacing-base-unit: 4px;
+  --spacing-gutter: 8px;
+  --spacing-panel-padding: 8px;
+  --spacing-margin: 16px;
+  --spacing-border-width: 2px;
+  --spacing-unit: 4px;
 
   --font-sans: "IBM Plex Mono", monospace;
+  --font-mono: "IBM Plex Mono", monospace;
   --font-body-md: "IBM Plex Mono", monospace;
   --font-headline-lg: "IBM Plex Mono", monospace;
   --font-headline-xl: "IBM Plex Mono", monospace;
@@ -66,170 +69,179 @@
 body {
   background-color: #131313;
   overflow: hidden;
+  font-family: 'IBM Plex Mono', monospace;
 }
 
-/* Grid Background for Brutalist Scientific Aesthetic */
+/* Kinetic Brutalism Base Styles */
 .tech-grid-bg {
-  background-size: 10px 10px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 176, 0, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 176, 0, 0.05) 1px, transparent 1px);
-  animation: gridPulse 4s infinite alternate;
-}
-
-.stargate-gradient {
-  background: radial-gradient(circle at center, rgba(255, 176, 0, 0.2) 0%, transparent 60%);
+    background-size: 10px 10px;
+    background-image: 
+        linear-gradient(to right, rgba(255, 176, 0, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 176, 0, 0.05) 1px, transparent 1px);
+    animation: gridPulse 4s infinite alternate;
 }
 
 @keyframes gridPulse {
-  0% { opacity: 0.8; }
-  100% { opacity: 1; }
+    0% { opacity: 0.8; }
+    100% { opacity: 1; }
 }
 
 /* Flashing Cursor */
 .cursor-blink {
-  animation: blink 0.5s step-end infinite;
+    animation: blink 0.5s step-end infinite;
 }
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
 }
 
 /* Brutalist Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+    width: 8px;
+    height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #131313;
-  border-left: 2px solid #4a4031;
+    background: #131313;
+    border-left: 2px solid #4a4031;
 }
 ::-webkit-scrollbar-thumb {
-  background: #e2e2e2;
+    background: #e2e2e2;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #ffb000;
+    background: #ffb000;
 }
 
 /* Entrance Animations */
 .stagger-in {
-  opacity: 0;
-  transform: translateX(-10px);
-  animation: slideIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    opacity: 0;
+    transform: translateX(-10px);
+    animation: slideIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
 @keyframes slideIn {
-  to { opacity: 1; transform: translateX(0); }
+    to { opacity: 1; transform: translateX(0); }
 }
 
 .border-draw {
-  animation: borderDraw 0.5s ease-out forwards;
-  opacity: 0;
+    animation: borderDraw 0.5s ease-out forwards;
+    opacity: 0;
 }
 
 @keyframes borderDraw {
-  0% { opacity: 0; border-color: transparent; }
-  100% { opacity: 1; border-color: inherit; }
+    0% { opacity: 0; border-color: transparent; }
+    100% { opacity: 1; border-color: inherit; }
 }
 
 /* Micro-Animations & Kinetic Overload */
 .fast-pulse {
-  animation: fastPulse 0.3s ease-in-out infinite;
+    animation: fastPulse 0.3s ease-in-out infinite;
 }
 
 @keyframes fastPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.2; }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
 }
 
 .jitter-text {
-  animation: textJitter 0.1s infinite;
+    animation: textJitter 0.1s infinite;
 }
 
 @keyframes textJitter {
-  0% { transform: translate(0, 0); opacity: 0.9; }
-  25% { transform: translate(-0.5px, 0.5px); opacity: 1; }
-  50% { transform: translate(0.5px, -0.5px); opacity: 0.8; }
-  75% { transform: translate(-0.5px, -0.5px); opacity: 1; }
-  100% { transform: translate(0.5px, 0.5px); opacity: 0.9; }
+    0% { transform: translate(0, 0); opacity: 0.9; }
+    25% { transform: translate(-0.5px, 0.5px); opacity: 1; }
+    50% { transform: translate(0.5px, -0.5px); opacity: 0.8; }
+    75% { transform: translate(-0.5px, -0.5px); opacity: 1; }
+    100% { transform: translate(0.5px, 0.5px); opacity: 0.9; }
 }
 
 /* Ultra-thin Prominent Scanline */
 .scanline {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background: rgba(255, 176, 0, 0.8);
-  box-shadow: 0 0 5px rgba(255, 176, 0, 0.5);
-  opacity: 0;
-  animation: scan 4s linear infinite;
-  pointer-events: none;
-  z-index: 50;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: rgba(255, 176, 0, 0.8);
+    box-shadow: 0 0 5px rgba(255, 176, 0, 0.5);
+    opacity: 0;
+    animation: scan 4s linear infinite;
+    pointer-events: none;
+    z-index: 50;
 }
 
 @keyframes scan {
-  0% { top: 0; opacity: 1; }
-  100% { top: 100%; opacity: 1; }
-}
-
-/* Waterfall Plot CSS */
-.waterfall-container {
-  display: flex;
-  gap: 2px;
-  height: 40px;
-  align-items: flex-end;
-  overflow: hidden;
-}
-.waterfall-bar {
-  flex: 1;
-  background-color: #ffb000;
-  animation: waterfallAnim 0.5s infinite alternate ease-in-out;
-}
-@keyframes waterfallAnim {
-  0% { height: 10%; opacity: 0.5;}
-  100% { height: 100%; opacity: 1;}
+    0% { top: 0; opacity: 1; }
+    100% { top: 100%; opacity: 1; }
 }
 
 /* Framing Corners */
 .framing-corner {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-color: #ffb000;
-  z-index: 10;
-  pointer-events: none;
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: #ffb000;
+    z-index: 10;
 }
 .corner-tl { top: 10px; left: 10px; border-top: 2px solid; border-left: 2px solid; }
 .corner-tr { top: 10px; right: 10px; border-top: 2px solid; border-right: 2px solid; }
 .corner-bl { bottom: 10px; left: 10px; border-bottom: 2px solid; border-left: 2px solid; }
 .corner-br { bottom: 10px; right: 10px; border-bottom: 2px solid; border-right: 2px solid; }
 
+/* Crosshairs */
+.crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0.1;
+}
+.crosshair::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: #ffb000;
+}
+.crosshair::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 1px;
+    height: 100%;
+    background: #ffb000;
+}
+
 /* Snappy Hover */
 .nav-item-hover:hover {
-  background-color: #ffb000 !important;
-  color: #241800 !important;
-  border-color: #ffb000 !important;
-  transition: none !important;
+    background-color: #ffb000 !important;
+    color: #241800 !important;
+    border-color: #ffb000 !important;
+    transition: none !important;
 }
 .nav-item-hover:hover .material-symbols-outlined {
-  color: #241800 !important;
+    color: #241800 !important;
 }
 
 /* Terminal Scroll */
 .terminal-scroll {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
 }
 .terminal-content {
-  animation: scrollUp 10s linear infinite;
+    animation: scrollUp 10s linear infinite;
 }
 @keyframes scrollUp {
-  0% { transform: translateY(100%); }
-  100% { transform: translateY(-100%); }
+    0% { transform: translateY(100%); }
+    100% { transform: translateY(-100%); }
 }
 
 .fade-edge {
