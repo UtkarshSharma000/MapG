@@ -21,7 +21,6 @@ import LandingHero from "./components/LandingHero";
 import InteractiveBridge from "./components/InteractiveBridge";
 import SpaceExplorationPanel from "./components/SpaceExplorationPanel";
 import MathPhysicsShowcase from "./components/MathPhysicsShowcase";
-import ShaderBackground from "./components/ShaderBackground";
 
 const J2000_UNIX = 946728000;
 
@@ -824,12 +823,8 @@ export default function App() {
 
   return (
     <div className="w-full h-screen relative bg-background text-on-background overflow-hidden tech-grid-bg flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed">
-      {/* Backgrounds - Always mounted for WebGL stability */}
-      <div className={`absolute inset-0 transition-opacity duration-1000 z-0 pointer-events-none ${isSimulatorRunning ? 'opacity-100' : 'opacity-0'}`}>
-        <ShaderBackground />
-      </div>
 
-      <div className={`fixed inset-0 transition-opacity duration-1000 z-0 ${!isSimulatorRunning ? 'opacity-100 pointer-events-none' : 'opacity-0 pointer-events-none'}`}>
+      <div className="fixed inset-0 z-0 pointer-events-none">
         <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={scrollProgressRef} />
       </div>
 
@@ -1357,9 +1352,6 @@ export default function App() {
 
       {/* Landing Page Content */}
       <div className={`transition-opacity duration-1000 ${!isSimulatorRunning ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none z-[-1]'}`}>
-          <div className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000">
-            <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={scrollProgressRef} />
-          </div>
 
           <div
             ref={landingScrollRef}
