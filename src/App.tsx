@@ -5,6 +5,12 @@ import Draggable from 'react-draggable';
 import {
   LogOut,
   Move,
+  Radio,
+  CircleDot,
+  Pause,
+  Play,
+  FastForward,
+  Eye,
 } from "lucide-react";
 import { useLocation, useNavigate } from 'react-router-dom';
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
@@ -955,7 +961,7 @@ export default function App() {
                 <span className="text-secondary">{new Date(globalTimeRef.current * 1000 + J2000_UNIX * 1000).toISOString().split('T')[1].split('.')[0]} UTC</span>
                 <span className="text-primary-fixed border-l-2 border-primary-container pl-4 hidden md:inline">[OP_ID: 8829_BETA]</span>
                 <div className="flex gap-2 text-primary-container">
-                  <span className="material-symbols-outlined fast-pulse text-[14px]">sensors</span>
+                  <Radio size={14} className="fast-pulse" />
                 </div>
               </div>
             </header>
@@ -971,7 +977,7 @@ export default function App() {
                   <li className="stagger-in" style={{ animationDelay: "0.6s" }}>
                       <button onClick={() => { handleSelectPlanet("Sol (Sun)"); setMapPlanet(null); }} className={`w-full hover:bg-primary-fixed hover:text-on-primary-fixed hover:border-primary-fixed flex items-center justify-between p-1 border-2 text-[9px] uppercase cursor-pointer transition-colors ${!selectedTarget || selectedTarget.name === "Sun" ? "bg-primary-container text-on-primary-container border-primary-fixed" : "border-transparent text-secondary"}`}>
                         <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-[12px]">radio_button_checked</span>
+                          <CircleDot size={12} />
                           .000 SOL (SUN)
                         </div>
                       </button>
@@ -980,7 +986,7 @@ export default function App() {
                     <li key={p.name} className="stagger-in" style={{ animationDelay: `${0.6 + (idx * 0.05)}s` }}>
                       <button onClick={() => { handleSelectPlanet(p.name); setMapPlanet(null); }} className={`w-full hover:bg-primary-fixed hover:text-on-primary-fixed hover:border-primary-fixed flex items-center justify-between p-1 border-2 text-[9px] uppercase cursor-pointer transition-colors ${selectedTarget?.name === p.name ? "bg-primary-container text-on-primary-container border-primary-fixed" : "border-transparent text-secondary"}`}>
                         <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-[12px]">radio_button_checked</span>
+                          <CircleDot size={12} />
                           .00{idx + 1} {p.name.toUpperCase()}
                         </div>
                       </button>
@@ -989,7 +995,7 @@ export default function App() {
                 </ul>
                 <div className="mt-2 border-t-2 border-outline-variant pt-2 flex flex-col gap-1 stagger-in" style={{ animationDelay: "1.2s" }}>
                   <button onClick={() => setIsSimulatorRunning(false)} className="hover:bg-primary-fixed hover:text-on-primary-fixed hover:border-primary-fixed w-full flex items-center gap-2 p-1 text-secondary border-2 border-transparent text-[9px] uppercase cursor-pointer transition-colors">
-                      <span className="material-symbols-outlined text-[12px]">logout</span>
+                      <LogOut size={12} />
                       EXIT_SIM
                   </button>
                 </div>
@@ -1095,20 +1101,20 @@ export default function App() {
                       </span>
                       <div className="flex items-center gap-2 w-full justify-center">
                         <button className="hover:bg-primary-fixed hover:text-on-primary-fixed hover:border-primary-fixed border-2 border-outline-variant px-3 py-1 text-secondary transition-colors bg-black cursor-pointer" onClick={() => { handleTimeMultChange(0); }}>
-                          <span className="material-symbols-outlined text-[16px]">pause</span>
+                          <Pause size={16} />
                         </button>
                         <button className="hover:bg-primary-fixed hover:text-on-primary-fixed hover:border-primary-fixed border-2 border-outline-variant px-3 py-1 text-secondary transition-colors bg-black cursor-pointer" onClick={() => { handleTimeMultChange(1); }}>
-                          <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+                          <Play size={16} />
                         </button>
                         <button className="hover:bg-primary-fixed hover:text-on-primary-fixed hover:border-primary-fixed border-2 border-outline-variant px-3 py-1 text-secondary transition-colors bg-black cursor-pointer" onClick={() => { handleTimeMultChange(86400 * 30); }}>
-                          <span className="material-symbols-outlined text-[16px]">fast_forward</span>
+                          <FastForward size={16} />
                         </button>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
                        <button onClick={() => setOrbitPathsVisible(p => !p)} className={`hover:bg-primary-fixed hover:text-on-primary-fixed hover:border-primary-fixed border-2 ${orbitPathsVisible ? "border-primary-fixed text-primary-fixed" : "border-outline-variant text-secondary"} p-1 bg-black cursor-pointer transition-colors`} title="Toggle Orbits">
-                          <span className="material-symbols-outlined text-[16px]">visibility</span>
+                          <Eye size={16} />
                         </button>
                     </div>
                   </div>
@@ -1126,7 +1132,7 @@ export default function App() {
             {/* BottomNavBar (Mobile) */}
             <nav className="md:hidden flex justify-center items-center gap-1 p-2 bg-black border-t-2 border-primary-fixed pointer-events-auto">
                 <button onClick={() => setIsSimulatorRunning(false)} className="hover:bg-primary-fixed hover:text-on-primary-fixed hover:border-primary-fixed flex flex-col items-center justify-center p-1 border-2 border-outline-variant text-secondary w-full bg-surface-container-lowest cursor-pointer transition-colors">
-                    <span className="material-symbols-outlined text-[16px] mb-1">logout</span>
+                    <LogOut size={16} className="mb-1" />
                     <span className="text-[8px] whitespace-nowrap">EXIT</span>
                 </button>
             </nav>
