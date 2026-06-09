@@ -13,7 +13,7 @@ export default defineConfig(() => {
     },
     server: {
       host: true, // Allows network access to your Ampere server
-      allowedHosts: ['greninja.2bd.net'], // Prevents the host blocking error
+      allowedHosts: ["srinivasa.2bd.net", "Srinivasa.2bd.net", "localhost", "127.0.0.1"], // Prevents host blocking errors on custom subdomains like Srinivasa.2bd.net
       
       // Update this section right here:
       hmr: process.env.DISABLE_HMR === 'true' ? false : undefined,

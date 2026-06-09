@@ -473,8 +473,13 @@ function TexturedPlanet({
 }) {
   return (
     <>
-      <sphereGeometry args={[radius, 64, 64]} />
-      <SafeTexture url={url} fallbackColor={color} />
+      <sphereGeometry args={[radius, 14, 14]} />
+      <meshBasicMaterial
+        color="#ffffff"
+        wireframe={true}
+        transparent={true}
+        opacity={0.35}
+      />
     </>
   );
 }
@@ -1169,8 +1174,8 @@ function EclipticGrid() {
         <group key={idx}>
           <Line
             points={ring.points}
-            color="#22d3ee"
-            opacity={0.05}
+            color="#ffffff"
+            opacity={0.04}
             transparent
             lineWidth={0.5}
           />
@@ -1181,7 +1186,7 @@ function EclipticGrid() {
               className="pointer-events-none select-none"
               wrapperClass="pointer-events-none select-none"
             >
-              <span className="text-[7px] text-cyan-300/30 font-mono tracking-widest whitespace-nowrap">
+              <span className="text-[7px] text-white/20 font-mono tracking-widest whitespace-nowrap">
                 {ring.dist.toFixed(2)} AU
               </span>
             </Html>
@@ -1194,8 +1199,8 @@ function EclipticGrid() {
         <Line
           key={idx}
           points={line}
-          color="#0891b2"
-          opacity={0.02}
+          color="#ffffff"
+          opacity={0.015}
           transparent
           lineWidth={0.5}
         />
@@ -1514,31 +1519,31 @@ function SystemEngine({
       <group>
         {/* Core */}
         <mesh>
-          <sphereGeometry args={[SUN_SIZE, 64, 64]} />
-          <meshBasicMaterial color="#fffbeb" />
+          <sphereGeometry args={[SUN_SIZE, 14, 14]} />
+          <meshBasicMaterial color="#ffffff" wireframe={true} transparent opacity={0.65} />
         </mesh>
-        {/* Tight glow */}
+        {/* Tight glow of the sun */}
         <mesh>
-          <sphereGeometry args={[SUN_SIZE * 1.3, 32, 32]} />
+          <sphereGeometry args={[SUN_SIZE * 1.5, 12, 12]} />
           <meshBasicMaterial 
-            color="#eab308" 
+            color="#ffffff" 
+            wireframe={true}
             transparent 
-            opacity={0.2} 
-            blending={THREE.AdditiveBlending} 
-            side={THREE.BackSide} 
+            opacity={0.25} 
           />
         </mesh>
         {/* Wide atmosphere corona */}
-        <mesh>
-          <sphereGeometry args={[SUN_SIZE * 2.2, 32, 32]} />
-          <meshBasicMaterial 
-            color="#ca8a04" 
-            transparent 
-            opacity={0.07} 
-            blending={THREE.AdditiveBlending} 
-            side={THREE.BackSide} 
-          />
-        </mesh>
+        <group>
+          <mesh>
+            <sphereGeometry args={[SUN_SIZE * 2.2, 10, 10]} />
+            <meshBasicMaterial 
+              color="#ffffff" 
+              wireframe={true}
+              transparent 
+              opacity={0.08} 
+            />
+          </mesh>
+        </group>
         <Html distanceFactor={100} className="pointer-events-none" wrapperClass="pointer-events-none">
           <div className="text-xs uppercase font-bold text-[#facc15] tracking-widest translate-x-4 drop-shadow-[0_0_10px_rgba(234,179,8,0.6)] font-mono">
             SUN

@@ -22,6 +22,19 @@ import InteractiveBridge from "./components/InteractiveBridge";
 import SpaceExplorationPanel from "./components/SpaceExplorationPanel";
 import MathPhysicsShowcase from "./components/MathPhysicsShowcase";
 
+const J2000_UNIX = 946728000;
+
+const PLANET_STATS: Record<string, { mass: string; gravity: string; atmosphere: string; temp: string }> = {
+  "Mercury": { mass: "3.30 × 10²³ kg", gravity: "3.7 m/s²", atmosphere: "None / Exosphere", temp: "167 °C" },
+  "Venus": { mass: "4.87 × 10²⁴ kg", gravity: "8.9 m/s²", atmosphere: "Dense CO₂ (96.5%)", temp: "464 °C" },
+  "Earth": { mass: "5.97 × 10²⁴ kg", gravity: "9.8 m/s²", atmosphere: "N₂ (78%), O₂ (21%)", temp: "15 °C" },
+  "Mars": { mass: "6.42 × 10²³ kg", gravity: "3.7 m/s²", atmosphere: "Thin CO₂ (95.3%)", temp: "-65 °C" },
+  "Jupiter": { mass: "1.90 × 10²⁷ kg", gravity: "24.8 m/s²", atmosphere: "H₂ (89.8%), He (10.2%)", temp: "-110 °C" },
+  "Saturn": { mass: "5.68 × 10²⁶ kg", gravity: "10.4 m/s²", atmosphere: "H₂ (96.3%), He (3.2%)", temp: "-140 °C" },
+  "Uranus": { mass: "8.68 × 10²⁵ kg", gravity: "8.7 m/s²", atmosphere: "H₂, He, CH₄", temp: "-195 °C" },
+  "Neptune": { mass: "1.02 × 10²⁶ kg", gravity: "11.2 m/s²", atmosphere: "H₂, He, CH₄", temp: "-200 °C" },
+};
+
 export default function App() {
   const [showMobileBlock, setShowMobileBlock] = useState(false);
 
@@ -94,6 +107,23 @@ export default function App() {
   const [resetCameraTrigger, setResetCameraTrigger] = useState(0);
   const [showMissionPanel, setShowMissionPanel] = useState(true); 
   const lastTimeMultRef = useRef(86400); // 1 Day/sec
+
+  const handleSelectPlanet = (planetName: string) => {
+    if (planetName === "Sol (Sun)") {
+      setSelectedTarget(null);
+      setTargetPlanet(null);
+    } else {
+      const found = PLANETS.find(p => p.name === planetName);
+      if (found) {
+        setSelectedTarget(found);
+        if (planetName !== "Earth") {
+          setTargetPlanet(planetName);
+        } else {
+          setTargetPlanet(null);
+        }
+      }
+    }
+  };
 
   // Elastic Timeline Speed Slider States
   const [elasticValue, setElasticValue] = useState(0); // 0 to 100
@@ -911,66 +941,341 @@ export default function App() {
 
       {/* Simulator Overlay UI */}
       <div
-        className={`absolute inset-0 z-30 pointer-events-none flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-100" : "opacity-0"}`}
+        className={`absolute inset-0 z-30 pointer-events-none flex transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-100" : "opacity-0"}`}
       >
-        {/* TrajectoryOptimizer removed per user request */}
         {isSimulatorRunning && (
-          <LaunchHUD
-            selectedTarget={selectedTarget}
-            setSelectedTarget={setSelectedTarget}
-            planets={PLANETS}
-            onSimulateLaunch={handleLaunch}
-            onResetSimulation={() => {
-              setIsLaunched(false);
-              setMissionLegs(null);
-              setTargetPlanet(null);
-              setReturnWindow(null);
-              setLaunchPlanet("Earth");
-              teiAppliedRef.current = false;
-              setCurrentLaunchPoints([]);
-              setCurrentReturnPoints([]);
-            }}
-            isLaunched={isLaunched}
-            missionStatus={missionStatus}
-            onPlanReturn={planReturn}
-            returnWindow={returnWindow}
-            onApplyReturn={() => {
-              handleApply(returnWindow!);
-              setIsLaunched(true);
-            }}
-            onConcludeMission={() => {
-              // End the current mission and archive it, allowing a new launch
-              const missionArchive = {
-                id: completedMissions,
-                targetPlanet: selectedTarget?.name || targetPlanet,
-                returnPlanet: missionStatus === "EARTH_ORBIT" ? "Earth" : undefined,
-                orbitType: missionStatus,
-                offset: completedMissions * (Math.PI / 4), // Phase offset to prevent collisions
-                missionLegs: missionLegs,
-                launchPlanet: initialLaunchPlanet,
-                originalTargetPlanet: initialTargetPlanet,
-                launchTime: currentLaunchTime,
-                teiApplied: teiAppliedRef.current,
-                launchPoints: currentLaunchPoints,
-                returnPoints: currentReturnPoints,
-                recordedTimeEvents: [...recordedTimeEvents],
-              };
-              setArchivedMissions(prev => [...prev, missionArchive]);
-              setCompletedMissions(prev => prev + 1);
-              setIsLaunched(false);
-              setMissionLegs(null);
-              setTargetPlanet(null);
-              setReturnWindow(null);
-              setLaunchPlanet("Earth");
-              setMissionStatus("STANDBY");
-              teiAppliedRef.current = false;
-              setCurrentLaunchPoints([]);
-              setCurrentReturnPoints([]);
-              setRecordedTimeEvents([]);
-              setActiveReplay(null);
-            }}
-          />
+          <div className="relative w-full h-full flex pointer-events-none">
+            {/* System Select Sidebar (Left) */}
+            <div className="w-72 h-full border-r border-zinc-850 bg-[#020202]/95 text-white flex flex-col pointer-events-auto z-40 font-mono">
+              <div className="p-6 border-b border-zinc-90 w-full flex flex-col gap-1 select-none">
+                <span className="text-[11px] font-bold tracking-[0.25em] text-white uppercase font-display-lg">SYSTEM SELECT</span>
+                <span className="text-[8px] text-zinc-500 tracking-[0.1em] uppercase">Centering focal target</span>
+              </div>
+
+              {/* Planet Menu List */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-1.5 scrollbar-none select-none">
+                <button
+                  onClick={() => handleSelectPlanet("Sol (Sun)")}
+                  className={`w-full text-left px-4 py-2.5 text-[10px] tracking-wider uppercase font-medium flex items-center justify-between border transition-all cursor-pointer ${
+                    !selectedTarget
+                      ? 'bg-white text-black border-white font-bold'
+                      : 'text-zinc-400 hover:text-white hover:bg-zinc-900 border-transparent'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className={`w-1.5 h-1.5 rounded-full ${!selectedTarget ? 'bg-black' : 'bg-zinc-650'}`}></span>
+                    SOL (SUN)
+                  </span>
+                </button>
+
+                {PLANETS.map((p) => {
+                  const isSel = selectedTarget?.name === p.name;
+                  return (
+                    <button
+                      key={p.name}
+                      onClick={() => handleSelectPlanet(p.name)}
+                      className={`w-full text-left px-4 py-2 text-[10px] tracking-wider uppercase font-medium flex items-center justify-between border transition-all cursor-pointer ${
+                        isSel
+                          ? 'bg-white text-black border-white font-bold'
+                          : 'text-zinc-400 hover:text-white hover:bg-zinc-900 border-transparent'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className={`w-1.5 h-1.5 rounded-full ${isSel ? 'bg-black' : 'bg-zinc-650'}`}></span>
+                        {p.name.toUpperCase()}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Mission Control Panel (Integrated Launch Control) */}
+              <div className="p-5 border-t border-zinc-850 bg-[#050505]/60 flex flex-col gap-3.5 w-full">
+                <div className="flex flex-col gap-0.5 select-none">
+                  <span className="text-[9px] tracking-[0.2em] text-zinc-500 font-bold uppercase">MISSION CONTROL</span>
+                  {isLaunched ? (
+                    <span className="text-[8px] text-emerald-400 tracking-wider">ACTIVE FLIGHT PATH</span>
+                  ) : (
+                    <span className="text-[8px] text-zinc-500 tracking-wider">STANDBY FOR IGNITION</span>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1.5 p-3 border border-zinc-800 bg-[#08080a] text-[9px] font-mono leading-relaxed select-none">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">LAUNCHPAD</span>
+                    <span className="text-zinc-300 font-bold uppercase">{launchPlanet || "Earth"}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-zinc-900 pt-1.5 mt-1">
+                    <span className="text-zinc-500">TARGET</span>
+                    <span className="text-zinc-300 font-bold uppercase">{targetPlanet || selectedTarget?.name || "NONE"}</span>
+                  </div>
+                </div>
+
+                {/* Primary Control Buttons */}
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      if (isLaunched) {
+                        setIsLaunched(false);
+                        setMissionLegs(null);
+                        setTargetPlanet(null);
+                        setReturnWindow(null);
+                        setLaunchPlanet("Earth");
+                        teiAppliedRef.current = false;
+                        setCurrentLaunchPoints([]);
+                        setCurrentReturnPoints([]);
+                        setMissionStatus("STANDBY");
+                      } else {
+                        handleLaunch();
+                      }
+                    }}
+                    className={`w-full py-2.5 px-4 font-mono font-bold tracking-widest text-[9px] uppercase border transition-all cursor-pointer ${
+                      isLaunched
+                        ? 'border-red-500/30 text-red-400 bg-red-950/20 hover:bg-red-950/40'
+                        : 'border-white text-white bg-transparent hover:bg-white hover:text-black font-semibold'
+                    }`}
+                  >
+                    {isLaunched ? "ABORT FLIGHT" : "ENGAGE FLIGHT"}
+                  </button>
+
+                  {isLaunched && missionStatus === 'EARTH_ORBIT' && (
+                    <button
+                      onClick={() => {
+                        const missionArchive = {
+                          id: completedMissions,
+                          targetPlanet: selectedTarget?.name || targetPlanet,
+                          returnPlanet: "Earth",
+                          orbitType: missionStatus,
+                          offset: completedMissions * (Math.PI / 4),
+                          missionLegs: missionLegs,
+                          launchPlanet: initialLaunchPlanet,
+                          originalTargetPlanet: initialTargetPlanet,
+                          launchTime: currentLaunchTime,
+                          teiApplied: teiAppliedRef.current,
+                          launchPoints: currentLaunchPoints,
+                          returnPoints: currentReturnPoints,
+                          recordedTimeEvents: [...recordedTimeEvents],
+                        };
+                        setArchivedMissions(prev => [...prev, missionArchive]);
+                        setCompletedMissions(prev => prev + 1);
+                        setIsLaunched(false);
+                        setMissionLegs(null);
+                        setTargetPlanet(null);
+                        setReturnWindow(null);
+                        setLaunchPlanet("Earth");
+                        setMissionStatus("STANDBY");
+                        teiAppliedRef.current = false;
+                        setCurrentLaunchPoints([]);
+                        setCurrentReturnPoints([]);
+                        setRecordedTimeEvents([]);
+                        setActiveReplay(null);
+                      }}
+                      className="w-full py-2 px-4 font-mono font-bold tracking-widest text-[9px] uppercase border border-emerald-500/30 text-emerald-400 bg-emerald-950/20 hover:bg-emerald-950/40 rounded transition-colors cursor-pointer"
+                    >
+                      SAVE FLIGHT RECORD
+                    </button>
+                  )}
+
+                  {isLaunched && missionStatus && missionStatus.includes('ORBIT') && missionStatus !== 'EARTH_ORBIT' && (
+                    <div className="flex flex-col gap-2 mt-1">
+                      <button
+                        onClick={() => planReturn()}
+                        className="w-full py-2 text-zinc-300 hover:text-white border border-zinc-700 bg-zinc-900 rounded font-mono tracking-widest text-[8px] uppercase transition-colors cursor-pointer"
+                      >
+                        PLAN RETURN
+                      </button>
+
+                      {returnWindow && (
+                        <div className="p-3 bg-zinc-950 rounded border border-zinc-805 flex flex-col gap-2 text-[8px]">
+                          <div className="flex justify-between">
+                            <span className="text-zinc-500">TIME OF FLIGHT</span>
+                            <span className="text-zinc-300">{returnWindow.tof_days} DAYS</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-zinc-505">SPEED CHANGE:</span>
+                            <span className="text-zinc-300">{returnWindow.dv1_kms.toFixed(2)} KM/S</span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              handleApply(returnWindow);
+                              setIsLaunched(true);
+                            }}
+                            className="w-full py-1.5 bg-white text-black hover:bg-zinc-200 uppercase tracking-wider rounded font-bold text-[8px] transition-colors cursor-pointer"
+                          >
+                            ENGAGE RETURN
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Menu Action Footers */}
+              <div className="p-5 border-t border-zinc-850 bg-[#020202] flex flex-col gap-1.5 font-mono text-[9px] w-full select-none">
+                <button
+                  onClick={() => setIsArchiveOpen(true)}
+                  className="w-full py-2 text-zinc-400 hover:text-white border border-zinc-800 hover:border-zinc-700 bg-zinc-950 rounded flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-xs">history</span>
+                  FLIGHT HISTORY ({archivedMissions.length})
+                </button>
+
+                <button
+                  onClick={() => setIsSimulatorRunning(false)}
+                  className="w-full py-2 text-zinc-505 hover:text-red-400 border border-transparent hover:bg-red-950/10 rounded flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                >
+                  <LogOut size={10} className="rotate-180" />
+                  EXIT SIMULATOR
+                </button>
+              </div>
+            </div>
+
+            {/* Planet Detail Information Card (Top Right) */}
+            {selectedTarget && (
+              <div className="absolute top-8 right-8 pointer-events-auto z-40 select-none">
+                <div className="w-80 border border-zinc-850 bg-[#020202]/95 text-white p-5 rounded font-mono">
+                  <div className="flex justify-between items-center border-b border-zinc-85 w-full pb-3 mb-4">
+                    <div className="flex flex-col gap-0.5">
+                      <h2 className="text-xs font-bold tracking-[0.25em] text-white uppercase font-display-lg">{selectedTarget.name}</h2>
+                      <span className="text-[8px] text-zinc-500 tracking-[0.1em] uppercase">SYSTEM COORDINATES</span>
+                    </div>
+                    {/* Double Concentric SVG Radar Ring Animation */}
+                    <div className="relative w-8 h-8 flex items-center justify-center">
+                      <div className="absolute w-7 h-7 rounded-full border border-dashed border-zinc-700 animate-[spin_20s_linear_infinite]" />
+                      <div className="absolute w-5 h-5 rounded-full border border-dashed border-zinc-500 animate-[spin_10s_linear_infinite]" />
+                      <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                    </div>
+                  </div>
+
+                  {/* Physical Metrics */}
+                  <div className="flex flex-col text-[9px] gap-2.5">
+                    <div className="flex justify-between border-b border-dashed border-zinc-90 pb-1.5">
+                      <span className="text-zinc-500 uppercase tracking-wider">MASS</span>
+                      <span className="text-zinc-300 font-medium">
+                        {PLANET_STATS[selectedTarget.name]?.mass || "1.99 × 10³⁰ kg"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-dashed border-zinc-90 pb-1.5">
+                      <span className="text-zinc-500 uppercase tracking-wider">GRAVITY</span>
+                      <span className="text-zinc-300 font-medium">
+                        {PLANET_STATS[selectedTarget.name]?.gravity || "274 m/s²"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-dashed border-zinc-90 pb-1.5">
+                      <span className="text-zinc-500 uppercase tracking-wider">ATMOSPHERE</span>
+                      <span className="text-zinc-300 font-medium text-right">
+                        {PLANET_STATS[selectedTarget.name]?.atmosphere || "None"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between pb-0.5">
+                      <span className="text-zinc-500 uppercase tracking-wider">TEMP (AVG)</span>
+                      <span className="text-zinc-300 font-medium font-sans">
+                        {PLANET_STATS[selectedTarget.name]?.temp || "5500 °C"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Playback Control Panel (Bottom Center-Right) */}
+            <div className="absolute bottom-6 left-[320px] right-8 pointer-events-auto z-40 select-none">
+              <div className="bg-[#020202]/95 border border-zinc-850 rounded p-4 flex flex-col md:flex-row items-center justify-between gap-4 font-mono text-white shadow-xl">
+                {/* Rate text indicator */}
+                <div className="flex items-center gap-3 w-full md:w-1/4">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${timeMult === 0 ? 'bg-amber-500 animate-pulse' : 'bg-white animate-pulse'}`}></span>
+                    <span className="text-[10px] font-bold tracking-widest text-zinc-300">
+                      {timeMult === 0 ? "PAUSED" : "ACTIVE: " + (timeMult === 1 ? "REAL RATE" : `WARP x${timeMult.toLocaleString()}`)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Playback Action Buttons */}
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => {
+                      const warpSpeeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
+                      const currIdx = warpSpeeds.indexOf(timeMult);
+                      if (currIdx > 0) {
+                        handleTimeMultChange(warpSpeeds[currIdx - 1]);
+                      } else if (timeMult === 0) {
+                        handleTimeMultChange(1);
+                      }
+                    }}
+                    className="p-1 px-3 border border-zinc-800 hover:border-white text-zinc-450 hover:text-white rounded text-xs cursor-pointer transition-colors"
+                    title="Decrease speed"
+                  >
+                    &lt;&lt;
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (timeMult > 0) {
+                        lastTimeMultRef.current = timeMult;
+                        handleTimeMultChange(0);
+                      } else {
+                        handleTimeMultChange(lastTimeMultRef.current || 86400);
+                      }
+                    }}
+                    className={`px-4 py-1 border rounded text-xs font-bold cursor-pointer transition-colors h-6 flex items-center justify-center ${
+                      timeMult === 0
+                        ? 'border-amber-500/50 text-amber-400 bg-amber-950/20'
+                        : 'border-zinc-800 text-zinc-350 hover:text-white hover:border-white'
+                    }`}
+                  >
+                    {timeMult === 0 ? "PLAY" : "PAUSE"}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const warpSpeeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
+                      const currIdx = warpSpeeds.indexOf(timeMult);
+                      if (currIdx !== -1 && currIdx < warpSpeeds.length - 1) {
+                        handleTimeMultChange(warpSpeeds[currIdx + 1]);
+                      } else if (timeMult === 0) {
+                        handleTimeMultChange(lastTimeMultRef.current || 86400);
+                      }
+                    }}
+                    className="p-1 px-3 border border-zinc-800 hover:border-white text-zinc-455 hover:text-white rounded text-xs cursor-pointer transition-colors"
+                    title="Increase speed"
+                  >
+                    &gt;&gt;
+                  </button>
+                </div>
+
+                {/* Clock UTC Date Information */}
+                <div className="w-full md:w-1/3 flex flex-col md:items-end gap-0.5 text-right text-[10px] text-zinc-400 select-all">
+                  <div>
+                    SIM TIME: {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ').slice(1, 4).join('-').toUpperCase()}
+                  </div>
+                  <div className="text-[9px] text-zinc-650">
+                    SEC +{Math.max(0, Math.floor(globalTimeRef.current)).toString().padStart(9, '0')} || {new Date((J2000_UNIX + globalTimeRef.current) * 1000).toUTCString().split(' ')[4]} UTC
+                  </div>
+                </div>
+              </div>
+
+              {/* Speed reference text scale marks */}
+              <div className="flex justify-between text-zinc-600 text-[8px] tracking-widest uppercase mt-1.5 px-4">
+                {["Real-time", "1 Day/s", "30 Days/s", "1 Year/s", "10 Years/s", "100 Years/s"].map((label, idx) => {
+                  const speeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
+                  const active = timeMult === speeds[idx];
+                  return (
+                    <span
+                      key={idx}
+                      onClick={() => handleTimeMultChange(speeds[idx])}
+                      className={`cursor-pointer hover:text-white transition-colors ${active ? 'text-white font-bold' : ''}`}
+                    >
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         )}
+
         {mapPlanet && (
           <Planet2DMap 
             planetName={mapPlanet}
@@ -982,44 +1287,44 @@ export default function App() {
             targetLocation={targetLocation}
           />
         )}
+
         {isArchiveOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900 pointer-events-auto">
-            <div className="bg-gray-800 p-8 rounded-2xl w-full max-w-3xl border border-gray-700 shadow-2xl flex flex-col max-h-[80vh]">
-              <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/10">
-                <h2 className="font-display-lg text-3xl text-white tracking-widest">FLIGHT HISTORY</h2>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 pointer-events-auto font-mono text-white p-6">
+            <div className="bg-[#020202] p-8 rounded border border-zinc-800 w-full max-w-2xl flex flex-col max-h-[80vh]">
+              <div className="flex justify-between items-center mb-6 pb-3 border-b border-zinc-800">
+                <h2 className="text-xs font-bold tracking-[0.25em] text-white uppercase">FLIGHT HISTORY</h2>
                 <button 
                   onClick={() => setIsArchiveOpen(false)}
-                  className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors border border-white/10"
+                  className="px-3 py-1 text-[10px] text-zinc-400 hover:text-white border border-zinc-850 hover:border-zinc-700 rounded transition-colors cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-white/70">close</span>
+                  CLOSE
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+              <div className="flex-1 overflow-y-auto pr-2 space-y-3 scrollbar-none">
                 {archivedMissions.length === 0 ? (
-                  <div className="text-center py-12 text-white/40 font-label-caps tracking-widest">
+                  <div className="text-center py-12 text-zinc-600 text-xs tracking-widest uppercase">
                     NO MISSIONS ARCHIVED YET
                   </div>
                 ) : (
-                  archivedMissions.map((m, idx) => (
-                    <div key={m.id} className="p-5 rounded-xl border border-white/10 bg-[#1d1d1d]/40 flex justify-between items-center group hover:border-primary/40 transition-colors">
+                  archivedMissions.map((m) => (
+                    <div key={m.id} className="p-4 rounded border border-zinc-900 bg-zinc-950/40 flex justify-between items-center group hover:border-white/25 transition-colors">
                       <div>
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="px-2 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-label-caps tracking-widest border border-primary/20">
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="px-1.5 py-0.5 rounded bg-white/10 text-white text-[8px] font-bold tracking-widest border border-white/10">
                             MISSION {String(m.id + 1).padStart(2, '0')}
                           </span>
-                          <span className="font-label-caps text-xs text-secondary tracking-widest">
+                          <span className="text-[8px] text-zinc-500 tracking-widest uppercase">
                             {m.orbitType ? m.orbitType.replace("_", " ") : "TRANSFER"}
                           </span>
                         </div>
-                        <div className="font-headline-md text-xl text-white mt-1">
-                          {m.launchPlanet} → {m.targetPlanet || "Deep Space"}
+                        <div className="text-sm font-bold text-white mt-0.5">
+                          {m.launchPlanet.toUpperCase()} &rarr; {m.targetPlanet?.toUpperCase() || "DEEP SPACE"}
                         </div>
                       </div>
                       <button 
                         onClick={() => handleReplay(m)}
-                        className="px-6 py-2 rounded border border-white/20 bg-white/5 hover:bg-primary/20 hover:border-primary/50 hover:text-primary transition-all font-label-caps tracking-widest text-[#aaaaaa] text-xs flex items-center gap-2"
+                        className="px-4 py-1.5 rounded border border-zinc-800 text-zinc-400 hover:text-white hover:border-white transition-all text-[9px] tracking-wider uppercase flex items-center gap-1.5 cursor-pointer"
                       >
-                        <span className="material-symbols-outlined text-[16px]">replay</span>
                         REPLAY
                       </button>
                     </div>
@@ -1029,311 +1334,6 @@ export default function App() {
             </div>
           </div>
         )}
-        {/* Clean, authentic background without vibecoded flat overlays */}
-
-        {/* TopAppBar */}
-        <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
-          <div className="flex items-center gap-6 pointer-events-auto">
-            <img src="/logo.svg" alt="Srinivasa" className="w-12 h-12 relative -top-0.5" />
-            <div className="flex items-center gap-10">
-              <h1 className="font-display-lg text-2xl tracking-tighter text-white"><span className="text-secondary font-bold">SRINIVASA</span></h1>
-              <nav className="hidden md:flex gap-10">
-                <a className="font-label-caps text-[10px] tracking-[0.15em] text-secondary border-b border-secondary/50 pb-1 cursor-pointer">FLIGHT PATH</a>
-                <a onClick={() => setIsArchiveOpen(true)} className="font-label-caps text-[10px] tracking-[0.15em] text-white/60 hover:text-secondary transition-colors cursor-pointer">FLIGHT HISTORY</a>
-              </nav>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-6 pointer-events-auto">
-            <button
-              onClick={() => setIsSimulatorRunning(false)}
-              className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:text-red-400 hover:border-red-400/30 transition-all cursor-pointer"
-              title="Exit Flight Deck"
-            >
-              <LogOut size={16} className="rotate-180" /> 
-            </button>
-          </div>
-        </header>
-
-        {/* Main Content Area */}
-        <div className="flex-1 flex pt-16 relative z-10 w-full h-full pointer-events-none">
-          {/* Central Canvas Area (Interactive / Data Overlays) - Expanded Full Screen */}
-          <main className="flex-1 p-8 relative flex flex-col justify-between pointer-events-none">
-            {/* Top Center: Sol and Planet focus selection bar */}
-            {showMissionPanel && (
-              <div id="target-selector-wrapper" className="fixed top-24 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex items-center justify-center w-max" style={{ transform: 'translateX(-50%)' }}>
-                <Draggable nodeRef={targetSelectorNodeRef} handle=".target-drag-handle" position={targetSelectorPos} onStop={onDragStopTargetSelector}>
-                  <div ref={targetSelectorNodeRef} className="pointer-events-auto flex items-center gap-4 px-3 py-2 rounded-full border border-cyan-400/20 bg-[#07131e]/70 shadow-[0_0_30px_rgba(30,130,246,0.15)] backdrop-blur-md">
-                    <div className="target-drag-handle opacity-60 cursor-move hover:opacity-100 flex items-center pr-2 border-r border-white/10 text-cyan-200">
-                      <Move size={14} />
-                    </div>
-                    <button 
-                      onClick={() => setSelectedTarget(null)}
-                      className={`px-3 py-1 text-[10px] uppercase tracking-widest font-mono rounded-full border transition-all ${!selectedTarget ? 'border-cyan-400 bg-cyan-500/20 text-cyan-50 font-bold scale-105 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'border-transparent text-cyan-200/60 hover:text-cyan-100 hover:bg-cyan-500/10'}`}
-                      title="Center camera on Sun"
-                    >
-                      SOL (SUN)
-                    </button>
-                    <div className="w-[1px] h-4 bg-cyan-400/20"></div>
-                    <div className="flex gap-2">
-                      {PLANETS.map((p) => (
-                        <button
-                          key={p.name}
-                          onClick={() => setSelectedTarget(p)}
-                          className={`w-9 h-9 rounded-full border-2 overflow-hidden cursor-pointer transition-all flex items-center justify-center relative group ${selectedTarget?.name === p.name ? "border-cyan-300 scale-110 shadow-[0_0_15px_rgba(59,130,246,0.6)]" : "border-transparent opacity-70 hover:opacity-100 hover:border-cyan-400/50"}`}
-                          title={p.name}
-                        >
-                          <img
-                            src={p.texture}
-                            alt={p.name}
-                            className="w-full h-full object-cover"
-                          />
-                          <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-[#07131e] text-[8px] tracking-widest font-mono border border-cyan-500/30 text-cyan-100 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            {p.name.toUpperCase()}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </Draggable>
-              </div>
-            )}
-
-          </main>
-        </div>
-
-          {/* New Interactive Cockpit Footer Simulation Control Center */}
-          <footer className="absolute bottom-4 left-0 w-full z-45 px-8 pointer-events-auto select-none">
-            <div className="w-full max-w-5xl mx-auto glass-panel rounded-2xl flex flex-col bg-cyan-950/20 border border-cyan-500/20 shadow-[0_0_30px_rgba(30,130,246,0.15)] backdrop-blur-xl">
-              {/* Top curved header section for 'REAL RATE' */}
-              <div className="relative flex justify-center -mt-3.5">
-                <div className="glass-panel px-6 py-1 rounded-t-lg text-[10px] font-bold neon-text bg-cyan-950/80 border-b-0 border-cyan-500/30 font-mono tracking-[0.2em] text-[#aaddff]">
-                  {timeMult === 0 ? "STATUS: PAUSED" : timeMult === 1 ? "REALTIME VELOCITY" : `WARP SPEED: x${timeMult.toLocaleString()}`}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-4 md:p-6 gap-4 font-mono">
-                {/* Left Side: Status & Heartbeat */}
-                <div className="flex items-center gap-4 w-1/4">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2.5 h-2.5 rounded-full pulse-dot ${timeMult === 0 ? 'bg-amber-500' : 'bg-cyan-400'}`}></div>
-                    <span className="text-white font-bold tracking-widest text-xs">
-                      {timeMult === 0 ? "PAUSED" : "ACTIVE"}
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-cyan-200/50 tracking-widest hidden lg:block">
-                    J2000 +{Math.max(0, Math.floor(globalTimeRef.current)).toString().padStart(8, '0')}s
-                  </div>
-                </div>
-
-                {/* Center: Playback Speed Control Timeline with Sigmoid Stretching */}
-                <div className="flex-1 flex flex-col items-center gap-3">
-                  {/* Digital Controls buttons */}
-                  <div className="flex items-center gap-3">
-                    {/* Slow down button */}
-                    <button 
-                      onClick={() => {
-                        const warpSpeeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
-                        const currIdx = warpSpeeds.indexOf(timeMult);
-                        if (currIdx > 0) {
-                          handleTimeMultChange(warpSpeeds[currIdx - 1]);
-                        } else if (timeMult === 0) {
-                          handleTimeMultChange(1);
-                        }
-                      }}
-                      className="control-btn p-1.5 bg-cyan-950/30 rounded border border-cyan-500/10 text-cyan-200/80 hover:text-white hover:border-cyan-400 focus:outline-none"
-                      title="Decrease Velocity Rate"
-                    >
-                      <svg fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="14">
-                        <polygon points="19 20 9 12 19 4 19 20"></polygon>
-                        <line x1="5" x2="5" y1="19" y2="5"></line>
-                      </svg>
-                    </button>
-
-                    {/* Pause / Play button */}
-                    <button 
-                      onClick={() => {
-                        if (timeMult > 0) {
-                          lastTimeMultRef.current = timeMult;
-                          handleTimeMultChange(0);
-                        } else {
-                          handleTimeMultChange(lastTimeMultRef.current || 86400);
-                        }
-                      }}
-                      className={`control-btn px-3 py-1.5 rounded border text-xs focus:outline-none transition-all duration-300 ${
-                        timeMult === 0 
-                          ? 'bg-amber-500/10 border-amber-400 text-amber-300 font-bold shadow-[0_0_10px_rgba(245,158,11,0.2)]' 
-                          : 'bg-cyan-950/30 border-cyan-500/20 text-cyan-200 hover:text-white'
-                      }`}
-                      title={timeMult === 0 ? "Resume Simulation" : "Pause Simulation"}
-                    >
-                      {timeMult === 0 ? (
-                        <div className="flex items-center gap-1.5">
-                          <svg fill="currentColor" height="10" viewBox="0 0 24 24" width="10" className="relative top-px">
-                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                          </svg>
-                          RESUME
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5">
-                          <svg fill="currentColor" height="10" viewBox="0 0 24 24" width="10">
-                            <rect height="16" width="4" x="6" y="4"></rect>
-                            <rect height="16" width="4" x="14" y="4"></rect>
-                          </svg>
-                          PAUSE
-                        </div>
-                      )}
-                    </button>
-
-                    {/* Speed up button */}
-                    <button 
-                      onClick={() => {
-                        const warpSpeeds = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
-                        const currIdx = warpSpeeds.indexOf(timeMult);
-                        if (currIdx !== -1 && currIdx < warpSpeeds.length - 1) {
-                          handleTimeMultChange(warpSpeeds[currIdx + 1]);
-                        } else if (timeMult === 0) {
-                          handleTimeMultChange(lastTimeMultRef.current || 86400);
-                        }
-                      }}
-                      className="control-btn p-1.5 bg-cyan-950/30 rounded border border-cyan-500/10 text-cyan-200/80 hover:text-white hover:border-cyan-400 focus:outline-none"
-                      title="Increase Velocity Rate"
-                    >
-                      <svg fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="14">
-                        <polygon points="5 4 15 12 5 20 5 4"></polygon>
-                        <line x1="19" x2="19" y1="5" y2="19"></line>
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* Tactile elastic drag container */}
-                  <div className="w-full px-6 relative">
-                    <div 
-                      ref={elasticTrackRef}
-                      onPointerDown={handlePointerDown}
-                      onPointerMove={handlePointerMove}
-                      onPointerUp={handlePointerUp}
-                      onPointerCancel={handlePointerUp}
-                      className="elastic-slider-container"
-                      id="elastic-slider"
-                    >
-                      {/* Elastic Left Warp-Backward icon */}
-                      <svg 
-                        className={`elastic-icon left-icon ${elasticOverflow < -5 ? 'active' : ''}`} 
-                        fill="none" 
-                        height="12" 
-                        stroke="currentColor" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth="2.5" 
-                        viewBox="0 0 24 24" 
-                        width="12"
-                        style={{
-                          transform: `translateY(-50%) translateX(${elasticOverflow < 0 ? elasticOverflow : 0}px)`,
-                          left: `${-20 + (elasticOverflow < 0 ? elasticOverflow : 0)}px`,
-                          transition: isDraggingElastic ? 'none' : 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-                        }}
-                      >
-                        <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"></path>
-                      </svg>
-
-                      {/* Elastic stretch track component */}
-                      <div 
-                        className="elastic-track-wrapper w-full h-[3px]"
-                        style={{
-                          transform: `scaleX(${
-                            elasticTrackRef.current
-                              ? (elasticTrackRef.current.getBoundingClientRect().width + Math.abs(elasticOverflow)) / elasticTrackRef.current.getBoundingClientRect().width
-                              : 1
-                          })`,
-                          transformOrigin: elasticOverflow < 0 ? 'right center' : 'left center',
-                          transition: isDraggingElastic ? 'none' : 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-                        }}
-                      >
-                        <div 
-                          className="elastic-track-fill" 
-                          style={{
-                            width: `${elasticOverflow < 0 ? 0 : elasticOverflow > 0 ? 100 : elasticValue}%`,
-                            transition: isDraggingElastic ? 'none' : 'width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-                          }}
-                        ></div>
-                        <div 
-                          className="elastic-thumb" 
-                          style={{
-                            left: `${elasticOverflow < 0 ? 0 : elasticOverflow > 0 ? 100 : elasticValue}%`,
-                            transition: isDraggingElastic ? 'none' : 'left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-                          }}
-                        ></div>
-                      </div>
-
-                      {/* Elastic Right Warp-Forward icon */}
-                      <svg 
-                        className={`elastic-icon right-icon ${elasticOverflow > 5 ? 'active' : ''}`} 
-                        fill="none" 
-                        height="12" 
-                        stroke="currentColor" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth="2.5" 
-                        viewBox="0 0 24 24" 
-                        width="12"
-                        style={{
-                          transform: `translateY(-50%) translateX(${elasticOverflow > 0 ? elasticOverflow : 0}px)`,
-                          right: `${-20 - (elasticOverflow > 0 ? elasticOverflow : 0)}px`,
-                          transition: isDraggingElastic ? 'none' : 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-                        }}
-                      >
-                        <path d="M13 17l5-5-5-5M6 17l5-5-5-5"></path>
-                      </svg>
-                    </div>
-
-                    {/* Highly aesthetic metric reference timeline index steps */}
-                    <div className="w-full flex justify-between text-cyan-200/30 text-[8px] tracking-[0.16em] -mt-2.5 px-2 select-none">
-                      {["(1 SEC)", "DAY", "MONTH", "YEAR", "DECADE", "CENTURY"].map((label, idx) => (
-                        <span 
-                          key={idx} 
-                          className={`transition-all duration-200 cursor-pointer hover:text-cyan-200 text-center flex flex-col items-center gap-0.5 ${
-                            timeMult === [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100][idx]
-                              ? 'text-cyan-300 font-bold drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] scale-105'
-                              : ''
-                          }`}
-                          onClick={() => {
-                            const speedMap = [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100];
-                            handleTimeMultChange(speedMap[idx]);
-                          }}
-                        >
-                          <div className={`w-[1px] h-1.5 bg-cyan-500/30 mb-0.5 ${timeMult === [1, 86400, 86400 * 30, 86400 * 365.25, 86400 * 365.25 * 10, 86400 * 365.25 * 100][idx] ? 'bg-cyan-300 h-2.5' : ''}`}></div>
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Side: Re-trigger solar centering & current system clock */}
-                <div className="flex items-center justify-end gap-5 w-1/4">
-                  <div className="text-[11px] text-cyan-100 tracking-[0.15em] hidden lg:block text-right">
-                    UTC {new Date().toISOString().split('T')[1].slice(0, 8)}
-                  </div>
-                  <button 
-                    onClick={() => {
-                      setSelectedTarget(null);
-                      setResetCameraTrigger(prev => prev + 1);
-                    }}
-                    className="control-btn px-4 py-1.5 rounded border border-cyan-500/20 bg-cyan-950/20 hover:border-cyan-400/50 hover:bg-cyan-500/10 text-cyan-200 font-bold text-[9px] tracking-widest uppercase transition-all"
-                    title="Recenter Camera on Sun"
-                  >
-                    RECENTER SOL
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            {/* Fine print lab citation in margin to ground the deck beautifully */}
-            <div className="w-full text-center text-[7px] tracking-[0.3em] text-cyan-500/20 mt-3 uppercase font-mono">
-              ODYSSEY ASTRODYNAMICS RESEARCH LAB • MISSION CODES: GRENINJA
-            </div>
-          </footer>
       </div>
     </div>
   );
