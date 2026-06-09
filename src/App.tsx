@@ -107,6 +107,8 @@ export default function App() {
   const [cameraPresetToSave, setCameraPresetToSave] = useState<number | null>(null);
   const [resetCameraTrigger, setResetCameraTrigger] = useState(0);
   const [showMissionPanel, setShowMissionPanel] = useState(true); 
+  const [showWireframe, setShowWireframe] = useState(false);
+  const [showOrbits, setShowOrbits] = useState(true);
   const lastTimeMultRef = useRef(86400); // 1 Day/sec
 
   const handleSelectPlanet = (planetName: string) => {
