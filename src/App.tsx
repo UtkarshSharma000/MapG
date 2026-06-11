@@ -608,14 +608,11 @@ export default function App() {
           originId: currentDestId,
           destId: 3, // Earth
           t0_days: t0,
-          searchDays: 900,
-          tofMin: 150,
-          tofMax: 500,
           steps: 60
         }
       });
     } else {
-      const result = scanPorkchop(
+      let result = scanPorkchop(
         currentDestId,
         3, // Earth
         t0,
@@ -623,6 +620,14 @@ export default function App() {
         150,
         500
       );
+
+      if (!result) {
+        result = scanPorkchop(
+          currentDestId,
+          3, // Earth
+          t0
+        );
+      }
 
       if (result) {
         const leg: any = {
@@ -662,7 +667,7 @@ export default function App() {
 
     const t0 = globalTimeRef.current / 86400; // live sim clock in days
 
-    const result = scanPorkchop(
+    let result = scanPorkchop(
       originId,
       destId,
       t0,
@@ -670,6 +675,14 @@ export default function App() {
       150,
       500
     );
+
+    if (!result) {
+      result = scanPorkchop(
+        originId,
+        destId,
+        t0
+      );
+    }
 
     if (result) {
       const leg: any = {

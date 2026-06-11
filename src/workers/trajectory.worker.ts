@@ -227,11 +227,17 @@ export function scanPorkchop(
       const s1 = planetStateVector(originId, launch_days)
       const s2 = planetStateVector(destId,   launch_days + tof_days)
 
-      const r1: [number,number,number] = [s1.pos[0]*AU_to_km, s1.pos[1]*AU_to_km, s1.pos[2]*AU_to_km]
-      const r2: [number,number,number] = [s2.pos[0]*AU_to_km, s2.pos[1]*AU_to_km, s2.pos[2]*AU_to_km]
+      const r1: [number,number,number] = [s1.pos[0]*AU_to_km*1000, s1.pos[1]*AU_to_km*1000, s1.pos[2]*AU_to_km*1000]
+      const r2: [number,number,number] = [s2.pos[0]*AU_to_km*1000, s2.pos[1]*AU_to_km*1000, s2.pos[2]*AU_to_km*1000]
 
-      const sol = lambertIzzo(r1, r2, tof_s)
-      if (!sol) continue
+      const sol_m = lambertIzzo(r1, r2, tof_s)
+      if (!sol_m) continue
+
+      // Convert solved velocities from m/s back to km/s
+      const sol = {
+        v1: [sol_m.v1[0] / 1000, sol_m.v1[1] / 1000, sol_m.v1[2] / 1000] as [number, number, number],
+        v2: [sol_m.v2[0] / 1000, sol_m.v2[1] / 1000, sol_m.v2[2] / 1000] as [number, number, number]
+      }
 
       const norm = (v: number[]) => Math.sqrt(v[0]**2+v[1]**2+v[2]**2)
       const dv1  = norm([sol.v1[0]-s1.vel[0], sol.v1[1]-s1.vel[1], sol.v1[2]-s1.vel[2]])
