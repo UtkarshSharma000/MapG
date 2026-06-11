@@ -163,9 +163,10 @@ export default function SrinivasaAIChat({
 
             setMessages(prev => {
               const updated = [...prev];
-              if (updated[lastMessageIndex]) {
-                updated[lastMessageIndex] = {
-                  ...updated[lastMessageIndex],
+              const lastIdx = updated.length - 1;
+              if (lastIdx >= 0 && updated[lastIdx].role === "assistant") {
+                updated[lastIdx] = {
+                  ...updated[lastIdx],
                   content: content || (thought ? "" : "Calculating vector pathways..."),
                   thought: thought || undefined
                 };
@@ -176,8 +177,9 @@ export default function SrinivasaAIChat({
             // Auto expand thoughts dynamically as reasoning occurs
             if (thought) {
               setExpandedThoughts(prev => {
-                if (!prev[lastMessageIndex]) {
-                  return { ...prev, [lastMessageIndex]: true };
+                const lastIdx = messages.length; // Approximate index for expansion mapping
+                if (!prev[lastIdx]) {
+                  return { ...prev, [lastIdx]: true };
                 }
                 return prev;
               });
@@ -198,9 +200,10 @@ export default function SrinivasaAIChat({
 
           setMessages(prev => {
             const updated = [...prev];
-            if (updated[lastMessageIndex]) {
-              updated[lastMessageIndex] = {
-                ...updated[lastMessageIndex],
+            const lastIdx = updated.length - 1;
+            if (lastIdx >= 0 && updated[lastIdx].role === "assistant") {
+              updated[lastIdx] = {
+                ...updated[lastIdx],
                 content: content || "System trace returned void response.",
                 thought: thought || undefined
               };
@@ -343,8 +346,24 @@ export default function SrinivasaAIChat({
                     </div>
                   )}
 
-                  <div className="prose prose-invert max-w-none text-[11px] space-y-1">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  <div className="max-w-none text-[11px] space-y-1">
+                    <ReactMarkdown
+                      components={{
+                        p: ({ ...props }) => <p className="mb-2 last:mb-0 leading-relaxed text-[11px]" {...props} />,
+                        ul: ({ ...props }) => <ul className="list-disc pl-4 mb-2 space-y-1 text-[11px]" {...props} />,
+                        ol: ({ ...props }) => <ol className="list-decimal pl-4 mb-2 space-y-1 text-[11px]" {...props} />,
+                        li: ({ ...props }) => <li className="text-[11px]" {...props} />,
+                        h1: ({ ...props }) => <h1 className="text-xs font-bold text-primary mt-3 mb-1 uppercase tracking-wider font-mono border-b border-outline-variant/30 pb-0.5" {...props} />,
+                        h2: ({ ...props }) => <h2 className="text-xs font-bold text-primary mt-2 mb-1 uppercase tracking-wider font-mono" {...props} />,
+                        h3: ({ ...props }) => <h3 className="text-[11px] font-bold text-primary-fixed mt-2 mb-1 uppercase font-mono" {...props} />,
+                        code: ({ ...props }) => <code className="bg-[#111111] px-1 py-0.5 rounded text-primary-fixed font-mono text-[10px] border border-outline-variant" {...props} />,
+                        pre: ({ ...props }) => <pre className="bg-[#0c0c0c] p-2 rounded-md font-mono text-[10px] my-2 overflow-x-auto border-2 border-outline-variant max-w-full text-secondary" {...props} />,
+                        strong: ({ ...props }) => <strong className="font-bold text-primary-fixed" {...props} />,
+                        a: ({ ...props }) => <a className="text-primary hover:underline" {...props} target="_blank" rel="noreferrer" />,
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
                   </div>
                 </div>
               </div>
