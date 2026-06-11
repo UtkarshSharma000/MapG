@@ -120,34 +120,98 @@ export default function SrinivasaAIChat({
         throw new Error(`Advisor offline (HTTP ${response.status})`);
       }
 
-      const data = await response.json();
-      
-      // Determine response format based on varying server returns
-      let botResponse = "";
-      if (typeof data === "string") {
-        botResponse = data;
-      } else if (data && typeof data === "object") {
-        botResponse = data.text || data.response || data.content || data.generated_text || JSON.stringify(data);
-      } else {
-        throw new Error("Invalid format from server");
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("Streaming is not supported by this browser.");
       }
 
-      const { thought, content } = parseDeepSeekResponse(botResponse);
-
-      const assistantMsg: Message = {
-        role: "assistant",
-        content: content || "System trace returned void response.",
-        thought: thought || undefined,
-        timestamp: new Date().toLocaleTimeString()
-      };
-
-      setMessages(prev => [...prev, assistantMsg]);
+      const decoder = new TextDecoder("utf-8");
+      let fullText = "";
       
-      // Auto expand new thoughts by default
-      if (thought) {
-        const nextIndex = newMessages.length;
-        setExpandedThoughts(prev => ({ ...prev, [nextIndex]: true }));
+      // Seed a blank assistant message in state for streaming
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "System node handshaking...",
+          timestamp: new Date().toLocaleTimeString()
+        }
+      ]);
+      const lastMessageIndex = newMessages.length;
+
+      let buffer = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const decodedChunk = decoder.decode(value, { stream: true });
+        buffer += decodedChunk;
+
+        // Split by newlines as Ollama sends line-by-line JSON
+        const lines = buffer.split("\n");
+        // Keep the last partial line in buffer
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const parsed = JSON.parse(line);
+            const token = parsed.response || "";
+            fullText += token;
+
+            const { thought, content } = parseDeepSeekResponse(fullText);
+
+            setMessages(prev => {
+              const updated = [...prev];
+              if (updated[lastMessageIndex]) {
+                updated[lastMessageIndex] = {
+                  ...updated[lastMessageIndex],
+                  content: content || (thought ? "" : "Calculating vector pathways..."),
+                  thought: thought || undefined
+                };
+              }
+              return updated;
+            });
+
+            // Auto expand thoughts dynamically as reasoning occurs
+            if (thought) {
+              setExpandedThoughts(prev => {
+                if (!prev[lastMessageIndex]) {
+                  return { ...prev, [lastMessageIndex]: true };
+                }
+                return prev;
+              });
+            }
+          } catch (e) {
+            // Ignore partial or corrupted JSON lines during parsing
+          }
+        }
       }
+
+      // Check for any remaining buffer data
+      if (buffer.trim()) {
+        try {
+          const parsed = JSON.parse(buffer);
+          const token = parsed.response || "";
+          fullText += token;
+          const { thought, content } = parseDeepSeekResponse(fullText);
+
+          setMessages(prev => {
+            const updated = [...prev];
+            if (updated[lastMessageIndex]) {
+              updated[lastMessageIndex] = {
+                ...updated[lastMessageIndex],
+                content: content || "System trace returned void response.",
+                thought: thought || undefined
+              };
+            }
+            return updated;
+          });
+        } catch (e) {
+          // Ignore
+        }
+      }
+
     } catch (err: any) {
       console.error(err);
       setMessages(prev => [

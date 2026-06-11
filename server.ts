@@ -66,7 +66,7 @@ async function startServer() {
       const payload = {
         model: "deepseek-r1:1.5b",
         prompt: promptWithHistory,
-        stream: false, // Critical to avoid server returning streaming chunks that break JSON parse
+        stream: true, // Now streaming is true!
         system: "You are the Tactical AI Advisor for the Srinivasa Orbital Simulator. Keep answers concise, factual, and themed with space telemetry.",
         messages: messages || []
       };
@@ -83,17 +83,45 @@ async function startServer() {
         throw new Error(`External model API returned status ${response.status}`);
       }
 
-      const contentType = response.headers.get("content-type") || "";
-      if (contentType.includes("application/json")) {
-        const data = await response.json();
-        res.json(data);
-      } else {
-        const text = await response.text();
-        res.json({ text });
+      // Configure headers for Server-Sent Events / Stream response
+      res.setHeader("Content-Type", "application/x-ndjson");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      if (response.body) {
+        const readable = response.body as any;
+        if (typeof readable[Symbol.asyncIterator] === "function") {
+          for await (const chunk of readable) {
+            res.write(chunk);
+          }
+        } else if (readable.getReader) {
+          const reader = readable.getReader();
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              res.write(value);
+            }
+          } finally {
+            reader.releaseLock();
+          }
+        } else if (typeof readable.on === "function") {
+          readable.on("data", (chunk: any) => {
+            res.write(chunk);
+          });
+          await new Promise((resolve) => {
+            readable.on("end", resolve);
+          });
+        }
       }
+      res.end();
     } catch (err: any) {
       console.error("AI Chat proxy error:", err);
-      res.status(502).json({ error: err.message || "Failed to proxy request" });
+      if (!res.headersSent) {
+        res.status(502).json({ error: err.message || "Failed to proxy request" });
+      } else {
+        res.end();
+      }
     }
   });
 
