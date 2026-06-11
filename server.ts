@@ -52,9 +52,22 @@ async function startServer() {
         userPrompt = messages[messages.length - 1].content;
       }
 
-      // Prepare payload variants
+      // If we have multi-turn message history, format it into a cohesive prompt
+      // since the /api/generate endpoint of Ollama does not natively accept raw role lists
+      let promptWithHistory = userPrompt;
+      if (messages && messages.length > 1) {
+        promptWithHistory = messages.map((m: any) => {
+          const roleLabel = m.role === "user" ? "User" : "Assistant";
+          return `${roleLabel}: ${m.content}`;
+        }).join("\n") + "\nAssistant:";
+      }
+
+      // Prepare perfect Ollama / Custom API compatible payload
       const payload = {
-        prompt: userPrompt,
+        model: "deepseek-r1:1.5b",
+        prompt: promptWithHistory,
+        stream: false, // Critical to avoid server returning streaming chunks that break JSON parse
+        system: "You are the Tactical AI Advisor for the Srinivasa Orbital Simulator. Keep answers concise, factual, and themed with space telemetry.",
         messages: messages || []
       };
 

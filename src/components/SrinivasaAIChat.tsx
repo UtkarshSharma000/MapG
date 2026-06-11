@@ -53,7 +53,12 @@ export default function SrinivasaAIChat({
   }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatBodyRef.current) {
+      chatBodyRef.current.scrollTo({
+        top: chatBodyRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
   };
 
   // Helper to parse DeepSeek reasoning steps from standard response
