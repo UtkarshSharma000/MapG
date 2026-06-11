@@ -1,9 +1,96 @@
+import "dotenv/config";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { spawn, execSync } from "child_process";
 import fs from "fs";
 import engineApi from "./engineApi";
+import { GoogleGenAI, FunctionDeclaration, Type } from "@google/genai";
+
+// Lazy-initialize Gemini SDK to prevent startup crash if API key is not set yet
+let aiClient: GoogleGenAI | null = null;
+function getGeminiClient(): GoogleGenAI {
+  if (!aiClient) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not defined");
+    }
+    aiClient = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build",
+        },
+      },
+    });
+  }
+  return aiClient;
+}
+
+// ── Gemini System Tools/Function Declarations ───────────────────────────────────────────
+const planOptimizedFlight: FunctionDeclaration = {
+  name: "plan_optimized_flight",
+  description: "Calculates the most optimal interplanetary trajectory flight path between the origin planet and the destination planet using the orbital optimizer engine, showing the resulting path to the user.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      originPlanet: {
+        type: Type.STRING,
+        description: "The name of the origin planet (e.g., Venus, Earth, Mars). Choose one from: Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune."
+      },
+      destinationPlanet: {
+        type: Type.STRING,
+        description: "The name of the target planet (e.g., Mars, Venus, Earth). Choose one from: Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune."
+      }
+    },
+    required: ["originPlanet", "destinationPlanet"]
+  }
+};
+
+const launchSimulation: FunctionDeclaration = {
+  name: "launch_simulation",
+  description: "Engages the planned orbital flight path, igniting space shuttle engines and starting the journey along the calculated target trajectory."
+};
+
+const abortSimulation: FunctionDeclaration = {
+  name: "abort_simulation",
+  description: "Aborts the current active flight path, stopping space travel and resetting simulation propagation instantly."
+};
+
+const setTimeAcceleration: FunctionDeclaration = {
+  name: "set_time_acceleration",
+  description: "Sets the simulation clock warp propagation rate.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      multiplier: {
+        type: Type.NUMBER,
+        description: "The warp speed multiplier. E.g., 0 to pause, 1 for real speed, 86400 for 1 day/sec, 2592000 for 30 days/sec."
+      }
+    },
+    required: ["multiplier"]
+  }
+};
+
+const setSimulationTarget: FunctionDeclaration = {
+  name: "set_simulation_target",
+  description: "Focuses the camera target focus of the planetary viewport to the specified planet celestial body.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      targetPlanet: {
+        type: Type.STRING,
+        description: "The name of the target planet to focus. Must be one of: Sol (Sun), Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune."
+      }
+    },
+    required: ["targetPlanet"]
+  }
+};
+
+const planReturnFlight: FunctionDeclaration = {
+  name: "plan_return_flight",
+  description: "Sets up and calculates the return trajectory flight path back to planet Earth from the current orbiting destination."
+};
 
 async function startServer() {
   const app = express();
@@ -43,92 +130,81 @@ async function startServer() {
     }
   });
 
-  // Proxy to client's DeepSeek R1 1.5B instance on srinivasa.2bd.net
+  // Proxy to Gemini 2.5 Flash Lite
   app.post("/api/ai-chat", express.json(), async (req: any, res: any) => {
     try {
-      const { prompt, messages } = req.body;
-      let userPrompt = prompt || "";
-      if (!userPrompt && messages && messages.length > 0) {
-        userPrompt = messages[messages.length - 1].content;
+      const { messages } = req.body;
+      
+      // Check for Gemini API key
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.write(JSON.stringify({
+          response: "⚠️ **SYSTEM WARNING**: `GEMINI_API_KEY` is not configured in your `.env` file. Please click **Settings > Secrets** in the top right menu to add your key or configure it in the `.env` file at the root, then retry to activate the celestial co-processor."
+        }) + "\n");
+        res.end();
+        return;
       }
 
-      // If we have multi-turn message history, format it into a cohesive prompt
-      // since the /api/generate endpoint of Ollama does not natively accept raw role lists
-      let promptWithHistory = userPrompt;
-      if (messages) {
-        // Filter out the initial greetings, instructions, or SYS_COMMS info so it doesn't pollute actual model prompt
-        const filteredMessages = messages.filter((m: any) => {
-          const contentStr = m.content || "";
-          return !(m.role === "assistant" && (contentStr.includes("SYS_COMMS LINK ESTABLISHED") || contentStr.includes("Welcome to the SRINIVASA Orbital Simulator")));
-        });
+      // Map roles correctly for Gemini standard API
+      const chatContents = (messages || []).map((m: any) => ({
+        role: m.role === "user" ? "user" : "model",
+        parts: [{ text: m.content }]
+      }));
 
-        if (filteredMessages.length > 0) {
-          promptWithHistory = filteredMessages.map((m: any) => {
-            const roleLabel = m.role === "user" ? "User" : "Assistant";
-            return `${roleLabel}: ${m.content}`;
-          }).join("\n") + "\nAssistant:";
-        }
-      }
+      // Initialize the lazy Gemini client
+      const ai = getGeminiClient();
 
-      // Prepare perfect Ollama / Custom API compatible payload
-      const payload = {
-        model: "deepseek-r1:1.5b",
-        prompt: promptWithHistory,
-        stream: true, // Now streaming is true!
-        system: "You are the Tactical AI Advisor for the Srinivasa Orbital Simulator. Keep answers extremely brief, concise, analytical, factual, and themed with space telemetry.",
-        messages: messages || []
-      };
-
-      const response = await fetch("https://srinivasa.2bd.net/AI/api/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        throw new Error(`External model API returned status ${response.status}`);
-      }
-
-      // Configure headers for Server-Sent Events / Stream response
+      // Set headers for Server-Sent Events / Stream response
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
-      res.setHeader("X-Accel-Buffering", "no"); // Force Nginx to bypass buffer instantly
+      res.setHeader("X-Accel-Buffering", "no");
 
-      if (response.body) {
-        const readable = response.body as any;
-        if (typeof readable[Symbol.asyncIterator] === "function") {
-          for await (const chunk of readable) {
-            res.write(chunk);
+      // Generate content stream with registered tools
+      const stream = await ai.models.generateContentStream({
+        model: "gemini-3.1-flash-lite", // Replaces Ollama DeepSeek R1 with Gemini
+        contents: chatContents,
+        config: {
+          systemInstruction: "You are the Tactical AI Advisor and System Manager of the Srinivasa Orbital Simulator. You possess specialized tools to control the entire application. When the user requests system controls (e.g., planning optimal trajectory paths from Venus to Mars, launching/engaging simulations, aborting flight paths, setting warp speeds/acceleration, setting camera target focus or planning returns), you MUST use your tools (function declarations) to execute those actions. Keep your feedback concise, professional, grounded in real orbital math, and themed with telemetric systems. Do not explain technical code internals or directories unless explicitly asked.",
+          tools: [{
+            functionDeclarations: [
+              planOptimizedFlight,
+              launchSimulation,
+              abortSimulation,
+              setTimeAcceleration,
+              setSimulationTarget,
+              planReturnFlight
+            ]
+          }]
+        }
+      });
+
+      for await (const chunk of stream) {
+        if (chunk.text) {
+          res.write(JSON.stringify({ response: chunk.text }) + "\n");
+        }
+        if (chunk.functionCalls) {
+          for (const call of chunk.functionCalls) {
+            res.write(JSON.stringify({
+              command: {
+                name: call.name,
+                arguments: call.args
+              }
+            }) + "\n");
           }
-        } else if (readable.getReader) {
-          const reader = readable.getReader();
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              res.write(value);
-            }
-          } finally {
-            reader.releaseLock();
-          }
-        } else if (typeof readable.on === "function") {
-          readable.on("data", (chunk: any) => {
-            res.write(chunk);
-          });
-          await new Promise((resolve) => {
-            readable.on("end", resolve);
-          });
         }
       }
+
       res.end();
     } catch (err: any) {
       console.error("AI Chat proxy error:", err);
       if (!res.headersSent) {
-        res.status(502).json({ error: err.message || "Failed to proxy request" });
+        res.status(502).json({ error: err.message || "Failed to route your GenAI stream" });
       } else {
+        res.write(JSON.stringify({ error: err.message || "Route aborted mid-stream" }) + "\n");
         res.end();
       }
     }

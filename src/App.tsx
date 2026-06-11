@@ -640,6 +640,54 @@ export default function App() {
     }
   };
 
+  const planInterplanetaryTrajectory = (originName: string, destName: string) => {
+    setIsLaunched(false);
+    setCurrentReturnPoints([]);
+
+    const planetMap: Record<string, number> = {
+      'Mercury': 1, 'Venus': 2, 'Earth': 3, 'Mars': 4, 'Jupiter': 5, 'Saturn': 6, 'Uranus': 7, 'Neptune': 8
+    };
+
+    // Standardize naming
+    const originNormalized = originName.charAt(0).toUpperCase() + originName.slice(1).toLowerCase();
+    const destNormalized = destName.charAt(0).toUpperCase() + destName.slice(1).toLowerCase();
+
+    const originId = planetMap[originNormalized];
+    const destId = planetMap[destNormalized];
+
+    if (!originId || !destId) {
+      console.error(`planInterplanetaryTrajectory: Invalid planet combination: ${originName} -> ${destName}`);
+      return;
+    }
+
+    const t0 = globalTimeRef.current / 86400; // live sim clock in days
+
+    const result = scanPorkchop(
+      originId,
+      destId,
+      t0,
+      900,
+      150,
+      500
+    );
+
+    if (result) {
+      const leg: any = {
+        originId,
+        destId,
+        type: 'capture',
+        dv1_kms: result.dv1_kms,
+        dv2_kms: result.dv2_kms,
+        tof_days: result.tof_days,
+        v1_ecl: result.v1_ecl,
+      };
+      result.legs = [leg];
+      handleApply(result);
+    } else {
+      console.warn(`No optimal path solution found from ${originNormalized} to ${destNormalized}`);
+    }
+  };
+
   const handleSelectLocation = (type: "launch" | "target", planet: string, lat: number, lon: number) => {
     if (type === "launch") {
       setLaunchPlanet(planet);
@@ -1132,6 +1180,12 @@ export default function App() {
                 isOpen={isAIChatOpen}
                 onClose={() => setIsAIChatOpen(false)}
                 selectedTargetName={selectedTarget?.name || "Sol (Sun)"}
+                onPlanTrajectory={planInterplanetaryTrajectory}
+                onLaunchSimulation={handleLaunch}
+                onAbortSimulation={() => setIsLaunched(false)}
+                onSetTimeAcceleration={handleTimeMultChange}
+                onSetSimulationTarget={handleSelectPlanet}
+                onPlanReturnFlight={planReturn}
               />
             </div>
             

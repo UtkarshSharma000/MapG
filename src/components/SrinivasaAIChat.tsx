@@ -15,13 +15,25 @@ interface SrinivasaAIChatProps {
   onClose: () => void;
   selectedTargetName?: string;
   telemetryData?: any;
+  onPlanTrajectory?: (originPlanet: string, destinationPlanet: string) => void;
+  onLaunchSimulation?: () => void;
+  onAbortSimulation?: () => void;
+  onSetTimeAcceleration?: (multiplier: number) => void;
+  onSetSimulationTarget?: (targetPlanet: string) => void;
+  onPlanReturnFlight?: () => void;
 }
 
 export default function SrinivasaAIChat({
   isOpen,
   onClose,
   selectedTargetName = "Sol (Sun)",
-  telemetryData = {}
+  telemetryData = {},
+  onPlanTrajectory,
+  onLaunchSimulation,
+  onAbortSimulation,
+  onSetTimeAcceleration,
+  onSetSimulationTarget,
+  onPlanReturnFlight
 }: SrinivasaAIChatProps) {
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = localStorage.getItem("srinivasa_ai_history");
@@ -35,7 +47,7 @@ export default function SrinivasaAIChat({
     return [
       {
         role: "assistant",
-        content: `SYS_COMMS LINK ESTABLISHED // DEEPSEEK_R1_1.5B SYSTEM ACTIVE.\n\nWelcome to the SRINIVASA Orbital Simulator. I am your Tactical AI Advisor. I can assist you with celestial trajectories, gravitational vectors, n-body physics, orbital rendezvous calculations, and rocket telemetry. Ask me anything about ${selectedTargetName || 'your path'} or orbital navigation!`,
+        content: `SYS_COMMS LINK ESTABLISHED // GEMINI 3.1 SYSTEM ACTIVE.\n\nWelcome to the SRINIVASA Orbital Simulator. I am your Tactical AI Advisor and System Manager.\n\nI can assist you with celestial trajectories, gravitational vectors, n-body physics, orbital rendezvous calculations, and rocket telemetry. You can tell me to **calculate optimal flight paths**, **engage launch engines**, **abort flights**, **adjust custom warp compression rates**, or **re-center viewport camera focus** directly through natural language in this panel!`,
         timestamp: new Date().toLocaleTimeString()
       }
     ];
@@ -61,7 +73,7 @@ export default function SrinivasaAIChat({
     }
   };
 
-  // Helper to parse DeepSeek reasoning steps from standard response
+  // Helper to parse DeepSeek reasoning steps if any models support it, but gracefully handle standard text
   const parseDeepSeekResponse = (rawText: string) => {
     let thought = "";
     let content = rawText;
@@ -74,12 +86,101 @@ export default function SrinivasaAIChat({
         thought = rawText.slice(thinkStart + 7, thinkEnd).trim();
         content = rawText.slice(thinkEnd + 8).trim();
       } else {
-        // Unclosed think block (streaming or cut-off)
         thought = rawText.slice(thinkStart + 7).trim();
         content = "";
       }
     }
     return { thought, content };
+  };
+
+  const handleClientCommand = (name: string, args: any) => {
+    try {
+      switch (name) {
+        case "plan_optimized_flight":
+          if (onPlanTrajectory && args.originPlanet && args.destinationPlanet) {
+            onPlanTrajectory(args.originPlanet, args.destinationPlanet);
+            setMessages(prev => [
+              ...prev,
+              {
+                role: "assistant",
+                content: `⚡ **CMD_EXEC**: Optimizing interplanetary trajectory flight plan: **${args.originPlanet} ➔ ${args.destinationPlanet}** using local C++ engine. Calculated parameters updated in HUD.`,
+                timestamp: new Date().toLocaleTimeString()
+              }
+            ]);
+          }
+          break;
+        case "launch_simulation":
+          if (onLaunchSimulation) {
+            onLaunchSimulation();
+            setMessages(prev => [
+              ...prev,
+              {
+                role: "assistant",
+                content: `🚀 **CMD_EXEC**: Flight engagement command sent. Vessel is now under active propagation.`,
+                timestamp: new Date().toLocaleTimeString()
+              }
+            ]);
+          }
+          break;
+        case "abort_simulation":
+          if (onAbortSimulation) {
+            onAbortSimulation();
+            setMessages(prev => [
+              ...prev,
+              {
+                role: "assistant",
+                content: `🛑 **CMD_EXEC**: Simulation aborted. Flight vector cleared and reset back to target origin.`,
+                timestamp: new Date().toLocaleTimeString()
+              }
+            ]);
+          }
+          break;
+        case "set_time_acceleration":
+          if (onSetTimeAcceleration && typeof args.multiplier === "number") {
+            onSetTimeAcceleration(args.multiplier);
+            const rateText = args.multiplier === 0 ? "PAUSED" : (args.multiplier === 1 ? "1.0x (Real)" : `${args.multiplier.toLocaleString()}x`);
+            setMessages(prev => [
+              ...prev,
+              {
+                role: "assistant",
+                content: `⏱️ **CMD_EXEC**: Time dilation speed rate adjusted to **${rateText}**.`,
+                timestamp: new Date().toLocaleTimeString()
+              }
+            ]);
+          }
+          break;
+        case "set_simulation_target":
+          if (onSetSimulationTarget && args.targetPlanet) {
+            onSetSimulationTarget(args.targetPlanet);
+            setMessages(prev => [
+              ...prev,
+              {
+                role: "assistant",
+                content: `🔭 **CMD_EXEC**: Track viewport now focusing on planet celestial coordinates: **${args.targetPlanet.toUpperCase()}**.`,
+                timestamp: new Date().toLocaleTimeString()
+              }
+            ]);
+          }
+          break;
+        case "plan_return_flight":
+          if (onPlanReturnFlight) {
+            onPlanReturnFlight();
+            setMessages(prev => [
+              ...prev,
+              {
+                role: "assistant",
+                content: `🔄 **CMD_EXEC**: Interplanetary return flight window porkchop calculated to align back to Earth orbit.`,
+                timestamp: new Date().toLocaleTimeString()
+              }
+            ]);
+          }
+          break;
+        default:
+          console.warn("Unknown GenAI manager command received:", name);
+      }
+    } catch (execError: any) {
+      console.error("Command execution failure:", execError);
+    }
   };
 
   const handleSend = async (e?: React.FormEvent) => {
@@ -101,7 +202,6 @@ export default function SrinivasaAIChat({
     setMessages(newMessages);
 
     try {
-      // Proxy through local Express backend to prevent CORS blockages on custom nodes
       const response = await fetch("/api/ai-chat", {
         method: "POST",
         headers: {
@@ -128,7 +228,6 @@ export default function SrinivasaAIChat({
       const decoder = new TextDecoder("utf-8");
       let fullText = "";
       
-      // Seed a blank assistant message in state for streaming
       setMessages(prev => [
         ...prev,
         {
@@ -147,17 +246,22 @@ export default function SrinivasaAIChat({
         const decodedChunk = decoder.decode(value, { stream: true });
         buffer += decodedChunk;
 
-        // Split by newlines as Ollama sends line-by-line JSON
         const lines = buffer.split("\n");
-        // Keep the last partial line in buffer
         buffer = lines.pop() || "";
 
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
             const parsed = JSON.parse(line);
-            const token = parsed.response || "";
-            fullText += token;
+            
+            if (parsed.response) {
+              fullText += parsed.response;
+            }
+
+            if (parsed.command) {
+              const { name, arguments: args } = parsed.command;
+              handleClientCommand(name, args);
+            }
 
             const { thought, content } = parseDeepSeekResponse(fullText);
 
@@ -167,14 +271,13 @@ export default function SrinivasaAIChat({
               if (lastIdx >= 0 && updated[lastIdx].role === "assistant") {
                 updated[lastIdx] = {
                   ...updated[lastIdx],
-                  content: content || (thought ? "" : "Calculating vector pathways..."),
+                  content: content || (thought ? "" : "Acquiring telemetric synchronization..."),
                   thought: thought || undefined
                 };
               }
               return updated;
             });
 
-            // Auto expand thoughts dynamically as reasoning occurs
             if (thought) {
               setExpandedThoughts(prev => {
                 if (!prev[lastMessageIndex]) {
@@ -184,17 +287,24 @@ export default function SrinivasaAIChat({
               });
             }
           } catch (e) {
-            // Ignore partial or corrupted JSON lines during parsing
+            // Ignore partial lines
           }
         }
       }
 
-      // Check for any remaining buffer data
       if (buffer.trim()) {
         try {
           const parsed = JSON.parse(buffer);
-          const token = parsed.response || "";
-          fullText += token;
+          
+          if (parsed.response) {
+            fullText += parsed.response;
+          }
+
+          if (parsed.command) {
+            const { name, arguments: args } = parsed.command;
+            handleClientCommand(name, args);
+          }
+
           const { thought, content } = parseDeepSeekResponse(fullText);
 
           setMessages(prev => {
@@ -203,7 +313,7 @@ export default function SrinivasaAIChat({
             if (lastIdx >= 0 && updated[lastIdx].role === "assistant") {
               updated[lastIdx] = {
                 ...updated[lastIdx],
-                content: content || "System trace returned void response.",
+                content: content || "System telemetric synchronization finalized.",
                 thought: thought || undefined
               };
             }
@@ -220,7 +330,7 @@ export default function SrinivasaAIChat({
         ...prev,
         {
           role: "assistant",
-          content: `⚠️ **COMMS ERROR**: Failed to communicate with DeepSeek R1 core node. (${err.message || 'Check srinivasa.2bd.net availability'}).`,
+          content: `⚠️ **COMMS ERROR**: Failed to connect with orbital co-processor. (${err.message || 'Check network configurations'}).`,
           timestamp: new Date().toLocaleTimeString()
         }
       ]);
@@ -236,7 +346,7 @@ export default function SrinivasaAIChat({
   const clearHistory = () => {
     const defaultMsg: Message = {
       role: "assistant",
-      content: `SYS_COMMS reset. DEEPSEEK_R1_1.5B node flushed. Ask me anything about orbital physics or ${selectedTargetName}.`,
+      content: `SYS_COMMS reset. GEMINI co-processor flushed. Tell me what simulated navigation commands to activate.`,
       timestamp: new Date().toLocaleTimeString()
     };
     setMessages([defaultMsg]);
