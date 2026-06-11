@@ -55,11 +55,19 @@ async function startServer() {
       // If we have multi-turn message history, format it into a cohesive prompt
       // since the /api/generate endpoint of Ollama does not natively accept raw role lists
       let promptWithHistory = userPrompt;
-      if (messages && messages.length > 1) {
-        promptWithHistory = messages.map((m: any) => {
-          const roleLabel = m.role === "user" ? "User" : "Assistant";
-          return `${roleLabel}: ${m.content}`;
-        }).join("\n") + "\nAssistant:";
+      if (messages) {
+        // Filter out the initial greetings, instructions, or SYS_COMMS info so it doesn't pollute actual model prompt
+        const filteredMessages = messages.filter((m: any) => {
+          const contentStr = m.content || "";
+          return !(m.role === "assistant" && (contentStr.includes("SYS_COMMS LINK ESTABLISHED") || contentStr.includes("Welcome to the SRINIVASA Orbital Simulator")));
+        });
+
+        if (filteredMessages.length > 0) {
+          promptWithHistory = filteredMessages.map((m: any) => {
+            const roleLabel = m.role === "user" ? "User" : "Assistant";
+            return `${roleLabel}: ${m.content}`;
+          }).join("\n") + "\nAssistant:";
+        }
       }
 
       // Prepare perfect Ollama / Custom API compatible payload
@@ -67,7 +75,7 @@ async function startServer() {
         model: "deepseek-r1:1.5b",
         prompt: promptWithHistory,
         stream: true, // Now streaming is true!
-        system: "You are the Tactical AI Advisor for the Srinivasa Orbital Simulator. Keep answers concise, factual, and themed with space telemetry.",
+        system: "You are the Tactical AI Advisor for the Srinivasa Orbital Simulator. Keep answers extremely brief, concise, analytical, factual, and themed with space telemetry.",
         messages: messages || []
       };
 
@@ -84,9 +92,10 @@ async function startServer() {
       }
 
       // Configure headers for Server-Sent Events / Stream response
-      res.setHeader("Content-Type", "application/x-ndjson");
+      res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no"); // Force Nginx to bypass buffer instantly
 
       if (response.body) {
         const readable = response.body as any;

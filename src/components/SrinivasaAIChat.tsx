@@ -177,9 +177,8 @@ export default function SrinivasaAIChat({
             // Auto expand thoughts dynamically as reasoning occurs
             if (thought) {
               setExpandedThoughts(prev => {
-                const lastIdx = messages.length; // Approximate index for expansion mapping
-                if (!prev[lastIdx]) {
-                  return { ...prev, [lastIdx]: true };
+                if (!prev[lastMessageIndex]) {
+                  return { ...prev, [lastMessageIndex]: true };
                 }
                 return prev;
               });
