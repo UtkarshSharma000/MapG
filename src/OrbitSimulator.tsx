@@ -609,7 +609,7 @@ function Planet({
           if (onDoubleClick) onDoubleClick(data.name);
         }}
       >
-        {data.name === "Earth" && launchParams && launchParams.launchPlanet === "Earth" && (!launchParams.targetPlanet || launchParams.targetPlanet === "Earth") && (
+        {data.name === "Earth" && launchParams && launchParams.launchPlanet === "Earth" && (!launchParams.targetPlanet || launchParams.targetPlanet === "Earth") && (!launchParams.missionLegs || launchParams.missionLegs.length === 0) && (
           <GhostPath launchParams={launchParams} globalTimeRef={globalTimeRef} />
         )}
         <mesh>
