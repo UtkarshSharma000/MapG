@@ -1,7 +1,6 @@
 import React, { useRef } from "react";
 import { motion } from "motion/react";
-import { Canvas } from "@react-three/fiber";
-import { InteractiveGlobe } from "./InteractiveGlobe";
+import Prism from "./Prism";
 
 interface LandingHeroProps {
   isSimulatorRunning: boolean;
@@ -19,8 +18,7 @@ export default function LandingHero({
   return (
     <section 
       ref={containerRef}
-      className="relative min-h-screen bg-[#000000] flex flex-col justify-center overflow-hidden z-20"
-      style={{ fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }}
+      className="relative min-h-screen bg-[#000000] flex flex-col justify-center overflow-hidden z-20 font-sans"
     >
       {/* FULL-BLEED 3D ORGANIC RENDER (Using Interactive Globe as placeholder) */}
       <motion.div 
@@ -29,26 +27,31 @@ export default function LandingHero({
         transition={{ duration: 1.5 }}
         className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
       >
-        <div className="w-full h-full opacity-60">
-          <Canvas camera={{ position: [0, 0, 3] }}>
-            <InteractiveGlobe url="/textures/2k_mars.jpg" color="#ffffff" />
-          </Canvas>
+        <div className="w-full h-full opacity-60 relative">
+          <Prism
+            animationType="rotate"
+            timeScale={0.5}
+            height={3.5}
+            baseWidth={5.5}
+            scale={3.6}
+            hueShift={0}
+            colorFrequency={1}
+            noise={0.5}
+            glow={1}
+          />
         </div>
       </motion.div>
 
       {/* TOP NAVIGATION BAR */}
       <nav className="absolute top-0 left-0 w-full px-8 md:px-12 py-8 flex justify-between items-start z-30 mix-blend-difference pointer-events-auto">
-        <div className="text-[#ffffff] text-[12px] font-normal uppercase">
-          monopo saigon
+        <div className="text-[#ffffff] text-[12px] font-bold uppercase tracking-widest">
+          Srinivasa
         </div>
         <div className="flex gap-4 items-start">
-          <div className="flex gap-4 text-[#ffffff] text-[11px] font-normal lowercase opacity-70">
-            <a href="#" className="hover:opacity-100 transition-opacity">en</a>
-          </div>
-          <div className="flex flex-col items-end gap-[15px] ml-8 text-[#ffffff] text-[12px] font-normal uppercase">
-            <a href="#" className="hover:opacity-70 transition-opacity">WORK</a>
-            <a href="#" className="hover:opacity-70 transition-opacity">MANIFESTO</a>
-            <a href="https://github.com/UtkarshSharma000/Srinivasa" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity">SOURCE</a>
+          <div className="flex flex-col items-end gap-[15px] ml-8 text-[#ffffff] text-[12px] font-bold uppercase tracking-widest">
+            <a href="#" className="hover:text-primary transition-colors">WORK</a>
+            <a href="#" className="hover:text-primary transition-colors">MANIFESTO</a>
+            <a href="https://github.com/UtkarshSharma000/Srinivasa" target="_blank" rel="noreferrer" className="hover:text-primary transition-colors">SOURCE</a>
           </div>
         </div>
       </nav>
@@ -61,12 +64,10 @@ export default function LandingHero({
         className="relative z-20 w-full flex justify-center items-center pointer-events-none px-4"
       >
         <h1 
-          className="text-[#ffffff] font-light text-center m-0 p-0"
+          className="text-[#ffffff] font-bold text-center m-0 p-0 tracking-tighter"
           style={{ 
             fontSize: "clamp(60px, 15vw, 225px)", 
-            lineHeight: 0.76,
-            letterSpacing: "normal",
-            fontWeight: 300
+            lineHeight: 0.8,
           }}
         >
           SRINIVASA
@@ -82,21 +83,21 @@ export default function LandingHero({
       >
         <button 
           onClick={() => setIsSimulatorRunning(true)}
-          className="bg-[#ffffff] text-[#181818] rounded-[75px] flex items-center justify-center px-[24px] py-[12px] hover:bg-[#e0e0e0] transition-colors"
+          className="bg-primary text-on-primary rounded-none flex items-center justify-center px-6 py-4 hover:bg-primary-fixed-dim transition-colors border-2 border-primary"
         >
-          <span className="text-[12px] font-normal uppercase leading-none tracking-wide">Initialize System</span>
+          <span className="text-sm font-bold uppercase tracking-widest">Initialize System</span>
         </button>
 
-        <div className="bg-[#ffffff] px-6 py-4 rounded-[0px] flex border-none w-[320px] flex-col mt-4">
-            <p className="text-[#181818] text-[12px] font-normal font-sans mb-4 leading-[1.39]">By using this system, you agree to the use of cookies for performance analysis. <span className="underline cursor-pointer">Privacy policy</span>.</p>
+        <div className="bg-surface-container-low px-6 py-4 border-2 border-outline-variant w-[320px] flex flex-col mt-4">
+            <p className="text-secondary text-[12px] font-sans mb-4 leading-relaxed">By using this system, you agree to the use of cookies for performance analysis. <span className="underline cursor-pointer hover:text-primary">Privacy policy</span>.</p>
             <div className="flex justify-between items-center w-full">
               <button 
-                className="bg-[#636363] text-[#ffffff] rounded-[75px] px-[6px] py-[1px] text-[12px] font-normal tracking-wide"
+                className="bg-surface-bright text-primary px-4 py-1 text-xs font-bold uppercase tracking-widest border border-outline-variant hover:border-primary transition-colors"
               >
                 Accept
               </button>
-              <button className="text-[#181818] text-[9px] font-normal">
-                X
+              <button className="text-secondary hover:text-primary transition-colors text-xs font-bold">
+                [X]
               </button>
             </div>
         </div>
@@ -111,7 +112,7 @@ export default function LandingHero({
       >
         <svg viewBox="0 0 100 100" width="80" height="80" className="animate-[spin_10s_linear_infinite]">
           <path id="curve" d="M 50 50 m -35 0 a 35 35 0 1 1 70 0 a 35 35 0 1 1 -70 0" fill="transparent" />
-          <text className="text-[#ffffff] text-[9px]" style={{ fontFamily: "system-ui, sans-serif" }}>
+          <text className="fill-primary text-[9px] font-bold" style={{ fontFamily: "var(--font-mono)" }}>
             <textPath href="#curve" startOffset="0" className="tracking-[3px] uppercase">
               Scroll to explore • Scroll to explore •
             </textPath>
