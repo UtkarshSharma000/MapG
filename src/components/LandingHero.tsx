@@ -88,15 +88,25 @@ export default function LandingHero({
           <span className="text-sm font-bold uppercase tracking-widest">Initialize System</span>
         </button>
 
-        <div className="bg-surface-container-low px-6 py-4 border-2 border-outline-variant w-[320px] flex flex-col mt-4">
-            <p className="text-secondary text-[12px] font-sans mb-4 leading-relaxed">By using this system, you agree to the use of cookies for performance analysis. <span className="underline cursor-pointer hover:text-primary">Privacy policy</span>.</p>
+        <div id="privacy-box" className="bg-surface-container-low px-6 py-4 border-2 border-outline-variant w-[320px] flex flex-col mt-4">
+            <p className="text-secondary text-[12px] font-sans mb-4 leading-relaxed">No data is collected or sold. This project is open source at <a href="https://github.com/UtkarshSharma000/MapG" target="_blank" rel="noreferrer" className="underline hover:text-primary">UtkarshSharma000/MapG</a>.<br/><br/>Queries or suggestions: <a href="mailto:utkarsh05nr@gmail.com" className="underline hover:text-primary">utkarsh05nr@gmail.com</a></p>
             <div className="flex justify-between items-center w-full">
               <button 
+                onClick={() => {
+                  const el = document.getElementById('privacy-box');
+                  if (el) el.style.display = 'none';
+                }}
                 className="bg-surface-bright text-primary px-4 py-1 text-xs font-bold uppercase tracking-widest border border-outline-variant hover:border-primary transition-colors"
               >
-                Accept
+                Acknowledge
               </button>
-              <button className="text-secondary hover:text-primary transition-colors text-xs font-bold">
+              <button 
+                onClick={() => {
+                  const el = document.getElementById('privacy-box');
+                  if (el) el.style.display = 'none';
+                }}
+                className="text-secondary hover:text-primary transition-colors text-xs font-bold"
+              >
                 [X]
               </button>
             </div>

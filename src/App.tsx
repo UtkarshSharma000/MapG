@@ -11,8 +11,10 @@ import {
   Play,
   FastForward,
   Eye,
+  MessageSquare,
 } from "lucide-react";
 import { useLocation, useNavigate } from 'react-router-dom';
+import SrinivasaAIChat from "./components/SrinivasaAIChat";
 import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
 import { OptimizeResult } from "./TrajectoryOptimizer";
 import { scanPorkchop } from "./workers/trajectory.worker";
@@ -112,6 +114,7 @@ export default function App() {
   const [cameraPresetToSave, setCameraPresetToSave] = useState<number | null>(null);
   const [resetCameraTrigger, setResetCameraTrigger] = useState(0);
   const [showMissionPanel, setShowMissionPanel] = useState(true); 
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const lastTimeMultRef = useRef(86400); // 1 Day/sec
 
   const handleSelectPlanet = (planetName: string) => {
@@ -988,6 +991,10 @@ export default function App() {
                   ))}
                 </ul>
                 <div className="mt-2 border-t-2 border-outline-variant pt-2 flex flex-col gap-1 stagger-in" style={{ animationDelay: "1.2s" }}>
+                  <button onClick={() => setIsAIChatOpen(prev => !prev)} className={`hover:bg-primary-fixed hover:text-on-primary-fixed hover:border-primary-fixed w-full flex items-center gap-2 p-1 border-2 cursor-pointer transition-colors text-[9px] uppercase ${isAIChatOpen ? "bg-primary-container text-on-primary-container border-primary-fixed" : "border-transparent text-secondary"}`}>
+                      <MessageSquare size={12} />
+                      AI_ADVISOR // R1
+                  </button>
                   <button onClick={() => setIsSimulatorRunning(false)} className="hover:bg-primary-fixed hover:text-on-primary-fixed hover:border-primary-fixed w-full flex items-center gap-2 p-1 text-secondary border-2 border-transparent text-[9px] uppercase cursor-pointer transition-colors">
                       <LogOut size={12} />
                       EXIT_SIM
@@ -1120,6 +1127,12 @@ export default function App() {
                   </div>
                 </div>
               </main>
+
+              <SrinivasaAIChat 
+                isOpen={isAIChatOpen}
+                onClose={() => setIsAIChatOpen(false)}
+                selectedTargetName={selectedTarget?.name || "Sol (Sun)"}
+              />
             </div>
             
             {/* BottomNavBar (Mobile) */}

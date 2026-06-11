@@ -43,6 +43,47 @@ async function startServer() {
     }
   });
 
+  // Proxy to client's DeepSeek R1 1.5B instance on srinivasa.2bd.net
+  app.post("/api/ai-chat", express.json(), async (req: any, res: any) => {
+    try {
+      const { prompt, messages } = req.body;
+      let userPrompt = prompt || "";
+      if (!userPrompt && messages && messages.length > 0) {
+        userPrompt = messages[messages.length - 1].content;
+      }
+
+      // Prepare payload variants
+      const payload = {
+        prompt: userPrompt,
+        messages: messages || []
+      };
+
+      const response = await fetch("https://srinivasa.2bd.net/AI/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`External model API returned status ${response.status}`);
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const data = await response.json();
+        res.json(data);
+      } else {
+        const text = await response.text();
+        res.json({ text });
+      }
+    } catch (err: any) {
+      console.error("AI Chat proxy error:", err);
+      res.status(502).json({ error: err.message || "Failed to proxy request" });
+    }
+  });
+
   // Dedicated C++ engine API
   app.use("/api", engineApi);
 
