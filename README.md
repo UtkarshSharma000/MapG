@@ -18,7 +18,7 @@
 ---
 
 > [!NOTE]
-> Space Flight Simulator simulates how planets and spacecraft move in space.
+> Srinivasa simulates how planets and spacecraft move in space.
 
 ## Core Features
 
