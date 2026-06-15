@@ -275,6 +275,10 @@ const Waves: React.FC<WavesProps> = ({
     }
 
     function tick(t: number) {
+      if (!isVisible) {
+        frameIdRef.current = null;
+        return;
+      }
       const mouse = mouseRef.current;
       mouse.sx += (mouse.x - mouse.sx) * 0.1;
       mouse.sy += (mouse.y - mouse.sy) * 0.1;
@@ -326,15 +330,26 @@ const Waves: React.FC<WavesProps> = ({
 
     setSize();
     setLines();
-    frameIdRef.current = requestAnimationFrame(tick);
     window.addEventListener('resize', onResize);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('touchmove', onTouchMove, { passive: false });
+
+    let isVisible = false;
+    const observer = new IntersectionObserver((entries) => {
+      isVisible = entries[0].isIntersecting;
+      if (isVisible) {
+        if (frameIdRef.current === null) {
+          frameIdRef.current = requestAnimationFrame(tick);
+        }
+      }
+    });
+    observer.observe(container);
 
     return () => {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('touchmove', onTouchMove);
+      observer.disconnect();
       if (frameIdRef.current !== null) {
         cancelAnimationFrame(frameIdRef.current);
       }

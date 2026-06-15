@@ -38,6 +38,7 @@ export default function LandingHero({
             colorFrequency={1}
             noise={0.5}
             glow={1}
+            suspendWhenOffscreen={true}
           />
         </div>
       </motion.div>

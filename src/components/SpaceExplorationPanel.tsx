@@ -32,8 +32,14 @@ export default function SpaceExplorationPanel({
   React.useEffect(() => {
     let frame: number;
     let oldPhase = 0;
+    let lastScrollProgress = -1;
     const update = () => {
       const scrollProgress = scrollProgressRef.current;
+      if (scrollProgress === lastScrollProgress) {
+        frame = requestAnimationFrame(update);
+        return;
+      }
+      lastScrollProgress = scrollProgress;
       
       if (scaleTextRef.current) {
         scaleTextRef.current.textContent = `SCALE: ${(1.0 + scrollProgress * 4.5).toFixed(3)}x`;

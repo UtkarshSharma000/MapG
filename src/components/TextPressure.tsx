@@ -160,8 +160,23 @@ const TextPressure: React.FC<TextPressureProps> = ({
   useEffect(() => {
     let rafId: number;
     let localTime = 0;
+    let isVisible = false;
+
+    const observer = new IntersectionObserver((entries) => {
+      isVisible = entries[0].isIntersecting;
+      if (isVisible) {
+        animate();
+      } else {
+        cancelAnimationFrame(rafId);
+      }
+    });
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
 
     const animate = () => {
+      if (!isVisible) return;
       localTime += 0.01;
       
       // Interpolate towards the scroll-based/mouse positions
@@ -244,8 +259,10 @@ const TextPressure: React.FC<TextPressureProps> = ({
       rafId = requestAnimationFrame(animate);
     };
 
-    animate();
-    return () => cancelAnimationFrame(rafId);
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
   }, [width, weight, italic, alpha, scrollDriven, chars.length]);
 
   const styleElement = useMemo(() => {
