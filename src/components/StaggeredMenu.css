@@ -26,9 +26,7 @@
   justify-content: space-between;
   padding: 0 2rem;
   height: 5rem;
-  background: rgba(5, 5, 5, 0.5);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: rgba(5, 5, 5, 0.95);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   pointer-events: none;
   z-index: 20;
@@ -144,9 +142,7 @@
   right: 0;
   width: clamp(260px, 38vw, 420px);
   height: 100%;
-  background: rgba(5, 5, 5, 0.85); /* Tweaked to match space theme */
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(5, 5, 5, 0.98); /* Tweaked to match space theme */
   display: flex;
   flex-direction: column;
   padding: 7em 2em 2em 2em; /* Top padding to avoid header */

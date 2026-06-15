@@ -1,5 +1,7 @@
 import "dotenv/config";
 import express from "express";
+import compression from "compression";
+import helmet from "helmet";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { spawn, execSync } from "child_process";
@@ -95,6 +97,40 @@ const planReturnFlight: FunctionDeclaration = {
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  // Use compression for all responses
+  app.use(compression());
+
+  // Security headers & features
+  app.disable("x-powered-by");
+  
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        connectSrc: ["'self'", "ws:", "wss:", "http://localhost:*", "https:"],
+        workerSrc: ["'self'", "blob:"],
+        fontSrc: ["'self'", "data:", "https:"],
+        frameSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  }));
+
+  app.use((req, res, next) => {
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    if (req.path.startsWith('/api')) {
+      res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+    next();
+  });
 
   // Compile C++ Engine and Install Python Deps
   console.log("Ensuring environment is ready...");
@@ -235,11 +271,26 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, { maxAge: '1y' }));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // Generic Error Handler to prevent default server error pages being shown
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error(err.stack);
+    if (req.path.startsWith('/api')) {
+      res.status(500).json({ error: "Internal Server Error" });
+    } else {
+      res.status(500).send("<h1>Internal Server Error</h1><p>Something went wrong on our end.</p>");
+    }
+  });
+
+  // Handle 404 for API routes specifically
+  app.use('/api', (req, res) => {
+    res.status(404).json({ error: "Not Found" });
+  });
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);

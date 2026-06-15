@@ -72,7 +72,7 @@ export function LaunchHUD({
       <Draggable nodeRef={nodeRef} handle=".vab-drag-handle" position={position} onStop={onDragStop}>
         <div 
           ref={nodeRef} 
-          className="w-[340px] bg-[#07131e]/70 border border-cyan-400/20 rounded-2xl p-6 text-white shadow-[0_0_30px_rgba(30,130,246,0.15)] backdrop-blur-xl flex flex-col"
+          className="w-[340px] bg-[#07131e]/95 border border-cyan-400/20 rounded-2xl p-6 text-white shadow-[0_0_30px_rgba(30,130,246,0.15)] flex flex-col"
         >
           {/* Panel Header */}
           <div className="vab-drag-handle flex justify-between items-center cursor-move border-b border-cyan-500/20 pb-3 mb-6 select-none">

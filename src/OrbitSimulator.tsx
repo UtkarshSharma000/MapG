@@ -1535,7 +1535,7 @@ function SystemEngine({
             </button>
           )}
           {isLocked && (
-            <div className="px-3 py-1 bg-[#0a0a0c]/95 border border-white/10 text-white/50 text-[9px] font-mono tracking-widest rounded-lg flex items-center gap-2 self-start backdrop-blur-md">
+            <div className="px-3 py-1 bg-[#0a0a0c]/95 border border-white/10 text-white/50 text-[9px] font-mono tracking-widest rounded-lg flex items-center gap-2 self-start">
               <div className="w-1.5 h-1.5 rounded-full bg-white/30"></div>
               CAMERA TRACKING {spectatedLabel ? spectatedLabel : (selectedTarget ? selectedTarget.name.toUpperCase() : "SOL")}
               <span className="ml-2 text-[8px] opacity-30">(DRAG TO UNLOCK)</span>

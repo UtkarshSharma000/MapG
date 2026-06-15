@@ -288,7 +288,7 @@ export default function App() {
       'Uranus': 7,
       'Neptune': 8
     };
-    if (selectedTarget && selectedTarget.name !== "Sun" && selectedTarget.name !== "Earth") {
+    if (isSimulatorRunning && selectedTarget && selectedTarget.name !== "Sun" && selectedTarget.name !== "Earth") {
       returnDestIdRef.current = planetIds[selectedTarget.name] || 4;
       if (returnWorkerRef.current) {
         returnWorkerRef.current.postMessage({
@@ -306,7 +306,7 @@ export default function App() {
         });
       }
     }
-  }, [selectedTarget]);
+  }, [selectedTarget, isSimulatorRunning]);
 
   const handleTimeMultChange = (newMult: number) => {
     setTimeMult(newMult);
@@ -941,7 +941,7 @@ export default function App() {
         cinematicScrollRef={scrollProgressRef}
         timeMult={timeMult}
         selectedTarget={selectedTarget}
-        launchParams={{ v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs }}
+        launchParams={isSimulatorRunning ? { v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs } : undefined}
         globalTimeRef={globalTimeRef}
         onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
         onStatusUpdate={setMissionStatus}
@@ -1025,7 +1025,7 @@ export default function App() {
         {isSimulatorRunning && (
           <div className="text-on-background h-full w-full overflow-hidden flex flex-col tech-grid-bg selection:bg-primary-fixed selection:text-on-primary-fixed pointer-events-none relative z-40 font-mono">
             {/* TopAppBar */}
-            <header className="border-draw flex justify-between items-center w-full px-margin h-16 border-b-2 border-primary-container bg-background/90 backdrop-blur-sm flex-shrink-0 z-50 pointer-events-auto" style={{ animationDelay: "0.1s" }}>
+            <header className="border-draw flex justify-between items-center w-full px-margin h-16 border-b-2 border-primary-container bg-background/95 flex-shrink-0 z-50 pointer-events-auto" style={{ animationDelay: "0.1s" }}>
               <div className="flex items-center gap-gutter">
                 <h1 className="text-headline-lg font-bold text-primary-container tracking-tighter uppercase text-xl md:text-3xl">SRINIVASA</h1>
               </div>
@@ -1041,7 +1041,7 @@ export default function App() {
             
             <div className="flex flex-1 overflow-hidden relative">
               {/* SideNavBar (Desktop) */}
-              <nav className="border-draw hidden md:flex flex-col h-full border-r-2 border-outline-variant p-panel-padding bg-surface-container-lowest/90 backdrop-blur-md w-64 flex-shrink-0 z-40 pointer-events-auto" style={{ animationDelay: "0.3s" }}>
+              <nav className="border-draw hidden md:flex flex-col h-full border-r-2 border-outline-variant p-panel-padding bg-surface-container-lowest/95 w-64 flex-shrink-0 z-40 pointer-events-auto" style={{ animationDelay: "0.3s" }}>
                 <div className="mb-4 border-b-2 border-outline-variant pb-2 stagger-in" style={{ animationDelay: "0.5s" }}>
                   <h2 className="text-[11px] font-bold text-on-surface tracking-widest uppercase">TACTICAL_NAV</h2>
                   <p className="text-[9px] text-secondary mt-1">SECTOR_COORD_G1.V2</p>
@@ -1088,7 +1088,7 @@ export default function App() {
                 
                 {/* Telemetry Overlay (Top Left) */}
                 {selectedTarget && selectedTarget.name !== "Sun" && (
-                <div className="border-draw absolute top-panel-padding left-panel-padding border-2 border-outline-variant bg-surface-container-lowest/90 backdrop-blur-md p-2 w-56 z-20 pointer-events-none" style={{ animationDelay: "0.8s" }}>
+                <div className="border-draw absolute top-panel-padding left-panel-padding border-2 border-outline-variant bg-surface-container-lowest/95 p-2 w-56 z-20 pointer-events-none" style={{ animationDelay: "0.8s" }}>
                   <div className="border-b-2 border-outline-variant pb-1 mb-1 flex justify-between items-center">
                     <span className="text-label-sm font-bold text-on-surface uppercase tracking-widest">ORBITAL_VECTORS</span>
                     <span className="w-1 h-1 bg-primary-fixed"></span>
@@ -1107,7 +1107,7 @@ export default function App() {
                 {/* Telemetry Target Info */}
                 <div className="border-draw hidden md:flex absolute top-panel-padding right-panel-padding flex-col gap-2 z-20 items-end pointer-events-none" style={{ animationDelay: "0.9s" }}>
                   {/* Gravity Well Gauges */}
-                  <div className="border-2 border-outline-variant bg-surface-container-lowest/90 backdrop-blur-md p-2 w-56 flex gap-2 justify-between">
+                  <div className="border-2 border-outline-variant bg-surface-container-lowest/95 p-2 w-56 flex gap-2 justify-between">
                     <div className="flex flex-col items-center gap-1">
                       <div className="w-6 h-6 border-2 border-primary-fixed rounded-full flex items-center justify-center relative">
                         <div className="absolute w-4 h-4 border border-primary-fixed rounded-full"></div>
@@ -1130,7 +1130,7 @@ export default function App() {
                       <span className="text-[8px] text-secondary">G_MARS</span>
                     </div>
                   </div>
-                  <div className="border-2 border-outline-variant bg-surface-container-lowest/90 backdrop-blur-md p-2 w-56 stagger-in" style={{ animationDelay: "1.0s" }}>
+                  <div className="border-2 border-outline-variant bg-surface-container-lowest/95 p-2 w-56 stagger-in" style={{ animationDelay: "1.0s" }}>
                     <div className="text-[8px] text-on-surface uppercase font-bold mb-1 border-b-2 border-outline-variant pb-1">GRAVITY STRENGTH</div>
                     <div className="text-[8px] text-secondary flex flex-col gap-1 font-mono">
                       <div className="flex justify-between"><span>MERCURY:</span><span className="text-primary-fixed">3.70 m/s²</span></div>

@@ -363,7 +363,7 @@ export default function SrinivasaAIChat({
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 400, opacity: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full md:w-96 h-full flex flex-col border-l-2 border-outline-variant bg-surface-container-lowest/95 backdrop-blur-md z-50 relative pointer-events-auto shadow-2xl flex-shrink-0"
+          className="w-full md:w-96 h-full flex flex-col border-l-2 border-outline-variant bg-surface-container-lowest/95 z-50 relative pointer-events-auto shadow-2xl flex-shrink-0"
         >
           {/* Header */}
           <div className="p-4 border-b-2 border-outline-variant bg-black flex justify-between items-center">
