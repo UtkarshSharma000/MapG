@@ -11,6 +11,7 @@ import {
 import * as THREE from "three";
 import { AU, propagateOrbit, KeplerianElements, simulateInterplanetaryRK4, solveLambert, findOptimalTransfer, MU_SUN, getJ2000Time, J2000_UNIX, getOrbitalVelocity } from "./physics";
 import axios from "axios";
+import { TextShimmer } from "@/components/motion-primitives/text-shimmer";
 
 export const MOONS: Record<string, any[]> = {
   Earth: [
@@ -1684,7 +1685,9 @@ export default function OrbitSimulator({
         <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">
           <div className="text-cyan-400 font-mono tracking-widest text-[10px] uppercase bg-black/80 px-4 py-2 border border-cyan-500/30 rounded shadow overflow-hidden relative">
             <div className="absolute inset-0 bg-cyan-500/10 animate-pulse"></div>
-            Computing Trajectory...
+            <TextShimmer duration={1.5} className="[--base-color:var(--color-cyan-300)] [--base-gradient-color:var(--color-cyan-100)]">
+              COMPUTING TRAJECTORY...
+            </TextShimmer>
           </div>
         </div>
       )}

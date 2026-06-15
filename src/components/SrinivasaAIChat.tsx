@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MessageSquare, Send, X, Terminal, Sparkles, Brain, ArrowDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { TextShimmer } from "@/components/motion-primitives/text-shimmer";
 
 interface Message {
   role: "user" | "assistant";
@@ -483,7 +484,9 @@ export default function SrinivasaAIChat({
                 <span className="text-[8px] text-secondary mb-1">CO-PROCESSOR // CALCULATING</span>
                 <div className="p-3 border-2 border-primary-fixed bg-black text-primary-fixed flex items-center gap-2">
                   <Terminal size={12} className="animate-spin" />
-                  <span className="animate-pulse tracking-widest font-bold">THINKING_WITH_DEEPSEEK_R1...</span>
+                  <TextShimmer duration={1.5} className="tracking-widest font-bold [--base-color:var(--color-primary-fixed)] [--base-gradient-color:var(--color-primary)]">
+                    THINKING_WITH_DEEPSEEK_R1...
+                  </TextShimmer>
                 </div>
               </div>
             )}

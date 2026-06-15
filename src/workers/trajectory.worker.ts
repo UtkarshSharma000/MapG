@@ -89,6 +89,22 @@ function planetStateVector(id: number, t_days: number): {
   }
 }
 
+const dot  = (a: number[], b: number[]) => a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const normMath = (a: number[]) => Math.sqrt(dot(a,a));
+const crossObj = (a: number[], b: number[]): [number,number,number] => [
+  a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]
+];
+const stumpC = (z: number) => {
+  if (z > 1e-6)  return (1-Math.cos(Math.sqrt(z)))/z;
+  if (z < -1e-6) return (Math.cosh(Math.sqrt(-z))-1)/(-z);
+  return 0.5;
+};
+const stumpS = (z: number) => {
+  if (z > 1e-6)  { const sq=Math.sqrt(z); return (sq-Math.sin(sq))/(sq*sq*sq); }
+  if (z < -1e-6) { const sq=Math.sqrt(-z); return (Math.sinh(sq)-sq)/(sq*sq*sq); }
+  return 1/6;
+};
+
 function lambertIzzo(
   r1: [number,number,number],
   r2: [number,number,number],
@@ -96,18 +112,11 @@ function lambertIzzo(
   mu: number = GM_SUN,
   prograde = true
 ): { v1: [number,number,number], v2: [number,number,number] } | null {
-  const dot  = (a: number[], b: number[]) => a[0]*b[0]+a[1]*b[1]+a[2]*b[2]
-  const norm = (a: number[]) => Math.sqrt(dot(a,a))
-  const sub  = (a: number[], b: number[]) => [a[0]-b[0],a[1]-b[1],a[2]-b[2]] as [number,number,number]
-  const cross= (a: number[], b: number[]): [number,number,number] => [
-    a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]
-  ]
-
-  const R1 = norm(r1), R2 = norm(r2)
+  const R1 = normMath(r1), R2 = normMath(r2);
   if (R1 < 1e-4 || R2 < 1e-4) return null;
-  const cos_dnu = dot(r1,r2) / (R1*R2)
-  const crs      = cross(r1, r2)
-  let dnu: number
+  const cos_dnu = dot(r1,r2) / (R1*R2);
+  const crs      = crossObj(r1, r2);
+  let dnu: number;
   if (prograde) {
     dnu = crs[2] >= 0
       ? Math.acos(Math.max(-1,Math.min(1,cos_dnu)))
@@ -120,17 +129,6 @@ function lambertIzzo(
 
   const A = Math.sin(dnu) * Math.sqrt(R1*R2 / (1-Math.cos(dnu)))
   if (Math.abs(A) < 1e-6) return null
-
-  const stumpC = (z: number) => {
-    if (z > 1e-6)  return (1-Math.cos(Math.sqrt(z)))/z
-    if (z < -1e-6) return (Math.cosh(Math.sqrt(-z))-1)/(-z)
-    return 0.5
-  }
-  const stumpS = (z: number) => {
-    if (z > 1e-6)  { const sq=Math.sqrt(z); return (sq-Math.sin(sq))/(sq*sq*sq) }
-    if (z < -1e-6) { const sq=Math.sqrt(-z); return (Math.sinh(sq)-sq)/(sq*sq*sq) }
-    return 1/6
-  }
 
   let z = 0
   for (let iter = 0; iter < 500; iter++) {

@@ -667,38 +667,53 @@ export default function App() {
 
     const t0 = globalTimeRef.current / 86400; // live sim clock in days
 
-    let result = scanPorkchop(
-      originId,
-      destId,
-      t0,
-      900,
-      150,
-      500
-    );
-
-    if (!result) {
-      result = scanPorkchop(
-        originId,
-        destId,
-        t0
+    const runScan = (searchDays: number, tofMin: number, tofMax: number, isFallback: boolean) => {
+      const w = new Worker(
+        new URL("./workers/trajectory.worker.ts", import.meta.url),
+        { type: "module" }
       );
-    }
-
-    if (result) {
-      const leg: any = {
-        originId,
-        destId,
-        type: 'capture',
-        dv1_kms: result.dv1_kms,
-        dv2_kms: result.dv2_kms,
-        tof_days: result.tof_days,
-        v1_ecl: result.v1_ecl,
+      
+      w.onmessage = (e) => {
+        const { type, result } = e.data;
+        if (type === 'RESULT') {
+          w.terminate();
+          if (result) {
+            const leg: any = {
+              originId,
+              destId,
+              type: 'capture',
+              dv1_kms: result.dv1_kms,
+              dv2_kms: result.dv2_kms,
+              tof_days: result.tof_days,
+              v1_ecl: result.v1_ecl,
+            };
+            result.legs = [leg];
+            handleApply(result);
+          } else if (!isFallback) {
+            // try fallback scan with default bounds
+            runScan(-1, -1, -1, true); // passing -1 will trigger default bounds in worker
+          } else {
+            console.warn(`No optimal path solution found from ${originNormalized} to ${destNormalized}`);
+          }
+        }
       };
-      result.legs = [leg];
-      handleApply(result);
-    } else {
-      console.warn(`No optimal path solution found from ${originNormalized} to ${destNormalized}`);
-    }
+
+      w.postMessage({
+        type: 'SCAN',
+        payload: {
+          originId,
+          destId,
+          t0_days: t0,
+          searchDays: searchDays > 0 ? searchDays : undefined,
+          tofMin: tofMin > 0 ? tofMin : undefined,
+          tofMax: tofMax > 0 ? tofMax : undefined,
+          steps: 50
+        }
+      });
+    };
+
+    // Initial explicit bounds scan
+    runScan(900, 150, 500, false);
   };
 
   const handleSelectLocation = (type: "launch" | "target", planet: string, lat: number, lon: number) => {

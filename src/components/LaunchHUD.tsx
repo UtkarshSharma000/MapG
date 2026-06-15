@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import Draggable from 'react-draggable';
 import { Move } from 'lucide-react';
 import { motion } from 'motion/react';
+import { TextShimmer } from '@/components/motion-primitives/text-shimmer';
 
 interface LaunchHUDProps {
   onSimulateLaunch: () => void;
@@ -89,7 +90,11 @@ export function LaunchHUD({
               onClick={isLaunched ? handleReset : onLaunch}
               disabled={isCalculatingLaunchPhase}
             >
-               {isLaunched ? 'ABORT FLIGHT PATH' : isCalculatingLaunchPhase ? 'COMPUTING TRAJECTORY...' : 'ENGAGE FLIGHT PATH'}
+               {isLaunched ? 'ABORT FLIGHT PATH' : isCalculatingLaunchPhase ? (
+                 <TextShimmer duration={1.5} className="[--base-color:var(--color-cyan-300)] [--base-gradient-color:var(--color-cyan-100)]">
+                   COMPUTING TRAJECTORY...
+                 </TextShimmer>
+               ) : 'ENGAGE FLIGHT PATH'}
             </button>
 
             {/* Mission Archive Controls */}
