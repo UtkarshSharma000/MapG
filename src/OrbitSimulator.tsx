@@ -703,10 +703,19 @@ function GhostPath({
   const lastTargetPlanetRef = useRef<string | null>(null);
   const lastMissionLegsRef = useRef<any>(null);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const calculateInterplanetaryPath = useCallback(async () => {
     if (!launchParams) return;
     if (!launchParams.targetPlanet && !launchParams.missionLegs) return;
     
+    // Abort previous calculating sequence to optimize network
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     const time = globalTimeRef.current;
     let targetName = launchParams.targetPlanet;
     const launchPlanet = launchParams.launchPlanet || "Earth";
@@ -736,10 +745,12 @@ function GhostPath({
       const response = await fetch('/api/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal
       });
       if (!response.ok) return;
       const data = await response.json();
+      if (signal.aborted) return;
       
       requiredDVRef.current = data.dvLabel;
       transferTimeRef.current = data.arrivalTime - payload.launchTime;
@@ -774,6 +785,8 @@ function GhostPath({
       if(onCalculating) onCalculating(false);
     }
   }, [launchParams]);
+
+  const previewAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!launchParams) return;
@@ -814,6 +827,10 @@ function GhostPath({
 
     const fetchPreview = async () => {
       try {
+        if (previewAbortRef.current) previewAbortRef.current.abort();
+        previewAbortRef.current = new AbortController();
+        const signal = previewAbortRef.current.signal;
+
         const { v0, pitch, yaw, nbody, launchLocation, targetLocation, targetPlanet } = launchParams;
         const startLat = launchLocation?.lat || 0;
         const startLon = launchLocation?.lon || 0;
@@ -832,8 +849,10 @@ function GhostPath({
             targetLon, 
             targetPlanet,
             launchPlanet: launchParams.launchPlanet || "Earth"
-          }
+          },
+          signal
         });
+        if (signal.aborted) return;
         if (res.data.path) {
           const visualRadius = Math.max(0.4, Math.log10(6371) * 0.4);
           const orbitPoints = res.data.path.map((p: number[]) =>
@@ -845,13 +864,20 @@ function GhostPath({
           );
           setPoints(orbitPoints);
         }
-      } catch (err) {
-        console.error("Ghost path fetch failed", err);
+      } catch (err: any) {
+        if (axios.isCancel(err) || err.name === 'AbortError' || err.message === 'canceled') {
+           // ignored
+        } else {
+          console.error("Ghost path fetch failed", err);
+        }
       }
     };
 
     const timeoutId = setTimeout(fetchPreview, 300); // Debounce
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      if (previewAbortRef.current) previewAbortRef.current.abort();
+    };
   }, [launchParams]);
 
   useFrame((state, delta) => {

@@ -98,8 +98,15 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Use compression for all responses
-  app.use(compression());
+  // Use compression for all responses except Server-Sent Events
+  app.use(compression({
+    filter: (req, res) => {
+      if (req.headers['accept'] === 'text/event-stream') {
+        return false;
+      }
+      return compression.filter(req, res);
+    }
+  }));
 
   // Security headers & features
   app.disable("x-powered-by");
@@ -116,7 +123,7 @@ async function startServer() {
         fontSrc: ["'self'", "data:", "https:"],
         frameSrc: ["'self'"],
         objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
+        upgradeInsecureRequests: null, // Allow HTTP/HTTPS natively
       },
     },
     crossOriginEmbedderPolicy: false,
@@ -134,14 +141,30 @@ async function startServer() {
 
   // Compile C++ Engine and Install Python Deps
   console.log("Ensuring environment is ready...");
-  try {
-    execSync("bash local_backend/build.sh", { stdio: "inherit" });
-    execSync("python3 -m pip install -r local_backend/requirements.txt", { stdio: "inherit" });
-  } catch (error) {
-    console.error("Setup failed:", error);
-  }
+  // We run this asynchronously so it doesn't block app.listen and cause 502 Cloud Run health-check timeouts
+  new Promise((resolve) => {
+    try {
+      execSync("bash local_backend/build.sh", { stdio: "inherit" });
+      execSync("python3 -m pip install -r local_backend/requirements.txt", { stdio: "inherit" });
+      resolve(true);
+    } catch (error) {
+      console.error("Setup failed:", error);
+      resolve(false);
+    }
+  }).then(() => {
+    // Start the Python FastAPI Bridge after setup
+    console.log("Starting Python FastAPI bridge...");
+    const pythonProcess = spawn("python3", ["-m", "uvicorn", "main:app", "--port", "8000"], {
+      cwd: path.join(process.cwd(), "local_backend"),
+    });
 
-  let latestTelemetry: any = { status: "waiting_for_engine" };
+    pythonProcess.on("error", (err) => {
+      console.error("Failed to start python3. It might not be installed:", err);
+    });
+
+    pythonProcess.stdout.on("data", (data) => console.log("Python:", data.toString()));
+    pythonProcess.stderr.on("data", (data) => console.error("Python Error:", data.toString()));
+  });
 
   // API Route setup - Proxy to FastAPI bridge for legacy routes
   app.get("/api/telemetry", async (req, res) => {
@@ -248,19 +271,6 @@ async function startServer() {
 
   // Dedicated C++ engine API
   app.use("/api", engineApi);
-
-  // Start the Python FastAPI Bridge
-  console.log("Starting Python FastAPI bridge...");
-  const pythonProcess = spawn("python3", ["-m", "uvicorn", "main:app", "--port", "8000"], {
-    cwd: path.join(process.cwd(), "local_backend"),
-  });
-
-  pythonProcess.on("error", (err) => {
-    console.error("Failed to start python3. It might not be installed:", err);
-  });
-
-  pythonProcess.stdout.on("data", (data) => console.log("Python:", data.toString()));
-  pythonProcess.stderr.on("data", (data) => console.error("Python Error:", data.toString()));
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
