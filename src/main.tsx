@@ -27,6 +27,30 @@ try {
 }
 
 try {
+  const originalSetAttribute = Element.prototype.setAttribute;
+  Element.prototype.setAttribute = function (name, value) {
+    if (typeof value === 'string' && value.includes('assets.unicorn.studio/media/us_fwb.png')) {
+      return originalSetAttribute.call(this, name, 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+    }
+    return originalSetAttribute.call(this, name, value);
+  };
+} catch (e) {
+  console.warn("Failed to intercept Element.setAttribute", e);
+}
+
+try {
+  const originalSetProperty = CSSStyleDeclaration.prototype.setProperty;
+  CSSStyleDeclaration.prototype.setProperty = function (property, value, priority) {
+    if (typeof value === 'string' && value.includes('assets.unicorn.studio/media/us_fwb.png')) {
+      return originalSetProperty.call(this, property, 'none', priority);
+    }
+    return originalSetProperty.call(this, property, value, priority);
+  };
+} catch (e) {
+  console.warn("Failed to intercept CSSStyleDeclaration.setProperty", e);
+}
+
+try {
   const originalFetch = window.fetch;
   window.fetch = async function (...args) {
     const firstArg = args[0];
@@ -51,6 +75,45 @@ try {
   };
 } catch (e) {
   console.warn("Failed to intercept XMLHttpRequest open", e);
+}
+
+// Set up MutationObserver to aggressively find and delete any nested watermarks
+try {
+  const removeWatermarkElements = () => {
+    // Look for links to unicorn.studio
+    const links = document.querySelectorAll('a[href*="unicorn.studio"]');
+    links.forEach(link => {
+      link.remove();
+    });
+
+    // Look for images requesting the watermark
+    const images = document.querySelectorAll('img[src*="us_fwb.png"], img[src*="unicorn.studio"]');
+    images.forEach(img => {
+      img.remove();
+    });
+
+    // Look for divs with watermark classes/styles
+    const watermarkDivs = document.querySelectorAll('[class*="unicorn-watermark"], [id*="unicorn-watermark"], [class*="us-watermark"], [class*="us_watermark"]');
+    watermarkDivs.forEach(div => {
+      div.remove();
+    });
+  };
+
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    const observer = new MutationObserver((mutations) => {
+      removeWatermarkElements();
+    });
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      removeWatermarkElements();
+      observer.observe(document.body, { childList: true, subtree: true });
+    });
+
+    // Fallback periodic sweep
+    setInterval(removeWatermarkElements, 500);
+  }
+} catch (e) {
+  console.warn("Failed to set up watermark MutationObserver", e);
 }
 
 createRoot(document.getElementById('root')!).render(
