@@ -6,6 +6,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { spawn, execSync } from "child_process";
 import fs from "fs";
+import http from "http";
 import https from "https";
 import engineApi from "./engineApi";
 import { GoogleGenAI, FunctionDeclaration, Type } from "@google/genai";
@@ -114,7 +115,7 @@ async function ensureFontDownloaded() {
   const downloadFile = (url: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       const isHttps = url.startsWith("https");
-      const client = isHttps ? https : require("http");
+      const client = isHttps ? https : http;
       
       client.get(url, (res: any) => {
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
@@ -240,7 +241,7 @@ async function startServer() {
 
     const streamDownload = (url: string) => {
       const isHttps = url.startsWith("https");
-      const client = isHttps ? https : require("http");
+      const client = isHttps ? https : http;
 
       client.get(url, (response: any) => {
         if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
