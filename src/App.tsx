@@ -1003,7 +1003,7 @@ export default function App() {
             landingScrollRef={landingScrollRef}
           />
 
-          <InteractiveBridge scrollRef={landingScrollRef} />
+          <InteractiveBridge />
 
           <SpaceExplorationPanel
             cinematicSectionRef={cinematicSectionRef}

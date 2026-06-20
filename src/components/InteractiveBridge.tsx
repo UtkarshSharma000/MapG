@@ -1,45 +1,17 @@
 import React from "react";
 import UnicornScene from "unicornstudio-react";
-import { motion } from "motion/react";
 
-interface InteractiveBridgeProps {
-  scrollRef?: React.RefObject<HTMLDivElement | null>;
-}
-
-export default function InteractiveBridge({ scrollRef }: InteractiveBridgeProps) {
+export default function InteractiveBridge() {
   return (
-    <>
-      {/* Long black transition area */}
-      <div 
-        className="w-full h-[150vh]" 
-        style={{
-          background: 'linear-gradient(to bottom, #23120c, #000000)'
-        }}
-      />
-      
-      {/* The component that fades into view */}
-      <section className="relative w-full overflow-hidden bg-[#000000] flex flex-col items-center justify-center z-10 h-[120vh] min-h-[800px]">
-        <motion.div 
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 2, ease: "easeInOut" }}
-          viewport={{ root: scrollRef, once: false, amount: 0.1 }}
-          className="w-full h-full relative z-10 unicorn-container mix-blend-screen"
-        >
-          <UnicornScene 
-            projectId="cJ085ZPZApHISv410A43" 
-            sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.5/dist/unicornStudio.umd.js"
-            width="100%" 
-            height="100%" 
-            scale={0.3}
-            lazyLoad={true}
-            production={true}
-          />
-        </motion.div>
-      </section>
-      
-      {/* Post-transition space to allow it to be fully visible before next section */}
-      <div className="w-full h-[50vh] bg-[#000000]" />
-    </>
+    <section className="relative w-full overflow-hidden bg-[#050505] flex flex-col items-center justify-center z-10 border-t border-b border-white/5 h-[80vh] min-h-[600px]">
+      <div className="w-full h-full relative z-10 unicorn-container opacity-100 mix-blend-screen">
+        <UnicornScene 
+          projectId="cJ085ZPZApHISv410A43" 
+          sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.5/dist/unicornStudio.umd.js"
+          width="100%" 
+          height="100%" 
+        />
+      </div>
+    </section>
   );
 }

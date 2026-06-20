@@ -33,9 +33,6 @@ export default function LandingHero({
             sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.5/dist/unicornStudio.umd.js"
             width="100%" 
             height="100%" 
-            scale={0.3}
-            lazyLoad={true}
-            production={true}
           />
         </div>
       </motion.div>
