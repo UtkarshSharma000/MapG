@@ -255,19 +255,7 @@ export default function MathPhysicsShowcase({
 
 
 
-      {/* Footer */}
-      <footer className="w-full py-[32px] px-8 md:px-[32px] flex flex-col md:flex-row justify-between items-center gap-[16px] bg-[#030611] border-t border-white/10">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>target</span>
-          <span className="font-display-lg text-lg text-primary tracking-tighter font-bold">SRINIVASA</span>
-        </div>
-        <div className="flex gap-8">
-          <a className="font-label-caps text-[10px] text-on-surface-variant hover:text-primary transition-all hover:translate-x-1 duration-200 uppercase tracking-widest" href="https://github.com/UtkarshSharma000/Srinivasa" target="_blank" rel="noreferrer">GitHub</a>
-        </div>
-        <div className="text-right">
-          <p className="font-label-caps text-[10px] text-tertiary tracking-widest">© 2026 SRINIVASA. ALL SYSTEMS OPERATIONAL.</p>
-        </div>
-      </footer>
+
     </>
   );
 }
