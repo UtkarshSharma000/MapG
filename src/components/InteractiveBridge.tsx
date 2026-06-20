@@ -13,7 +13,7 @@ export default function InteractiveBridge({ scrollRef }: InteractiveBridgeProps)
       <div 
         className="w-full h-[150vh]" 
         style={{
-          background: 'linear-gradient(to bottom, #25130d, #23130c, #000000)'
+          background: 'linear-gradient(to bottom, #23120c, #000000)'
         }}
       />
       
@@ -23,7 +23,7 @@ export default function InteractiveBridge({ scrollRef }: InteractiveBridgeProps)
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 2, ease: "easeInOut" }}
-          viewport={{ root: scrollRef, once: false, amount: 0.3, margin: "100px" }}
+          viewport={{ once: false, amount: 0.1 }}
           className="w-full h-full relative z-10 unicorn-container mix-blend-screen"
         >
           <UnicornScene 
