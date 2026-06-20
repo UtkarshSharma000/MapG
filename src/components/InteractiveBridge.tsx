@@ -23,7 +23,7 @@ export default function InteractiveBridge({ scrollRef }: InteractiveBridgeProps)
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 2, ease: "easeInOut" }}
-          viewport={{ once: false, amount: 0.1 }}
+          viewport={{ root: scrollRef, once: false, amount: 0.1 }}
           className="w-full h-full relative z-10 unicorn-container mix-blend-screen"
         >
           <UnicornScene 
@@ -31,6 +31,9 @@ export default function InteractiveBridge({ scrollRef }: InteractiveBridgeProps)
             sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.5/dist/unicornStudio.umd.js"
             width="100%" 
             height="100%" 
+            scale={0.3}
+            lazyLoad={true}
+            production={true}
           />
         </motion.div>
       </section>
