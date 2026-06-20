@@ -11,7 +11,7 @@ export default function InteractiveBridge() {
         <TextPressure
           text="SRINIVASA"
           textColor="#ffffff"
-          strokeColor="rgba(0, 240, 255, 0.45)"
+          strokeColor="#00f0ff"
           stroke={true}
           minFontSize={45}
           scrollDriven={false}

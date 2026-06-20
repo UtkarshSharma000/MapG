@@ -41,8 +41,8 @@ interface TextPressureProps {
 
 const TextPressure: React.FC<TextPressureProps> = ({
   text = 'SRINIVASA',
-  fontFamily = 'Impact, sans-serif',
-  fontUrl = '',
+  fontFamily = 'Roboto Flex, sans-serif',
+  fontUrl = 'https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=swap',
 
   width = true,
   weight = true,
@@ -192,9 +192,9 @@ const TextPressure: React.FC<TextPressureProps> = ({
           const charOffset = i / chars.length;
           const wave = Math.sin(localTime * 1.5 + charOffset * Math.PI * 2) * 0.5 + 0.5;
           
-          // Width variation (min: 5, max: 200)
+          // Width variation (min: 25, max: 151)
           const wdth = width 
-            ? Math.floor(5 + (195 * (1 - intensity)) + Math.sin(localTime * 2 + i) * 15) 
+            ? Math.max(25, Math.min(151, Math.floor(25 + (126 * (1 - intensity)) + Math.sin(localTime * 2 + i) * 15))) 
             : 100;
           
           // Weight variation (min: 100, max: 900)
@@ -239,7 +239,7 @@ const TextPressure: React.FC<TextPressureProps> = ({
 
             const d = dist(mouseRef.current, charCenter);
 
-            const wdth = width ? Math.floor(getAttr(d, maxDist, 5, 200)) : 100;
+            const wdth = width ? Math.floor(getAttr(d, maxDist, 25, 151)) : 100;
             const wght = weight ? Math.floor(getAttr(d, maxDist, 100, 900)) : 400;
             const italVal = italic ? getAttr(d, maxDist, 0, 1).toFixed(2) : '0';
             const alphaVal = alpha ? getAttr(d, maxDist, 0, 1).toFixed(2) : '1';
@@ -266,8 +266,17 @@ const TextPressure: React.FC<TextPressureProps> = ({
   }, [width, weight, italic, alpha, scrollDriven, chars.length]);
 
   const styleElement = useMemo(() => {
+    const isGoogleFont = fontUrl.includes('fonts.googleapis.com');
     return (
       <style>{`
+        ${isGoogleFont ? `@import url('${fontUrl}');` : `
+        @font-face {
+          font-family: '${fontFamily}';
+          src: url('${fontUrl}') format('woff2');
+          font-style: normal;
+          font-weight: 100 900;
+        }`}
+
         .text-pressure-flex {
           display: flex;
           justify-content: space-between;
