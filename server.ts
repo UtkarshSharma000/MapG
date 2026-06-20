@@ -6,6 +6,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { spawn, execSync } from "child_process";
 import fs from "fs";
+import https from "https";
 import engineApi from "./engineApi";
 import { GoogleGenAI, FunctionDeclaration, Type } from "@google/genai";
 
@@ -94,7 +95,65 @@ const planReturnFlight: FunctionDeclaration = {
   description: "Sets up and calculates the return trajectory flight path back to planet Earth from the current orbiting destination."
 };
 
+async function ensureFontDownloaded() {
+  const publicDir = path.join(process.cwd(), "public");
+  const fontPath = path.join(publicDir, "CompressaPRO-GX.woff2");
+
+  if (fs.existsSync(fontPath)) {
+    console.log("Compressa font already exists locally.");
+    return;
+  }
+
+  console.log("Downloading Compressa variable font locally...");
+  if (!fs.existsSync(publicDir)) {
+    fs.mkdirSync(publicDir, { recursive: true });
+  }
+
+  const fontUrl = "https://res.cloudinary.com/dr6lvwubh/raw/upload/v1529908256/CompressaPRO-GX.woff2";
+
+  const downloadFile = (url: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const isHttps = url.startsWith("https");
+      const client = isHttps ? https : require("http");
+      
+      client.get(url, (res: any) => {
+        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          const resolvedUrl = new URL(res.headers.location, url).toString();
+          downloadFile(resolvedUrl).then(resolve).catch(reject);
+          return;
+        }
+
+        if (res.statusCode !== 200) {
+          reject(new Error(`Failed to download font: status code ${res.statusCode}`));
+          return;
+        }
+
+        const fileStream = fs.createWriteStream(fontPath);
+        res.pipe(fileStream);
+        fileStream.on("finish", () => {
+          fileStream.close();
+          console.log("Local font download complete.");
+          resolve();
+        });
+        fileStream.on("error", (err: any) => {
+          fs.unlink(fontPath, () => {});
+          reject(err);
+        });
+      }).on("error", reject);
+    });
+  };
+
+  try {
+    await downloadFile(fontUrl);
+  } catch (err) {
+    console.error("Failed to download font locally:", err);
+  }
+}
+
 async function startServer() {
+  // Ensure the variable font is downloaded locally to /public
+  ensureFontDownloaded().catch(err => console.error("Font pre-download failed:", err));
+
   const app = express();
   const PORT = 3000;
 
@@ -164,6 +223,66 @@ async function startServer() {
 
     pythonProcess.stdout.on("data", (data) => console.log("Python:", data.toString()));
     pythonProcess.stderr.on("data", (data) => console.error("Python Error:", data.toString()));
+  });
+
+  // Serve/Cache the Compressa variable font locally to bypass browser-side Cloudinary CDN blocks
+  app.get("/CompressaPRO-GX.woff2", (req, res) => {
+    const fontPath = path.join(process.cwd(), "public", "CompressaPRO-GX.woff2");
+    
+    if (fs.existsSync(fontPath)) {
+      res.setHeader("Content-Type", "font/woff2");
+      res.setHeader("Cache-Control", "public, max-age=31536000"); // Cache for 1 year
+      return res.sendFile(fontPath);
+    }
+
+    const fontUrl = "https://res.cloudinary.com/dr6lvwubh/raw/upload/v1529908256/CompressaPRO-GX.woff2";
+    console.log("On-demand downloading Compressa variable font...");
+
+    const streamDownload = (url: string) => {
+      const isHttps = url.startsWith("https");
+      const client = isHttps ? https : require("http");
+
+      client.get(url, (response: any) => {
+        if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+          const resolvedUrl = new URL(response.headers.location, url).toString();
+          streamDownload(resolvedUrl);
+          return;
+        }
+
+        if (response.statusCode !== 200) {
+          res.status(502).send("Failed to retrieve font asset");
+          return;
+        }
+
+        res.setHeader("Content-Type", "font/woff2");
+        res.setHeader("Cache-Control", "public, max-age=31536000");
+
+        const publicDir = path.dirname(fontPath);
+        if (!fs.existsSync(publicDir)) {
+          fs.mkdirSync(publicDir, { recursive: true });
+        }
+        const fileStream = fs.createWriteStream(fontPath);
+
+        response.pipe(res);
+        response.pipe(fileStream);
+
+        fileStream.on("finish", () => {
+          fileStream.close();
+          console.log("On-demand download complete and saved to disk.");
+        });
+        fileStream.on("error", (err: any) => {
+          console.error("Local write stream failure:", err);
+          fs.unlink(fontPath, () => {});
+        });
+      }).on("error", (err: any) => {
+        console.error("Fetch request failure for font stream:", err);
+        if (!res.headersSent) {
+          res.status(502).send("Failed to stream font asset");
+        }
+      });
+    };
+
+    streamDownload(fontUrl);
   });
 
   // API Route setup - Proxy to FastAPI bridge for legacy routes
