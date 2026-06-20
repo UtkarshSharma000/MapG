@@ -41,8 +41,8 @@ interface TextPressureProps {
 
 const TextPressure: React.FC<TextPressureProps> = ({
   text = 'SRINIVASA',
-  fontFamily = 'Compressa VF',
-  fontUrl = '/CompressaPRO-GX.woff2',
+  fontFamily = 'Impact, sans-serif',
+  fontUrl = '',
 
   width = true,
   weight = true,
@@ -268,12 +268,6 @@ const TextPressure: React.FC<TextPressureProps> = ({
   const styleElement = useMemo(() => {
     return (
       <style>{`
-        @font-face {
-          font-family: '${fontFamily}';
-          src: url('${fontUrl}');
-          font-style: normal;
-        }
-
         .text-pressure-flex {
           display: flex;
           justify-content: space-between;
