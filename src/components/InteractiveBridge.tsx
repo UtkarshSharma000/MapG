@@ -11,11 +11,14 @@ export default function InteractiveBridge() {
         <TextPressure
           text="SRINIVASA"
           textColor="#ffffff"
-          strokeColor="#00f0ff"
+          strokeColor="rgba(0, 240, 255, 0.75)"
           stroke={true}
           minFontSize={45}
           scrollDriven={false}
-          alpha={false}
+          width={true}
+          weight={true}
+          italic={false}
+          alpha={true}
         />
       </div>
       {/* Subtle indicator label */}

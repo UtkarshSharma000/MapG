@@ -96,60 +96,6 @@ const planReturnFlight: FunctionDeclaration = {
   description: "Sets up and calculates the return trajectory flight path back to planet Earth from the current orbiting destination."
 };
 
-async function ensureFontDownloaded() {
-  const publicDir = path.join(process.cwd(), "public");
-  const fontPath = path.join(publicDir, "CompressaPRO-GX.woff2");
-
-  if (fs.existsSync(fontPath)) {
-    console.log("Compressa font already exists locally.");
-    return;
-  }
-
-  console.log("Downloading Compressa variable font locally...");
-  if (!fs.existsSync(publicDir)) {
-    fs.mkdirSync(publicDir, { recursive: true });
-  }
-
-  const fontUrl = "https://res.cloudinary.com/dr6lvwubh/raw/upload/v1529908256/CompressaPRO-GX.woff2";
-
-  const downloadFile = (url: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const isHttps = url.startsWith("https");
-      const client = isHttps ? https : http;
-      
-      client.get(url, (res: any) => {
-        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          const resolvedUrl = new URL(res.headers.location, url).toString();
-          downloadFile(resolvedUrl).then(resolve).catch(reject);
-          return;
-        }
-
-        if (res.statusCode !== 200) {
-          reject(new Error(`Failed to download font: status code ${res.statusCode}`));
-          return;
-        }
-
-        const fileStream = fs.createWriteStream(fontPath);
-        res.pipe(fileStream);
-        fileStream.on("finish", () => {
-          fileStream.close();
-          console.log("Local font download complete.");
-          resolve();
-        });
-        fileStream.on("error", (err: any) => {
-          fs.unlink(fontPath, () => {});
-          reject(err);
-        });
-      }).on("error", reject);
-    });
-  };
-
-  try {
-    await downloadFile(fontUrl);
-  } catch (err) {
-    console.error("Failed to download font locally:", err);
-  }
-}
 
 async function startServer() {
   const app = express();

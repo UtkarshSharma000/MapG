@@ -211,7 +211,12 @@ const TextPressure: React.FC<TextPressureProps> = ({
             ? (0.3 + 0.7 * (1 - intensity)).toFixed(2) 
             : '1';
 
-          const newFontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'ital' ${italVal}`;
+          const axes = [];
+          if (weight) axes.push(`'wght' ${wght}`);
+          if (width) axes.push(`'wdth' ${wdth}`);
+          if (italic) axes.push(`'slnt' ${italVal === '0' ? 0 : -10}`);
+
+          const newFontVariationSettings = axes.join(', ') || 'normal';
 
           if (span.style.fontVariationSettings !== newFontVariationSettings) {
             span.style.fontVariationSettings = newFontVariationSettings;
@@ -244,7 +249,12 @@ const TextPressure: React.FC<TextPressureProps> = ({
             const italVal = italic ? getAttr(d, maxDist, 0, 1).toFixed(2) : '0';
             const alphaVal = alpha ? getAttr(d, maxDist, 0, 1).toFixed(2) : '1';
 
-            const newFontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'ital' ${italVal}`;
+            const axes = [];
+            if (weight) axes.push(`'wght' ${wght}`);
+            if (width) axes.push(`'wdth' ${wdth}`);
+            if (italic) axes.push(`'slnt' ${italVal === '0' ? 0 : -10}`);
+
+            const newFontVariationSettings = axes.join(', ') || 'normal';
 
             if (span.style.fontVariationSettings !== newFontVariationSettings) {
               span.style.fontVariationSettings = newFontVariationSettings;
@@ -268,14 +278,18 @@ const TextPressure: React.FC<TextPressureProps> = ({
   const styleElement = useMemo(() => {
     const isGoogleFont = fontUrl.includes('fonts.googleapis.com');
     return (
-      <style>{`
-        ${isGoogleFont ? `@import url('${fontUrl}');` : `
+      <>
+        {isGoogleFont && (
+          <link href={fontUrl} rel="stylesheet" />
+        )}
+        <style>{`
+        ${!isGoogleFont ? `
         @font-face {
           font-family: '${fontFamily}';
           src: url('${fontUrl}') format('woff2');
           font-style: normal;
           font-weight: 100 900;
-        }`}
+        }` : ''}
 
         .text-pressure-flex {
           display: flex;
@@ -301,6 +315,7 @@ const TextPressure: React.FC<TextPressureProps> = ({
           color: ${textColor};
         }
       `}</style>
+      </>
     );
   }, [fontFamily, fontUrl, textColor, strokeColor, stroke]);
 
