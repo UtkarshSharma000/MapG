@@ -52,22 +52,7 @@ export default function LandingHero({
       </nav>
 
       {/* HERO CENTERED STATEMENT */}
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={isSimulatorRunning ? { opacity: 0, y: -30 } : { opacity: 1, y: 0 }}
-        transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-20 w-full flex justify-center items-center pointer-events-none px-4"
-      >
-        <h1 
-          className="text-[#ffffff] font-bold text-center m-0 p-0 tracking-tighter"
-          style={{ 
-            fontSize: "clamp(60px, 15vw, 225px)", 
-            lineHeight: 0.8,
-          }}
-        >
-          SRINIVASA
-        </h1>
-      </motion.div>
+      {/* Centered statement removed as requested */}
 
       {/* PRIMARY CTA & COOKIE BANNER (Combined for landing page action) */}
       <motion.div
