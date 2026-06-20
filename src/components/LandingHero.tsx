@@ -18,16 +18,16 @@ export default function LandingHero({
   return (
     <section 
       ref={containerRef}
-      className="relative min-h-screen bg-[#000000] flex flex-col justify-center overflow-hidden z-20 font-sans"
+      className="relative h-[200vh] bg-[#000000] overflow-hidden z-20 font-sans"
     >
-      {/* FULL-BLEED 3D ORGANIC RENDER (Using Interactive Globe as placeholder) */}
+      {/* FULL-BLEED 3D ORGANIC RENDER */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1 }}
         transition={{ duration: 1.5 }}
-        className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
+        className="absolute inset-0 z-0 flex pointer-events-none"
       >
-        <div className="w-full h-full opacity-100 relative overflow-hidden unicorn-container">
+        <div className="w-full h-[200vh] opacity-100 relative overflow-hidden unicorn-container">
           <UnicornScene 
             projectId="ImvMyVKxQHs8wdj6ezaa" 
             sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.5/dist/unicornStudio.umd.js"
