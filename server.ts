@@ -118,13 +118,13 @@ async function startServer() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "data:", "blob:"],
         styleSrc: ["'self'", "'unsafe-inline'", "https:", "http:"],
         imgSrc: ["'self'", "data:", "blob:", "https:"],
         connectSrc: ["'self'", "ws:", "wss:", "http://localhost:*", "https:"],
-        workerSrc: ["'self'", "blob:"],
+        workerSrc: ["'self'", "blob:", "https:"],
         fontSrc: ["'self'", "data:", "https:"],
-        frameSrc: ["'self'"],
+        frameSrc: ["'self'", "https:"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: null, // Allow HTTP/HTTPS natively
       },
