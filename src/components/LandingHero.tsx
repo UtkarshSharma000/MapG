@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { motion } from "motion/react";
-import UnicornScene from "unicornstudio-react";
+import Prism from "./Prism";
 
 interface LandingHeroProps {
   isSimulatorRunning: boolean;
@@ -27,13 +27,8 @@ export default function LandingHero({
         transition={{ duration: 1.5 }}
         className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
       >
-        <div className="w-full h-full opacity-60 relative overflow-hidden unicorn-container">
-          <UnicornScene 
-            projectId="ImvMyVKxQHs8wdj6ezaa" 
-            sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.5/dist/unicornStudio.umd.js"
-            width="100%" 
-            height="100%" 
-          />
+        <div className="w-full h-full opacity-60 relative overflow-hidden">
+          <Prism />
         </div>
       </motion.div>
 
