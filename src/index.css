@@ -74,11 +74,20 @@ body {
 
 /* Hide Unicorn Studio Watermark */
 a[href*="unicorn.studio"],
+img[src*="us_fwb.png"],
+img[src*="unicorn.studio"],
 .unicorn-studio-link,
-[class*="unicorn-watermark"] {
+[class*="unicorn-watermark"],
+[id*="unicorn-watermark"],
+div[class*="watermark"],
+[class*="us-watermark"],
+[class*="us_watermark"] {
   display: none !important;
   opacity: 0 !important;
+  visibility: hidden !important;
   pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* Kinetic Brutalism Base Styles */
