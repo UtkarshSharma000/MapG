@@ -18,26 +18,27 @@ export default function LandingHero({
   return (
     <section 
       ref={containerRef}
-      className="relative h-[200vh] bg-[#000000] overflow-hidden z-20 font-sans"
+      className="relative h-[200vh] bg-[#000000] overflow-clip z-20 font-sans"
     >
-      {/* FULL-BLEED 3D ORGANIC RENDER */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1 }}
-        transition={{ duration: 1.5 }}
-        className="absolute inset-0 z-0 flex pointer-events-none"
-      >
-        <div className="w-full h-[200vh] opacity-100 relative overflow-hidden unicorn-container">
-          <UnicornScene 
-            projectId="ImvMyVKxQHs8wdj6ezaa" 
-            sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.5/dist/unicornStudio.umd.js"
-            width="100%" 
-            height="100%" 
-          />
-        </div>
-      </motion.div>
+      <div className="sticky top-0 left-0 w-full h-screen">
+        {/* FULL-BLEED 3D ORGANIC RENDER */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={isSimulatorRunning ? { opacity: 0 } : { opacity: 1 }}
+          transition={{ duration: 1.5 }}
+          className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
+        >
+          <div className="w-full h-full opacity-100 relative overflow-hidden unicorn-container">
+            <UnicornScene 
+              projectId="ImvMyVKxQHs8wdj6ezaa" 
+              sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.5/dist/unicornStudio.umd.js"
+              width="100%" 
+              height="100%" 
+            />
+          </div>
+        </motion.div>
 
-      {/* TOP NAVIGATION BAR */}
+        {/* TOP NAVIGATION BAR */}
       <nav className="absolute top-0 left-0 w-full px-8 md:px-12 py-8 flex justify-between items-start z-30 mix-blend-difference pointer-events-auto">
         <div className="text-[#ffffff] text-[12px] font-bold uppercase tracking-widest">
           Srinivasa
@@ -109,6 +110,7 @@ export default function LandingHero({
           </text>
         </svg>
       </motion.div>
+      </div>
     </section>
   );
 }
