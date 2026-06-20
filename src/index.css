@@ -72,6 +72,15 @@ body {
   font-family: 'IBM Plex Mono', monospace;
 }
 
+/* Hide Unicorn Studio Watermark */
+a[href*="unicorn.studio"],
+.unicorn-studio-link,
+[class*="unicorn-watermark"] {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* Kinetic Brutalism Base Styles */
 .tech-grid-bg {
     background-size: 10px 10px;
