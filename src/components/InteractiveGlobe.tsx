@@ -13,6 +13,20 @@ export function InteractiveGlobe({ url, color }: InteractiveGlobeProps) {
   const tex = useTexture(url);
   
   const scrollProgressRef = React.useRef(0);
+  const isVisibleRef = React.useRef(true);
+  const { gl } = useThree();
+
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      isVisibleRef.current = entries[0].isIntersecting;
+    }, { threshold: 0 });
+    
+    if (gl.domElement) {
+      observer.observe(gl.domElement);
+    }
+
+    return () => observer.disconnect();
+  }, [gl.domElement]);
 
   useEffect(() => {
     const scroller = document.querySelector('.landing-scroller');
@@ -34,16 +48,8 @@ export function InteractiveGlobe({ url, color }: InteractiveGlobeProps) {
     };
   }, []);
 
-  const { gl } = useThree();
   useFrame((state) => {
-    const isVisible = (() => {
-        try {
-            const rect = gl.domElement.getBoundingClientRect();
-            return rect.top < window.innerHeight && rect.bottom > 0;
-        } catch(e) { return true; }
-    })();
-
-    if (!isVisible) return; // Do not update animation if off-screen
+    if (!isVisibleRef.current) return;
 
     if (meshRef.current) {
       meshRef.current.rotation.y += 0.005;

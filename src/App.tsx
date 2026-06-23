@@ -192,20 +192,32 @@ export default function App() {
     const scroller = landingScrollRef.current;
     if (!scroller) return;
 
-    const handleScroll = () => {
+    let cachedSectionTop = 0;
+    let cachedSectionHeight = 0;
+    let cachedViewportHeight = 0;
+    let isCached = false;
+
+    const computeCache = () => {
       const section = cinematicSectionRef.current;
       if (!section) return;
+      let node: HTMLElement | null = section;
+      let top = 0;
+      while (node && node !== scroller && node !== document.body) {
+        top += node.offsetTop;
+        node = node.offsetParent as HTMLElement | null;
+      }
+      cachedSectionTop = top;
+      cachedSectionHeight = section.offsetHeight;
+      cachedViewportHeight = scroller.clientHeight;
+      isCached = true;
+    };
 
-      const rect = section.getBoundingClientRect();
-      const scrollerRect = scroller.getBoundingClientRect();
+    const handleScroll = () => {
+      if (!isCached) computeCache();
       
-      const sectionTop = rect.top - scrollerRect.top;
-      const sectionHeight = rect.height;
-      const viewportHeight = scrollerRect.height;
-      
-      const scrollableDistance = sectionHeight - viewportHeight;
+      const scrollableDistance = cachedSectionHeight - cachedViewportHeight;
       if (scrollableDistance > 0) {
-        const currentScroll = -sectionTop;
+        const currentScroll = scroller.scrollTop - cachedSectionTop;
         const rawProgress = Math.max(0, Math.min(1, currentScroll / scrollableDistance));
         scrollProgressRef.current = rawProgress;
       } else {
@@ -215,9 +227,16 @@ export default function App() {
 
     scroller.addEventListener('scroll', handleScroll, { passive: true });
     // Run once initially
-    handleScroll();
+    setTimeout(() => {
+      computeCache();
+      handleScroll();
+    }, 100);
 
-    const handleResize = () => handleScroll();
+    const handleResize = () => {
+      isCached = false;
+      computeCache();
+      handleScroll();
+    };
     window.addEventListener('resize', handleResize);
 
     return () => {
@@ -791,7 +810,7 @@ export default function App() {
         </div>
         <div className="flex items-center gap-5 mb-8">
           <div className="relative w-20 h-20 rounded-full border border-white/10 overflow-hidden cursor-grab active:cursor-grabbing">
-            <Canvas camera={{ position: [0, 0, 3] }}>
+            <Canvas camera={{ position: [0, 0, 3] }} dpr={[1, 1.5]}>
               <InteractiveGlobe url={selectedTarget.texture} color={selectedTarget.color} />
             </Canvas>
             <div className="absolute inset-0 rounded-full ring-2 ring-primary/20 pointer-events-none animate-ping"></div>

@@ -297,7 +297,8 @@ export default function Galaxy({
     const ctn = ctnDom.current;
     const renderer = new Renderer({
       alpha: transparent,
-      premultipliedAlpha: false
+      premultipliedAlpha: false,
+      dpr: Math.min(window.devicePixelRatio || 1, 1.5) // Cap DPR to 1.5 for performance while keeping it sharp
     });
     const gl = renderer.gl;
 
@@ -361,8 +362,10 @@ export default function Galaxy({
     let isVisible = false;
 
     const observer = new IntersectionObserver((entries) => {
+        const wasVisible = isVisible;
         isVisible = entries[0].isIntersecting;
-        if (isVisible) {
+        if (isVisible && !wasVisible) {
+            cancelAnimationFrame(animateId);
             update(performance.now());
         }
     }, { threshold: 0 });
