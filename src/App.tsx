@@ -14,21 +14,24 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useLocation, useNavigate } from 'react-router-dom';
-import SrinivasaAIChat from "./components/SrinivasaAIChat";
-import OrbitSimulator, { PLANETS } from "./OrbitSimulator";
+import { PLANETS } from "./OrbitSimulator";
 import { OptimizeResult } from "./TrajectoryOptimizer";
 import { scanPorkchop } from "./workers/trajectory.worker";
 import { LaunchHUD } from "./components/LaunchHUD";
-import { Planet2DMap } from "./components/Planet2DMap";
-import Galaxy from "./components/Galaxy";
 import StaggeredMenu from "./components/StaggeredMenu";
+
+const OrbitSimulator = React.lazy(() => import("./OrbitSimulator"));
+const Galaxy = React.lazy(() => import("./components/Galaxy"));
+const Planet2DMap = React.lazy(() => import("./components/Planet2DMap").then(m => ({ default: m.Planet2DMap })));
+const SrinivasaAIChat = React.lazy(() => import("./components/SrinivasaAIChat"));
 
 // Modular Extracted Components
 import { InteractiveGlobe } from "./components/InteractiveGlobe";
 import LandingHero from "./components/LandingHero";
-import InteractiveBridge from "./components/InteractiveBridge";
-import SpaceExplorationPanel from "./components/SpaceExplorationPanel";
-import MathPhysicsShowcase from "./components/MathPhysicsShowcase";
+
+const InteractiveBridge = React.lazy(() => import("./components/InteractiveBridge"));
+const SpaceExplorationPanel = React.lazy(() => import("./components/SpaceExplorationPanel"));
+const MathPhysicsShowcase = React.lazy(() => import("./components/MathPhysicsShowcase"));
 
 const J2000_UNIX = 946728000;
 
@@ -901,14 +904,18 @@ export default function App() {
   return (
     <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-transparent">
       {isSimulatorRunning && (
-        <div className="absolute inset-0 z-0">
-          <Galaxy transparent={false} mouseInteraction={false} />
-        </div>
+        <React.Suspense fallback={<div className="absolute inset-0 z-0 bg-black"></div>}>
+          <div className="absolute inset-0 z-0">
+            <Galaxy transparent={false} mouseInteraction={false} />
+          </div>
+        </React.Suspense>
       )}
       {!isSimulatorRunning && (
-        <div className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000">
-          <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={scrollProgressRef} />
-        </div>
+        <React.Suspense fallback={<div className="fixed inset-0 z-0 bg-black"></div>}>
+          <div className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000">
+            <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={scrollProgressRef} />
+          </div>
+        </React.Suspense>
       )}
       {showMobileBlock && (
         <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#03060f] text-white p-6 text-center select-none pointer-events-auto">
@@ -935,33 +942,35 @@ export default function App() {
         </div>
       )}
 
-      <OrbitSimulator
-        isRunning={isSimulatorRunning}
-        isCinematic={!isSimulatorRunning}
-        cinematicScrollRef={scrollProgressRef}
-        timeMult={timeMult}
-        selectedTarget={selectedTarget}
-        launchParams={isSimulatorRunning ? { v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs } : undefined}
-        globalTimeRef={globalTimeRef}
-        onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
-        onStatusUpdate={setMissionStatus}
-        completedMissions={completedMissions}
-        archivedMissions={archivedMissions}
-        activeReplay={activeReplay}
-        onPointsCalculated={(pts, isReturn) => {
-          if (isReturn) {
-            setCurrentReturnPoints(pts);
-          } else {
-            setCurrentLaunchPoints(pts);
-          }
-        }}
-        orbitPathsVisible={orbitPathsVisible}
-        planetaryLabelsVisible={planetaryLabelsVisible}
-        followSpacecraft={followSpacecraft}
-        cameraPresetToLoad={cameraPresetToLoad}
-        cameraPresetToSave={cameraPresetToSave}
-        resetCameraTrigger={resetCameraTrigger}
-      />
+      <React.Suspense fallback={<div className="absolute inset-0 bg-[#000000] z-10 pointer-events-none"></div>}>
+        <OrbitSimulator
+          isRunning={isSimulatorRunning}
+          isCinematic={!isSimulatorRunning}
+          cinematicScrollRef={scrollProgressRef}
+          timeMult={timeMult}
+          selectedTarget={selectedTarget}
+          launchParams={isSimulatorRunning ? { v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs } : undefined}
+          globalTimeRef={globalTimeRef}
+          onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
+          onStatusUpdate={setMissionStatus}
+          completedMissions={completedMissions}
+          archivedMissions={archivedMissions}
+          activeReplay={activeReplay}
+          onPointsCalculated={(pts, isReturn) => {
+            if (isReturn) {
+              setCurrentReturnPoints(pts);
+            } else {
+              setCurrentLaunchPoints(pts);
+            }
+          }}
+          orbitPathsVisible={orbitPathsVisible}
+          planetaryLabelsVisible={planetaryLabelsVisible}
+          followSpacecraft={followSpacecraft}
+          cameraPresetToLoad={cameraPresetToLoad}
+          cameraPresetToSave={cameraPresetToSave}
+          resetCameraTrigger={resetCameraTrigger}
+        />
+      </React.Suspense>
 
       {/* Landing Page Content */}
       <div
@@ -984,13 +993,13 @@ export default function App() {
               ariaLabel: 'Launch Simulator', 
               link: '#', 
               onClick: () => setIsSimulatorRunning(true),
-              image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop'
+              image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop'
             },
             { 
               label: 'GitHub Repo', 
               ariaLabel: 'GitHub Srinivasa', 
               link: 'https://github.com/UtkarshSharma000/Srinivasa',
-              image: 'https://images.unsplash.com/photo-1618477247222-ac60c7477123?q=80&w=2064&auto=format&fit=crop'
+              image: 'https://images.unsplash.com/photo-1618477247222-ac60c7477123?q=80&w=800&auto=format&fit=crop'
             },
           ]}
           socialItems={[]}
@@ -1003,18 +1012,24 @@ export default function App() {
             landingScrollRef={landingScrollRef}
           />
 
-          <InteractiveBridge />
+          <React.Suspense fallback={<div className="h-[600px] w-full bg-[#050505]"></div>}>
+            <InteractiveBridge />
+          </React.Suspense>
 
-          <SpaceExplorationPanel
-            cinematicSectionRef={cinematicSectionRef}
-            scrollProgressRef={scrollProgressRef}
-            landingScrollRef={landingScrollRef}
-          />
+          <React.Suspense fallback={<div className="h-[800px] w-full bg-black"></div>}>
+            <SpaceExplorationPanel
+              cinematicSectionRef={cinematicSectionRef}
+              scrollProgressRef={scrollProgressRef}
+              landingScrollRef={landingScrollRef}
+            />
+          </React.Suspense>
 
-          <MathPhysicsShowcase
-            setIsSimulatorRunning={setIsSimulatorRunning}
-            landingScrollRef={landingScrollRef}
-          />
+          <React.Suspense fallback={<div className="h-[800px] w-full bg-black"></div>}>
+            <MathPhysicsShowcase
+              setIsSimulatorRunning={setIsSimulatorRunning}
+              landingScrollRef={landingScrollRef}
+            />
+          </React.Suspense>
         </main>
       </div>
 
@@ -1204,17 +1219,19 @@ export default function App() {
                 </div>
               </main>
 
-              <SrinivasaAIChat 
-                isOpen={isAIChatOpen}
-                onClose={() => setIsAIChatOpen(false)}
-                selectedTargetName={selectedTarget?.name || "Sol (Sun)"}
-                onPlanTrajectory={planInterplanetaryTrajectory}
-                onLaunchSimulation={handleLaunch}
-                onAbortSimulation={() => setIsLaunched(false)}
-                onSetTimeAcceleration={handleTimeMultChange}
-                onSetSimulationTarget={handleSelectPlanet}
-                onPlanReturnFlight={planReturn}
-              />
+              <React.Suspense fallback={null}>
+                <SrinivasaAIChat 
+                  isOpen={isAIChatOpen}
+                  onClose={() => setIsAIChatOpen(false)}
+                  selectedTargetName={selectedTarget?.name || "Sol (Sun)"}
+                  onPlanTrajectory={planInterplanetaryTrajectory}
+                  onLaunchSimulation={handleLaunch}
+                  onAbortSimulation={() => setIsLaunched(false)}
+                  onSetTimeAcceleration={handleTimeMultChange}
+                  onSetSimulationTarget={handleSelectPlanet}
+                  onPlanReturnFlight={planReturn}
+                />
+              </React.Suspense>
             </div>
             
             {/* BottomNavBar (Mobile) */}
@@ -1228,15 +1245,17 @@ export default function App() {
         )}
 
         {mapPlanet && (
-          <Planet2DMap 
-            planetName={mapPlanet}
-            onClose={() => setMapPlanet(null)}
-            onSelectLocation={handleSelectLocation}
-            launchPlanet={launchPlanet}
-            targetPlanet={targetPlanet}
-            launchLocation={launchLocation}
-            targetLocation={targetLocation}
-          />
+          <React.Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"><div className="animate-pulse text-cyan-400">Loading Map...</div></div>}>
+            <Planet2DMap 
+              planetName={mapPlanet}
+              onClose={() => setMapPlanet(null)}
+              onSelectLocation={handleSelectLocation}
+              launchPlanet={launchPlanet}
+              targetPlanet={targetPlanet}
+              launchLocation={launchLocation}
+              targetLocation={targetLocation}
+            />
+          </React.Suspense>
         )}
 
         {isArchiveOpen && (

@@ -10,6 +10,9 @@ export default function InteractiveBridge() {
           sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.5/dist/unicornStudio.umd.js"
           width="100%" 
           height="100%" 
+          production={true}
+          lazyLoad={true}
+          scale={0.75}
         />
       </div>
     </section>

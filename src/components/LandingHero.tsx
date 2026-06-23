@@ -29,10 +29,13 @@ export default function LandingHero({
       >
         <div className="w-full h-full opacity-100 relative overflow-hidden unicorn-container">
           <UnicornScene 
-            projectId="ImvMyVKxQHs8wdj6ezaa" 
+            projectId="aFODTvkVAYB1jbhVvvgq" 
             sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.5/dist/unicornStudio.umd.js"
             width="100%" 
             height="100%" 
+            production={true}
+            scale={0.75}
+            lazyLoad={true}
           />
         </div>
       </motion.div>
