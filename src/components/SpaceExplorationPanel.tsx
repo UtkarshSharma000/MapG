@@ -156,11 +156,11 @@ export default function SpaceExplorationPanel({
         <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden pointer-events-none">
           
           {/* Maximalist Background Typography */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-75 mix-blend-overlay z-0 pointer-events-none overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center opacity-75 z-0 pointer-events-none overflow-hidden">
             <h1 
               ref={maxTextRef}
-              className="text-[25vw] sm:text-[30vw] font-headline-md italic font-black leading-none whitespace-nowrap text-white select-none"
-              style={{ transform: 'translateX(0%)', textShadow: '0 0 40px rgba(255,255,255,0.1)', willChange: 'transform' }}
+              className="text-[25vw] sm:text-[30vw] font-headline-md italic font-black leading-none whitespace-nowrap text-white/10 select-none"
+              style={{ transform: 'translateX(0%)', willChange: 'transform' }}
             >
               THE ODYSSEY 2026 &nbsp;&nbsp;&nbsp;&nbsp; THE SCIENCE EXHIBITION &nbsp;&nbsp;&nbsp;&nbsp; DEEP SPACE PATHWAYS &nbsp;&nbsp;&nbsp;&nbsp; THE ODYSSEY 2026 &nbsp;&nbsp;&nbsp;&nbsp; THE SCIENCE EXHIBITION &nbsp;&nbsp;&nbsp;&nbsp; DEEP SPACE PATHWAYS &nbsp;&nbsp;&nbsp;&nbsp; THE ODYSSEY 2026 &nbsp;&nbsp;&nbsp;&nbsp; THE SCIENCE EXHIBITION
             </h1>

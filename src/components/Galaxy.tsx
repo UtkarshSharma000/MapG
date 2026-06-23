@@ -298,7 +298,7 @@ export default function Galaxy({
     const renderer = new Renderer({
       alpha: transparent,
       premultipliedAlpha: false,
-      dpr: Math.min(window.devicePixelRatio || 1, 1.5) // Cap DPR to 1.5 for performance while keeping it sharp
+      dpr: window.devicePixelRatio || 1
     });
     const gl = renderer.gl;
 

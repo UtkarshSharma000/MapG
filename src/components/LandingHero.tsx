@@ -29,7 +29,7 @@ export default function LandingHero({
       >
         <div className="w-full h-full opacity-100 relative overflow-hidden unicorn-container">
           <UnicornScene 
-            projectId="ImvMyVKxQHs8wdj6ezaa" 
+            projectId="aFODTvkVAYB1jbhVvvgq" 
             sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.5/dist/unicornStudio.umd.js"
             width="100%" 
             height="100%" 
@@ -40,7 +40,7 @@ export default function LandingHero({
       </motion.div>
 
       {/* TOP NAVIGATION BAR */}
-      <nav className="absolute top-0 left-0 w-full px-8 md:px-12 py-8 flex justify-between items-start z-30 mix-blend-difference pointer-events-auto">
+      <nav className="absolute top-0 left-0 w-full px-8 md:px-12 py-8 flex justify-between items-start z-30 pointer-events-auto drop-shadow-md">
         <div className="text-[#ffffff] text-[12px] font-bold uppercase tracking-widest">
           Srinivasa
         </div>
