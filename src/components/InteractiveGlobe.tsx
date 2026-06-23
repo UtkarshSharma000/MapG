@@ -61,7 +61,7 @@ export function InteractiveGlobe({ url, color }: InteractiveGlobeProps) {
           onPointerOver={() => setHover(true)} 
           onPointerOut={() => setHover(false)}
       >
-        <sphereGeometry args={[1.5, 64, 64]} />
+        <sphereGeometry args={[1.5, 32, 32]} />
         <meshStandardMaterial map={tex} color={hovered ? '#ffffff' : '#f0f0f0'} roughness={0.7} emissive={new THREE.Color(color).multiplyScalar(0.1)} />
       </mesh>
       <OrbitControls enableZoom={false} enablePan={false} />

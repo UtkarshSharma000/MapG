@@ -34,7 +34,9 @@ export default function LandingHero({
             width="100%" 
             height="100%" 
             production={true}
-            scale={0.75}
+            scale={0.5}
+            // @ts-ignore
+            dpi={1}
             lazyLoad={true}
           />
         </div>

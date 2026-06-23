@@ -27,8 +27,8 @@ export default function MathPhysicsShowcase({
           friction={0.9}
           tension={0.01}
           maxCursorMove={120}
-          xGap={12}
-          yGap={36}
+          xGap={48}
+          yGap={72}
         />
 
         {/* Shared Space Glow */}

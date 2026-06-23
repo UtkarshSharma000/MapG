@@ -3,3 +3,8 @@
   height: 100%;
   position: relative;
 }
+
+.galaxy-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
