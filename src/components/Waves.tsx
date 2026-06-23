@@ -314,9 +314,9 @@ const Waves: React.FC<WavesProps> = ({
       updateMouse(touch.clientX, touch.clientY);
     }
     function updateMouse(x: number, y: number) {
-      if (!container || !boundingRef.current) return;
+      if (!container) return;
       const mouse = mouseRef.current;
-      const b = boundingRef.current;
+      const b = container.getBoundingClientRect();
       mouse.x = x - b.left;
       mouse.y = y - b.top;
       if (!mouse.set) {

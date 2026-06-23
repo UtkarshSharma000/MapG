@@ -192,32 +192,20 @@ export default function App() {
     const scroller = landingScrollRef.current;
     if (!scroller) return;
 
-    let cachedSectionTop = 0;
-    let cachedSectionHeight = 0;
-    let cachedViewportHeight = 0;
-    let isCached = false;
-
-    const computeCache = () => {
+    const handleScroll = () => {
       const section = cinematicSectionRef.current;
       if (!section) return;
-      let node: HTMLElement | null = section;
-      let top = 0;
-      while (node && node !== scroller && node !== document.body) {
-        top += node.offsetTop;
-        node = node.offsetParent as HTMLElement | null;
-      }
-      cachedSectionTop = top;
-      cachedSectionHeight = section.offsetHeight;
-      cachedViewportHeight = scroller.clientHeight;
-      isCached = true;
-    };
 
-    const handleScroll = () => {
-      if (!isCached) computeCache();
+      const rect = section.getBoundingClientRect();
+      const scrollerRect = scroller.getBoundingClientRect();
       
-      const scrollableDistance = cachedSectionHeight - cachedViewportHeight;
+      const sectionTop = rect.top - scrollerRect.top;
+      const sectionHeight = rect.height;
+      const viewportHeight = scrollerRect.height;
+      
+      const scrollableDistance = sectionHeight - viewportHeight;
       if (scrollableDistance > 0) {
-        const currentScroll = scroller.scrollTop - cachedSectionTop;
+        const currentScroll = -sectionTop;
         const rawProgress = Math.max(0, Math.min(1, currentScroll / scrollableDistance));
         scrollProgressRef.current = rawProgress;
       } else {
@@ -227,16 +215,9 @@ export default function App() {
 
     scroller.addEventListener('scroll', handleScroll, { passive: true });
     // Run once initially
-    setTimeout(() => {
-      computeCache();
-      handleScroll();
-    }, 100);
+    handleScroll();
 
-    const handleResize = () => {
-      isCached = false;
-      computeCache();
-      handleScroll();
-    };
+    const handleResize = () => handleScroll();
     window.addEventListener('resize', handleResize);
 
     return () => {

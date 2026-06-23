@@ -31,11 +31,8 @@ export default function MathPhysicsShowcase({
           yGap={36}
         />
 
-        {/* Shared Space Glow (Optimized) */}
-        <div 
-          className="absolute top-[25%] left-1/2 -translate-x-1/2 w-[800px] h-[800px] pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(0,240,255,0.05) 0%, rgba(0,240,255,0) 70%)' }}
-        ></div>
+        {/* Shared Space Glow */}
+        <div className="absolute top-[25%] left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#00f0ff]/5 rounded-full blur-[100px] pointer-events-none"></div>
 
         {/* Unified Open Source Heading Content */}
         <div className="max-w-4xl mx-auto text-center relative z-10 flex flex-col justify-center mb-12">

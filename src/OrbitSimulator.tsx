@@ -485,25 +485,6 @@ function TexturedPlanet({
   );
 }
 
-function NativeLine({ points, color, opacity = 1 }: { points: THREE.Vector3[], color: string, opacity?: number }) {
-  const positions = useMemo(() => {
-    return new Float32Array(points.flatMap(p => [p.x, p.y, p.z]));
-  }, [points]);
-  return (
-    <line>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={points.length}
-          array={positions}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <lineBasicMaterial attach="material" color={color} transparent opacity={opacity} />
-    </line>
-  );
-}
-
 function Moon({
   data,
   globalTimeRef,
@@ -542,10 +523,12 @@ function Moon({
 
   return (
     <group>
-      <NativeLine
+      <Line
         points={orbitPoints}
         color="#ffffff"
         opacity={0.05}
+        transparent
+        lineWidth={0.5}
       />
       <group ref={ref}>
         <mesh>
@@ -610,10 +593,12 @@ function Planet({
     <group>
       {/* Orbit Line */}
       {orbitPathsVisible && (
-        <NativeLine
+        <Line
           points={orbitPoints}
           color={data.color}
           opacity={0.2}
+          transparent
+          lineWidth={1}
         />
       )}
 
