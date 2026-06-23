@@ -791,7 +791,7 @@ export default function App() {
         </div>
         <div className="flex items-center gap-5 mb-8">
           <div className="relative w-20 h-20 rounded-full border border-white/10 overflow-hidden cursor-grab active:cursor-grabbing">
-            <Canvas camera={{ position: [0, 0, 3] }} dpr={1}>
+            <Canvas camera={{ position: [0, 0, 3] }}>
               <InteractiveGlobe url={selectedTarget.texture} color={selectedTarget.color} />
             </Canvas>
             <div className="absolute inset-0 rounded-full ring-2 ring-primary/20 pointer-events-none animate-ping"></div>

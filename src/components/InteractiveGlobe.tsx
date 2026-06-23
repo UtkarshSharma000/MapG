@@ -34,7 +34,17 @@ export function InteractiveGlobe({ url, color }: InteractiveGlobeProps) {
     };
   }, []);
 
+  const { gl } = useThree();
   useFrame((state) => {
+    const isVisible = (() => {
+        try {
+            const rect = gl.domElement.getBoundingClientRect();
+            return rect.top < window.innerHeight && rect.bottom > 0;
+        } catch(e) { return true; }
+    })();
+
+    if (!isVisible) return; // Do not update animation if off-screen
+
     if (meshRef.current) {
       meshRef.current.rotation.y += 0.005;
     }
@@ -61,7 +71,7 @@ export function InteractiveGlobe({ url, color }: InteractiveGlobeProps) {
           onPointerOver={() => setHover(true)} 
           onPointerOut={() => setHover(false)}
       >
-        <sphereGeometry args={[1.5, 32, 32]} />
+        <sphereGeometry args={[1.5, 64, 64]} />
         <meshStandardMaterial map={tex} color={hovered ? '#ffffff' : '#f0f0f0'} roughness={0.7} emissive={new THREE.Color(color).multiplyScalar(0.1)} />
       </mesh>
       <OrbitControls enableZoom={false} enablePan={false} />

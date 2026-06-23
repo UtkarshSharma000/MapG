@@ -297,8 +297,7 @@ export default function Galaxy({
     const ctn = ctnDom.current;
     const renderer = new Renderer({
       alpha: transparent,
-      premultipliedAlpha: false,
-      dpr: 0.5 // drastically reduce dpr to prevent iGPU lag on retina displays
+      premultipliedAlpha: false
     });
     const gl = renderer.gl;
 
@@ -359,8 +358,18 @@ export default function Galaxy({
 
     const mesh = new Mesh(gl, { geometry, program });
     let animateId: number;
+    let isVisible = false;
+
+    const observer = new IntersectionObserver((entries) => {
+        isVisible = entries[0].isIntersecting;
+        if (isVisible) {
+            update(performance.now());
+        }
+    }, { threshold: 0 });
+    observer.observe(ctnDom.current!);
 
     function update(t: number) {
+      if (!isVisible) return; // Pause animation computation and layout reflows when not visible!
       animateId = requestAnimationFrame(update);
       if (program) {
         program.uniforms.uScrollProgress.value = activeScrollRef.current;
@@ -404,6 +413,7 @@ export default function Galaxy({
     }
 
     return () => {
+      observer.disconnect();
       cancelAnimationFrame(animateId);
       window.removeEventListener('resize', resize);
       if (mouseInteraction) {

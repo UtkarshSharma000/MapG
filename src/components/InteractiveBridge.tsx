@@ -12,9 +12,6 @@ export default function InteractiveBridge() {
           height="100%" 
           production={true}
           lazyLoad={true}
-          scale={0.5}
-          // @ts-ignore
-          dpi={1}
         />
       </div>
     </section>
