@@ -33,7 +33,23 @@ export default function SpaceExplorationPanel({
     let frame: number;
     let oldPhase = 0;
     let lastScrollProgress = -1;
+    let isVisible = false;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        isVisible = entries[0].isIntersecting;
+        if (isVisible) {
+          frame = requestAnimationFrame(update);
+        }
+      },
+      { threshold: 0 }
+    );
+    if (cinematicSectionRef.current) {
+      observer.observe(cinematicSectionRef.current);
+    }
+
     const update = () => {
+      if (!isVisible) return;
       const scrollProgress = scrollProgressRef.current;
       if (scrollProgress === lastScrollProgress) {
         frame = requestAnimationFrame(update);
@@ -61,8 +77,9 @@ export default function SpaceExplorationPanel({
         // Glitch effect on transition
         if (hudStatusRef.current) {
           hudStatusRef.current.style.animation = 'none';
-          void hudStatusRef.current.offsetWidth; // trigger reflow
-          hudStatusRef.current.style.animation = 'pulse 0.2s 3';
+          setTimeout(() => {
+            if (hudStatusRef.current) hudStatusRef.current.style.animation = 'pulse 0.2s 3';
+          }, 10);
         }
         
         if (hudStatusRef.current && hudRouteRef.current && hudPathRef.current) {
@@ -136,8 +153,10 @@ export default function SpaceExplorationPanel({
 
       frame = requestAnimationFrame(update);
     };
-    frame = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [scrollProgressRef]);
   return (
     <>

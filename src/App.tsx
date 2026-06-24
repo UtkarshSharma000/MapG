@@ -901,22 +901,23 @@ export default function App() {
     return () => cancelAnimationFrame(frameId);
   }, [activeReplay, activeReplayStartTime]);
 
+  const launchParams = React.useMemo(() => isSimulatorRunning ? { v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs } : undefined, [isSimulatorRunning, v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, missionLegs]);
+  const handlePointsCalculated = React.useCallback((pts: THREE.Vector3[], isReturn: boolean) => {
+    if (isReturn) {
+      setCurrentReturnPoints(pts);
+    } else {
+      setCurrentLaunchPoints(pts);
+    }
+  }, []);
+  const handlePlanetDoubleClick = React.useCallback((name: string) => setMapPlanet(name), []);
+
   return (
     <div className="text-on-surface antialiased min-h-screen relative overflow-hidden flex flex-col bg-transparent">
-      {isSimulatorRunning && (
-        <React.Suspense fallback={<div className="absolute inset-0 z-0 bg-black"></div>}>
-          <div className="absolute inset-0 z-0">
-            <Galaxy transparent={false} mouseInteraction={false} />
-          </div>
-        </React.Suspense>
-      )}
-      {!isSimulatorRunning && (
-        <React.Suspense fallback={<div className="fixed inset-0 z-0 bg-black"></div>}>
-          <div className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000">
-            <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={scrollProgressRef} />
-          </div>
-        </React.Suspense>
-      )}
+      <React.Suspense fallback={<div className="fixed inset-0 z-0 bg-black"></div>}>
+        <div className={`fixed inset-0 z-0 transition-opacity duration-1000 ${isSimulatorRunning ? 'opacity-100 pointer-events-none' : 'opacity-100 pointer-events-none'}`}>
+          <Galaxy transparent={false} mouseInteraction={false} scrollProgressRef={!isSimulatorRunning ? scrollProgressRef : undefined} />
+        </div>
+      </React.Suspense>
       {showMobileBlock && (
         <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#03060f] text-white p-6 text-center select-none pointer-events-auto">
           <div className="max-w-xs flex flex-col items-center">
@@ -949,20 +950,14 @@ export default function App() {
           cinematicScrollRef={scrollProgressRef}
           timeMult={timeMult}
           selectedTarget={selectedTarget}
-          launchParams={isSimulatorRunning ? { v0, pitch, yaw, nbody, launchPlanet, launchLocation, targetLocation, targetPlanet, timeMult, isLaunched, launchDay_j2000: globalTimeRef.current, missionLegs } : undefined}
+          launchParams={launchParams}
           globalTimeRef={globalTimeRef}
-          onPlanetDoubleClick={(name: string) => setMapPlanet(name)}
+          onPlanetDoubleClick={handlePlanetDoubleClick}
           onStatusUpdate={setMissionStatus}
           completedMissions={completedMissions}
           archivedMissions={archivedMissions}
           activeReplay={activeReplay}
-          onPointsCalculated={(pts, isReturn) => {
-            if (isReturn) {
-              setCurrentReturnPoints(pts);
-            } else {
-              setCurrentLaunchPoints(pts);
-            }
-          }}
+          onPointsCalculated={handlePointsCalculated}
           orbitPathsVisible={orbitPathsVisible}
           planetaryLabelsVisible={planetaryLabelsVisible}
           followSpacecraft={followSpacecraft}

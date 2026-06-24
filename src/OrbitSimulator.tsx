@@ -485,7 +485,7 @@ function TexturedPlanet({
   );
 }
 
-function Moon({
+const Moon = React.memo(function Moon({
   data,
   globalTimeRef,
   parentRadius,
@@ -541,9 +541,9 @@ function Moon({
       </group>
     </group>
   );
-}
+});
 
-function Planet({
+const Planet = React.memo(function Planet({
   data,
   globalTimeRef,
   onDoubleClick,
@@ -665,7 +665,7 @@ function Planet({
       </group>
     </group>
   );
-}
+});
 
 function GhostPath({ 
   launchParams, 
@@ -983,8 +983,9 @@ function GhostPath({
       const nextAng = ang + 0.01;
       const nox = Math.cos(nextAng) * orbitalRadius;
       const noz = Math.sin(nextAng) * orbitalRadius;
-      const nextPos = new THREE.Vector3(tpX * POS_SCALE + nox, tpZ * POS_SCALE, -tpY * POS_SCALE + noz);
-      shuttleRef.current.lookAt(nextPos);
+      shuttleRef.current.userData.nextPos = shuttleRef.current.userData.nextPos || new THREE.Vector3();
+      shuttleRef.current.userData.nextPos.set(tpX * POS_SCALE + nox, tpZ * POS_SCALE, -tpY * POS_SCALE + noz);
+      shuttleRef.current.lookAt(shuttleRef.current.userData.nextPos);
     } else {
       let currentIdx = Math.floor(progressRef.current);
       if (currentIdx >= maxIdx) {
@@ -1080,7 +1081,7 @@ function GhostPath({
   );
 }
 
-function OrbitingShuttle({ 
+const OrbitingShuttle = React.memo(function OrbitingShuttle({ 
   planetName, 
   globalTimeRef 
 }: { 
@@ -1108,9 +1109,10 @@ function OrbitingShuttle({
     const nextAng = ang + 0.01;
     const nox = Math.cos(nextAng) * orbitalRadius;
     const noz = Math.sin(nextAng) * orbitalRadius;
-    const nextLocalPos = new THREE.Vector3(pX * POS_SCALE + nox, pZ * POS_SCALE, -pY * POS_SCALE + noz);
+    ref.current.userData.nextLocalPos = ref.current.userData.nextLocalPos || new THREE.Vector3();
+    ref.current.userData.nextLocalPos.set(pX * POS_SCALE + nox, pZ * POS_SCALE, -pY * POS_SCALE + noz);
     
-    ref.current.lookAt(nextLocalPos);
+    ref.current.lookAt(ref.current.userData.nextLocalPos);
   });
 
   return (
@@ -1136,9 +1138,9 @@ function OrbitingShuttle({
       </Html>
     </group>
   );
-}
+});
 
-function ArchivedShuttle({ mission, globalTimeRef, onDoubleClick }: { mission: any, globalTimeRef: React.MutableRefObject<number>, onDoubleClick?: (label: string, ref: any) => void }) {
+const ArchivedShuttle = React.memo(function ArchivedShuttle({ mission, globalTimeRef, onDoubleClick }: { mission: any, globalTimeRef: React.MutableRefObject<number>, onDoubleClick?: (label: string, ref: any) => void }) {
   const launchPts = mission.launchPoints || [];
   const returnPts = mission.returnPoints || [];
 
@@ -1166,9 +1168,9 @@ function ArchivedShuttle({ mission, globalTimeRef, onDoubleClick }: { mission: a
       )}
     </group>
   );
-}
+});
 
-function EclipticGrid() {
+const EclipticGrid = React.memo(function EclipticGrid() {
   const rings = [0.387, 0.723, 1.0, 1.524, 2.77, 5.204, 9.582, 19.201, 30.047]; // mercury, venus, earth, mars, asteroid belt center, jupiter, saturn, uranus, neptune
   const circlePoints = useMemo(() => {
     return rings.map(auDist => {
@@ -1234,9 +1236,9 @@ function EclipticGrid() {
       ))}
     </group>
   );
-}
+});
 
-function SystemEngine({
+const SystemEngine = React.memo(function SystemEngine({
   timeMult,
   selectedTarget,
   launchParams,
@@ -1287,11 +1289,11 @@ function SystemEngine({
   const [spectatedLabel, setSpectatedLabel] = useState<string | null>(null);
   const smoothedScrollRef = useRef(0);
 
-  const handleShuttleDoubleClick = (label: string, ref: any) => {
+  const handleShuttleDoubleClick = useCallback((label: string, ref: any) => {
     spectatingObjRef.current = ref.current;
     setSpectatedLabel(label);
     setIsLocked(true);
-  };
+  }, []);
 
   const { camera, scene, gl } = useThree();
   const presetsRef = useRef<Record<number, { position: THREE.Vector3, target: THREE.Vector3 }>>({});
@@ -1396,6 +1398,15 @@ function SystemEngine({
     }
   }, [isCinematic, selectedTarget, camera]);
 
+  const tempCamPos = useMemo(() => new THREE.Vector3(), []);
+  const tempCamLook = useMemo(() => new THREE.Vector3(), []);
+  const tempTpE = useMemo(() => new THREE.Vector3(), []);
+  const tempTpM = useMemo(() => new THREE.Vector3(), []);
+  const tempE1 = useMemo(() => new THREE.Vector3(), []);
+  const tempM1 = useMemo(() => new THREE.Vector3(), []);
+  const tempActiveTargetPos = useMemo(() => new THREE.Vector3(), []);
+  const tempDisplacement = useMemo(() => new THREE.Vector3(), []);
+
   useFrame((state, delta) => {
     // Limit delta to prevent huge jumps from tab switching
     const safeDelta = Math.min(delta, 0.1);
@@ -1415,44 +1426,40 @@ function SystemEngine({
 
       // Compute exact planet coordinates for no-lag targeting
       const pE = propagateOrbit(PLANETS.find(p => p.name === "Earth")!.elements, globalTimeRef.current);
-      const tpE = new THREE.Vector3(pE[0]*POS_SCALE, pE[2]*POS_SCALE, -pE[1]*POS_SCALE);
+      tempTpE.set(pE[0]*POS_SCALE, pE[2]*POS_SCALE, -pE[1]*POS_SCALE);
       
       const pM = propagateOrbit(PLANETS.find(p => p.name === "Mars")!.elements, globalTimeRef.current);
-      const tpM = new THREE.Vector3(pM[0]*POS_SCALE, pM[2]*POS_SCALE, -pM[1]*POS_SCALE);
-
-      // Camera Choreography
-      let camPos = new THREE.Vector3();
-      let camLook = new THREE.Vector3();
+      tempTpM.set(pM[0]*POS_SCALE, pM[2]*POS_SCALE, -pM[1]*POS_SCALE);
 
       if (s < 0.2) {
         // Blueprint view
-        camPos.set(0, 400, 0);
-        camLook.set(0, 0, 0);
+        tempCamPos.set(0, 400, 0);
+        tempCamLook.set(0, 0, 0);
       } else if (s < 0.4) {
         // Transition: Blueprint -> Earth
         const t = (s - 0.2) / 0.2;
         const ease = t * t * (3 - 2 * t);
-        camPos.set(0, 400, 0).lerp(new THREE.Vector3(tpE.x + 15, tpE.y + 5, tpE.z + 15), ease);
-        camLook.set(0, 0, 0).lerp(tpE, ease);
+        tempCamPos.set(0, 400, 0).lerp(tempE1.set(tempTpE.x + 15, tempTpE.y + 5, tempTpE.z + 15), ease);
+        tempCamLook.set(0, 0, 0).lerp(tempTpE, ease);
       } else if (s < 0.6) {
         // Track Earth exactly
-        camPos.set(tpE.x + 15, tpE.y + 5, tpE.z + 15);
-        camLook.copy(tpE);
+        tempCamPos.set(tempTpE.x + 15, tempTpE.y + 5, tempTpE.z + 15);
+        tempCamLook.copy(tempTpE);
       } else if (s < 0.8) {
         // Transition: Earth -> Mars
         const t = (s - 0.6) / 0.2;
         const ease = t * t * (3 - 2 * t);
-        camPos.set(tpE.x + 15, tpE.y + 5, tpE.z + 15).lerp(new THREE.Vector3(tpM.x + 20, tpM.y + 10, tpM.z + 20), ease);
-        camLook.copy(tpE).lerp(tpM, ease);
+        tempCamPos.set(tempTpE.x + 15, tempTpE.y + 5, tempTpE.z + 15).lerp(tempM1.set(tempTpM.x + 20, tempTpM.y + 10, tempTpM.z + 20), ease);
+        tempCamLook.copy(tempTpE).lerp(tempTpM, ease);
       } else {
         // Track Mars exactly
-        camPos.set(tpM.x + 20, tpM.y + 10, tpM.z + 20);
-        camLook.copy(tpM);
+        tempCamPos.set(tempTpM.x + 20, tempTpM.y + 10, tempTpM.z + 20);
+        tempCamLook.copy(tempTpM);
       }
 
-      state.camera.position.copy(camPos);
+      state.camera.position.copy(tempCamPos);
       if (controlsRef.current) {
-        controlsRef.current.target.copy(camLook);
+        controlsRef.current.target.copy(tempCamLook);
       }
 
       if (controlsRef.current) {
@@ -1477,16 +1484,16 @@ function SystemEngine({
       }
 
       if (controlsRef.current) {
-        let activeTargetPos = new THREE.Vector3(0, 0, 0);
+        tempActiveTargetPos.set(0, 0, 0);
 
         if (spectatedLabel && spectatingObjRef.current) {
-          spectatingObjRef.current.getWorldPosition(activeTargetPos);
+          spectatingObjRef.current.getWorldPosition(tempActiveTargetPos);
         } else if (selectedTarget) {
           const [x, y, z] = propagateOrbit(
             selectedTarget.elements,
             globalTimeRef.current,
           );
-          activeTargetPos.set(x * POS_SCALE, z * POS_SCALE, -y * POS_SCALE);
+          tempActiveTargetPos.set(x * POS_SCALE, z * POS_SCALE, -y * POS_SCALE);
         }
 
         const targetName = spectatedLabel || (selectedTarget ? selectedTarget.name : "Sun");
@@ -1494,29 +1501,29 @@ function SystemEngine({
 
         if (targetChanged) {
           currentTargetName.current = targetName;
-          lastActiveTargetPosRef.current = activeTargetPos.clone();
+          lastActiveTargetPosRef.current = tempActiveTargetPos.clone();
         }
 
-        let displacement = new THREE.Vector3(0, 0, 0);
+        tempDisplacement.set(0, 0, 0);
         if (lastActiveTargetPosRef.current && !targetChanged) {
-          displacement.copy(activeTargetPos).sub(lastActiveTargetPosRef.current);
+          tempDisplacement.copy(tempActiveTargetPos).sub(lastActiveTargetPosRef.current);
         }
 
         // Apply orbital motion translation displacement to track perfectly
-        controlsRef.current.target.add(displacement);
-        state.camera.position.add(displacement);
+        controlsRef.current.target.add(tempDisplacement);
+        state.camera.position.add(tempDisplacement);
 
         // If locked to target, smoothly slide the target centered (correcting any manual panning)
         if (isLocked) {
           const lerpFactor = 1 - Math.exp(-safeDelta * 6);
           const beforeLerp = controlsRef.current.target.clone();
-          controlsRef.current.target.lerp(activeTargetPos, lerpFactor);
+          controlsRef.current.target.lerp(tempActiveTargetPos, lerpFactor);
           const correction = controlsRef.current.target.clone().sub(beforeLerp);
           state.camera.position.add(correction);
         }
 
         // Cache position for next frame
-        lastActiveTargetPosRef.current = activeTargetPos.clone();
+        lastActiveTargetPosRef.current = tempActiveTargetPos.clone();
       }
 
       // CRITICAL camera fix: controls update must be called after modifications and for damping every frame
@@ -1656,9 +1663,9 @@ function SystemEngine({
       />
     </>
   );
-}
+});
 
-export default function OrbitSimulator({
+export default React.memo(function OrbitSimulator({
   isRunning = false,
   timeMult = 10 * 24 * 3600,
   selectedTarget,
@@ -1764,4 +1771,4 @@ export default function OrbitSimulator({
       </Canvas>
     </div>
   );
-}
+});
