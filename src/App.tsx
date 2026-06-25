@@ -1265,7 +1265,7 @@ export default function App() {
         />
       </React.Suspense>
 
-      {isSimulatorRunning && (missionLegs.length > 0 || returnWindow) && (
+      {isSimulatorRunning && ((missionLegs?.length || 0) > 0 || returnWindow) && (
         <LaunchHUD
           onSimulateLaunch={handleLaunch}
           onResetSimulation={() => setIsLaunched(false)}
