@@ -32,6 +32,7 @@ import LandingHero from "./components/LandingHero";
 const InteractiveBridge = React.lazy(() => import("./components/InteractiveBridge"));
 const SpaceExplorationPanel = React.lazy(() => import("./components/SpaceExplorationPanel"));
 const MathPhysicsShowcase = React.lazy(() => import("./components/MathPhysicsShowcase"));
+const SatelliteBuilder = React.lazy(() => import("./components/SatelliteBuilder"));
 
 const J2000_UNIX = 946728000;
 
@@ -64,9 +65,17 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const isSimulatorRunning = location.pathname.startsWith('/engine');
+  const isBuilderRunning = location.pathname.startsWith('/builder');
   const setIsSimulatorRunning = (running: boolean) => {
     if (running) {
       navigate('/engine');
+    } else {
+      navigate('/');
+    }
+  };
+  const setIsBuilderRunning = (running: boolean) => {
+    if (running) {
+      navigate('/builder');
     } else {
       navigate('/');
     }
@@ -970,7 +979,7 @@ export default function App() {
       {/* Landing Page Content */}
       <div
         ref={landingScrollRef}
-        className={`landing-scroller absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
+        className={`landing-scroller absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning || isBuilderRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
       >
         {/* TopNavBar */}
         <StaggeredMenu
@@ -989,6 +998,13 @@ export default function App() {
               link: '#', 
               onClick: () => setIsSimulatorRunning(true),
               image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop'
+            },
+            { 
+              label: 'Satellite Builder', 
+              ariaLabel: 'Satellite Builder', 
+              link: '#', 
+              onClick: () => setIsBuilderRunning(true),
+              image: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=800&auto=format&fit=crop'
             },
             { 
               label: 'GitHub Repo', 
@@ -1298,6 +1314,14 @@ export default function App() {
               </div>
             </div>
           </div>
+        )}
+      </div>
+
+      <div className={`absolute inset-0 z-50 pointer-events-none flex transition-opacity duration-1000 ${isBuilderRunning ? "opacity-100" : "opacity-0"}`}>
+        {isBuilderRunning && (
+          <React.Suspense fallback={<div className="h-full w-full bg-black pointer-events-auto"></div>}>
+             <SatelliteBuilder onClose={() => setIsBuilderRunning(false)} />
+          </React.Suspense>
         )}
       </div>
     </div>
