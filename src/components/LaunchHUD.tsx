@@ -16,6 +16,8 @@ interface LaunchHUDProps {
   selectedTarget: any;
   setSelectedTarget: (target: any) => void;
   planets: any[];
+  onOpenBuilder?: () => void;
+  isSpacecraftValidated?: boolean;
 }
 
 export function LaunchHUD({
@@ -29,7 +31,9 @@ export function LaunchHUD({
   onConcludeMission,
   selectedTarget,
   setSelectedTarget,
-  planets
+  planets,
+  onOpenBuilder,
+  isSpacecraftValidated = true
 }: LaunchHUDProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
   const [isCalculatingLaunchPhase, setIsCalculatingLaunchPhase] = useState(false);
@@ -85,17 +89,26 @@ export function LaunchHUD({
           <div className="space-y-6">
 
             {/* Primary Ignition Trigger Button */}
-            <button 
-              className={`w-full py-4 rounded-xl border font-mono tracking-widest text-[11px] uppercase transition-all shadow-[inset_0_0_20px_rgba(59,130,246,0.15)] cursor-pointer ${isLaunched ? 'text-[#ffb4ab] hover:text-red-300 border-[#ffb4ab]/40 bg-red-500/10 hover:bg-red-500/20 shadow-[inset_0_0_20px_rgba(255,100,100,0.1)]' : (isCalculatingLaunchPhase ? 'text-cyan-300 border-cyan-400/40 bg-cyan-700/20' : 'text-cyan-50 hover:text-white border-cyan-300/40 bg-cyan-600/20 hover:bg-cyan-500/30 shadow-[inset_0_0_20px_rgba(59,130,246,0.2)]')}`}
-              onClick={isLaunched ? handleReset : onLaunch}
-              disabled={isCalculatingLaunchPhase}
-            >
-               {isLaunched ? 'ABORT FLIGHT PATH' : isCalculatingLaunchPhase ? (
-                 <TextShimmer duration={1.5} className="[--base-color:var(--color-cyan-300)] [--base-gradient-color:var(--color-cyan-100)]">
-                   COMPUTING TRAJECTORY...
-                 </TextShimmer>
-               ) : 'ENGAGE FLIGHT PATH'}
-            </button>
+            {!isSpacecraftValidated && !isLaunched ? (
+               <button 
+                className="w-full py-4 rounded-xl border font-mono tracking-widest text-[11px] uppercase transition-all text-cyan-50 hover:text-white border-cyan-300/40 bg-cyan-600/20 hover:bg-cyan-500/30 shadow-[inset_0_0_20px_rgba(59,130,246,0.2)] cursor-pointer"
+                onClick={onOpenBuilder}
+              >
+                DESIGN SPACECRAFT
+              </button>
+            ) : (
+              <button 
+                className={`w-full py-4 rounded-xl border font-mono tracking-widest text-[11px] uppercase transition-all shadow-[inset_0_0_20px_rgba(59,130,246,0.15)] cursor-pointer ${isLaunched ? 'text-[#ffb4ab] hover:text-red-300 border-[#ffb4ab]/40 bg-red-500/10 hover:bg-red-500/20 shadow-[inset_0_0_20px_rgba(255,100,100,0.1)]' : (isCalculatingLaunchPhase ? 'text-cyan-300 border-cyan-400/40 bg-cyan-700/20' : 'text-cyan-50 hover:text-white border-cyan-300/40 bg-cyan-600/20 hover:bg-cyan-500/30 shadow-[inset_0_0_20px_rgba(59,130,246,0.2)]')}`}
+                onClick={isLaunched ? handleReset : onLaunch}
+                disabled={isCalculatingLaunchPhase}
+              >
+                 {isLaunched ? 'ABORT FLIGHT PATH' : isCalculatingLaunchPhase ? (
+                   <TextShimmer duration={1.5} className="[--base-color:var(--color-cyan-300)] [--base-gradient-color:var(--color-cyan-100)]">
+                     COMPUTING TRAJECTORY...
+                   </TextShimmer>
+                 ) : 'ENGAGE FLIGHT PATH'}
+              </button>
+            )}
 
             {/* Mission Archive Controls */}
             {isLaunched && missionStatus === 'EARTH_ORBIT' && onConcludeMission && (

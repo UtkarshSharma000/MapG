@@ -26,6 +26,12 @@ const COMPONENT_CATALOG: Record<string, any[]> = {
     { id: 'computer', name: 'Flight Computer', type: 'Control', gen: 0, draw: 15, mass: 1, cap: 0, color: '#7c3aed', shape: 'box' },
     { id: 'rw', name: 'Reaction Wheel', type: 'Control', gen: 0, draw: 5, mass: 2, cap: 0, color: '#8b5cf6', shape: 'cylinder' },
   ],
+  Propulsion: [
+    { id: 'thruster_chem', name: 'Chemical Thruster', type: 'Propulsion', gen: 0, draw: 10, mass: 5, isp: 320, color: '#f59e0b', shape: 'engine' },
+    { id: 'thruster_ion', name: 'Ion Thruster', type: 'Propulsion', gen: 0, draw: 150, mass: 2, isp: 3000, color: '#3b82f6', shape: 'engine' },
+    { id: 'fuel_tank_small', name: 'Small Fuel Tank', type: 'Propulsion', gen: 0, draw: 0, mass: 2, fuel: 80, color: '#9ca3af', shape: 'tank' },
+    { id: 'fuel_tank_large', name: 'Large Fuel Tank', type: 'Propulsion', gen: 0, draw: 0, mass: 5, fuel: 300, color: '#d1d5db', shape: 'tank' },
+  ],
 };
 
 const getCatalogItem = (id: string) => {
@@ -84,6 +90,15 @@ const ComponentShape = ({ item, isGhost = false }: { item: any, isGhost?: boolea
       );
     case 'cylinder':
       return <Cylinder args={[0.4, 0.4, 0.8]}>{mat}</Cylinder>;
+    case 'engine':
+      return (
+        <group>
+          <Cylinder args={[0.3, 0.4, 0.4]} position={[0, 0.2, 0]}>{mat}</Cylinder>
+          <Cylinder args={[0.1, 0.3, 0.4]} position={[0, -0.2, 0]}><meshStandardMaterial color="#444" /></Cylinder>
+        </group>
+      );
+    case 'tank':
+      return <Sphere args={[0.5, 16, 16]}>{mat}</Sphere>;
     default:
       return <Box args={[0.8, 0.8, 0.8]}>{mat}</Box>;
   }
@@ -91,7 +106,7 @@ const ComponentShape = ({ item, isGhost = false }: { item: any, isGhost?: boolea
 
 type Mode = 'PLACE' | 'WIRE' | 'DELETE' | 'SELECT';
 
-export default function SatelliteBuilder({ onClose }: { onClose: () => void }) {
+export default function SatelliteBuilder({ onClose, onValidate, requiredDeltaV = 0 }: { onClose: () => void, onValidate?: () => void, requiredDeltaV?: number }) {
   // --- STATE ---
   const [blocks, setBlocks] = useState<any[]>([{ id: 'bus', type: 'bus', position: [0, 0, 0], rot: [0,0,0] }]);
   const [connections, setConnections] = useState<{from: string, to: string}[]>([]);
@@ -221,6 +236,11 @@ export default function SatelliteBuilder({ onClose }: { onClose: () => void }) {
     let hasReqPayload = false;
     let anyPowerFailure = false;
     let unconnectedPayloads = false;
+    
+    let totalMass = 5; // Base bus mass
+    let totalFuel = 0;
+    let totalThrustIsp = 0;
+    let thrusterCount = 0;
 
     networks.forEach(net => {
       let netGen = 0;
@@ -230,14 +250,22 @@ export default function SatelliteBuilder({ onClose }: { onClose: () => void }) {
       let netPayloads: string[] = [];
 
       net.forEach(b => {
-        if (!b || b.id === 'bus') return;
-        const cat = getCatalogItem(b.type);
-        if (cat) {
-           netGen += cat.gen;
-           netDraw += cat.draw;
-           if (cat.id === 'computer') netComputer = true;
-           if (cat.type === 'Comms') netAntenna = true;
-           if (cat.type === 'Payload') netPayloads.push(cat.id);
+        if (!b) return;
+        if (b.id !== 'bus') {
+          const cat = getCatalogItem(b.type);
+          if (cat) {
+             netGen += cat.gen;
+             netDraw += cat.draw;
+             totalMass += cat.mass;
+             if (cat.fuel) totalFuel += cat.fuel;
+             if (cat.isp) {
+               totalThrustIsp += cat.isp;
+               thrusterCount++;
+             }
+             if (cat.id === 'computer') netComputer = true;
+             if (cat.type === 'Comms') netAntenna = true;
+             if (cat.type === 'Payload') netPayloads.push(cat.id);
+          }
         }
       });
 
@@ -285,6 +313,25 @@ export default function SatelliteBuilder({ onClose }: { onClose: () => void }) {
       reasons.push(`Warning: ${unwiredCount} component(s) are placed but not wired to anything.`);
     }
 
+    // Delta V Check
+    let deltaV_kms = 0;
+    if (thrusterCount > 0 && totalFuel > 0) {
+       const avgIsp = totalThrustIsp / thrusterCount;
+       const wetMass = totalMass + totalFuel;
+       const dryMass = totalMass;
+       const ve = avgIsp * 9.81; // m/s
+       deltaV_kms = (ve * Math.log(wetMass / dryMass)) / 1000;
+    }
+
+    if (requiredDeltaV > 0) {
+       if (deltaV_kms < requiredDeltaV) {
+         score -= 50;
+         reasons.push(`Mission Failed: Insufficient Delta-V. Mission requires ${requiredDeltaV.toFixed(2)} km/s, spacecraft can only provide ${deltaV_kms.toFixed(2)} km/s.`);
+       } else {
+         reasons.push(`Mission Success: Spacecraft has enough Delta-V (${deltaV_kms.toFixed(2)} km/s) to complete the maneuver!`);
+       }
+    }
+
     score = Math.max(0, score);
     
     let coverage = 0;
@@ -311,7 +358,9 @@ export default function SatelliteBuilder({ onClose }: { onClose: () => void }) {
       rating,
       success: score >= 60,
       reasons,
-      coverage
+      coverage,
+      mass: totalMass + totalFuel,
+      deltaV: deltaV_kms
     });
   };
 
@@ -324,10 +373,25 @@ export default function SatelliteBuilder({ onClose }: { onClose: () => void }) {
         acc.mass += cat.mass;
         acc.gen += cat.gen;
         acc.draw += cat.draw;
+        if (cat.fuel) acc.fuel += cat.fuel;
+        if (cat.isp) {
+          acc.totalIsp += cat.isp;
+          acc.thrusterCount++;
+        }
       }
       return acc;
-    }, { mass: 50, gen: 0, draw: 0 }); // Bus is 50kg
+    }, { mass: 5, gen: 0, draw: 0, fuel: 0, totalIsp: 0, thrusterCount: 0 }); // Bus is 5kg
   }, [blocks]);
+
+  const liveDeltaV = useMemo(() => {
+    if (stats.thrusterCount > 0 && stats.fuel > 0) {
+      const avgIsp = stats.totalIsp / stats.thrusterCount;
+      const wetMass = stats.mass + stats.fuel;
+      const ve = avgIsp * 9.81;
+      return (ve * Math.log(wetMass / stats.mass)) / 1000;
+    }
+    return 0;
+  }, [stats]);
 
   return (
     <div className="w-full h-full bg-[#050505] text-white flex flex-col font-mono pointer-events-auto selection:bg-cyan-900">
@@ -486,28 +550,47 @@ export default function SatelliteBuilder({ onClose }: { onClose: () => void }) {
             <div className="w-1/3 p-4 flex flex-col border-r border-zinc-800">
               <div className="uppercase text-[10px] font-bold tracking-widest text-zinc-500 mb-3">Mission Configuration</div>
               
-              <div className="flex gap-4 mb-4">
-                <div className="flex-1">
-                  <label className="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1">Objective</label>
-                  <select 
-                    value={missionType} 
-                    onChange={e => setMissionType(e.target.value)}
-                    className="w-full bg-black border border-zinc-800 text-white text-xs p-2 outline-none focus:border-cyan-500"
-                  >
-                    {MISSIONS.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
-                  </select>
+              <div className="flex justify-between items-center bg-zinc-900/50 p-2 border border-zinc-800 rounded mb-4">
+                <div className="flex flex-col">
+                  <span className="text-[9px] text-zinc-500 tracking-widest uppercase">Delta-V Capability</span>
+                  <span className={`text-sm font-bold ${liveDeltaV >= requiredDeltaV ? 'text-green-400' : 'text-cyan-400'}`}>
+                    {liveDeltaV.toFixed(2)} km/s
+                  </span>
                 </div>
-                <div className="w-32">
-                  <label className="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1">Orbit</label>
-                  <select 
-                    value={orbitType} 
-                    onChange={e => setOrbitType(e.target.value)}
-                    className="w-full bg-black border border-zinc-800 text-white text-xs p-2 outline-none focus:border-cyan-500"
-                  >
-                    {ORBITS.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </div>
+                {requiredDeltaV > 0 && (
+                  <div className="flex flex-col text-right">
+                    <span className="text-[9px] text-zinc-500 tracking-widest uppercase">Required</span>
+                    <span className="text-sm font-bold text-yellow-500">
+                      {requiredDeltaV.toFixed(2)} km/s
+                    </span>
+                  </div>
+                )}
               </div>
+              
+              {requiredDeltaV === 0 && (
+                <div className="flex gap-4 mb-4">
+                  <div className="flex-1">
+                    <label className="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1">Objective</label>
+                    <select 
+                      value={missionType} 
+                      onChange={e => setMissionType(e.target.value)}
+                      className="w-full bg-black border border-zinc-800 text-white text-xs p-2 outline-none focus:border-cyan-500"
+                    >
+                      {MISSIONS.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="w-32">
+                    <label className="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1">Orbit</label>
+                    <select 
+                      value={orbitType} 
+                      onChange={e => setOrbitType(e.target.value)}
+                      className="w-full bg-black border border-zinc-800 text-white text-xs p-2 outline-none focus:border-cyan-500"
+                    >
+                      {ORBITS.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
 
               <button 
                 onClick={runSimulation}
@@ -574,15 +657,33 @@ export default function SatelliteBuilder({ onClose }: { onClose: () => void }) {
                 {stats.gen >= stats.draw ? '+' : ''}{stats.gen - stats.draw} <span className="text-xs text-zinc-500 font-normal">W</span>
               </div>
             </div>
+            <div>
+              <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">Delta-V</div>
+              <div className="text-xl font-bold text-white">{liveDeltaV.toFixed(2)} <span className="text-xs text-zinc-500 font-normal">km/s</span></div>
+            </div>
           </div>
 
-          <div className="flex-1 p-4 overflow-y-auto">
+          <div className="flex-1 p-4 overflow-y-auto flex flex-col">
              <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-2">Instructions</div>
-             <ul className="text-xs text-zinc-400 space-y-2 leading-relaxed">
+             <ul className="text-xs text-zinc-400 space-y-2 leading-relaxed mb-auto">
                <li><strong className="text-white">Build:</strong> Select a component on the left, then click on the central bus or attached components to place it.</li>
                <li><strong className="text-white">Wire:</strong> Switch to Wire mode. Click a component, then click another to establish a power/data link.</li>
                <li><strong className="text-white">Remove:</strong> Switch to Remove mode and click components to delete them.</li>
              </ul>
+             
+             {simulationResult?.success && requiredDeltaV > 0 && (
+              <div className="pt-4 border-t border-zinc-800 mt-4">
+                <button 
+                  onClick={() => {
+                    if (onValidate) onValidate();
+                    onClose();
+                  }}
+                  className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold text-[11px] uppercase tracking-widest transition-colors rounded shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
+                >
+                  FINISH DESIGN & LAUNCH
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

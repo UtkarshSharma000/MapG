@@ -64,8 +64,10 @@ export default function App() {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const isSimulatorRunning = location.pathname.startsWith('/engine');
-  const isBuilderRunning = location.pathname.startsWith('/builder');
+    const isSimulatorRunning = location.pathname.startsWith('/engine');
+  const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  const [builderMissionDv, setBuilderMissionDv] = useState<number>(0);
+
   const setIsSimulatorRunning = (running: boolean) => {
     if (running) {
       navigate('/engine');
@@ -96,6 +98,8 @@ export default function App() {
   const [launchLocation, setLaunchLocation] = useState<{lat: number, lon: number} | null>(null);
   const [targetLocation, setTargetLocation] = useState<{lat: number, lon: number} | null>(null);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+  
+  const [isSpacecraftValidated, setIsSpacecraftValidated] = useState(false);
   const [currentLaunchTime, setCurrentLaunchTime] = useState<number>(0);
   const [isLaunched, setIsLaunched] = useState(false);
   const [missionStatus, setMissionStatus] = useState<string>("STANDBY");
@@ -556,6 +560,13 @@ export default function App() {
     setIsLaunched(false); // Reset launch state so return trajectory propagates in the HUD first
 
     if (result.legs && result.legs.length > 0) {
+      let totalDv = 0;
+      result.legs.forEach(l => {
+        totalDv += (l.dv1_kms || 0) + (l.dv2_kms || 0);
+      });
+      setBuilderMissionDv(totalDv);
+      setIsSpacecraftValidated(false);
+
       const planetMap = { 1: 'Mercury', 2: 'Venus', 3: 'Earth', 4: 'Mars', 5: 'Jupiter', 6: 'Saturn', 7: 'Uranus', 8: 'Neptune' } as Record<number, string>;
       const originName = planetMap[result.legs[0].originId];
       if (originName) {
@@ -975,11 +986,39 @@ export default function App() {
           resetCameraTrigger={resetCameraTrigger}
         />
       </React.Suspense>
+      
+      {isSimulatorRunning && (missionLegs.length > 0 || returnWindow) && (
+        <LaunchHUD
+          onSimulateLaunch={handleLaunch}
+          onResetSimulation={() => setIsLaunched(false)}
+          isLaunched={isLaunched}
+          missionStatus={missionStatus}
+          onPlanReturn={planReturn}
+          returnWindow={returnWindow}
+          onApplyReturn={() => {
+            if (returnWindow && returnWindow.legs) {
+              setMissionLegs(returnWindow.legs);
+              setIsLaunched(true);
+            }
+          }}
+          onConcludeMission={() => {
+            setIsLaunched(false);
+            setMissionLegs([]);
+            setReturnWindow(null);
+            setCompletedMissions(prev => prev + 1);
+          }}
+          selectedTarget={selectedTarget}
+          setSelectedTarget={setSelectedTarget}
+          planets={PLANETS}
+          onOpenBuilder={() => setIsBuilderOpen(true)}
+          isSpacecraftValidated={isSpacecraftValidated}
+        />
+      )}
 
       {/* Landing Page Content */}
       <div
         ref={landingScrollRef}
-        className={`landing-scroller absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning || isBuilderRunning ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
+        className={`landing-scroller absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ${isSimulatorRunning || isBuilderOpen ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto overflow-y-auto"}`}
       >
         {/* TopNavBar */}
         <StaggeredMenu
@@ -1318,10 +1357,16 @@ export default function App() {
         )}
       </div>
 
-      <div className={`absolute inset-0 z-50 flex transition-opacity duration-1000 ${isBuilderRunning ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
-        {isBuilderRunning && (
+      <div className={`absolute inset-0 z-50 flex transition-opacity duration-1000 ${isBuilderOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
+        {isBuilderOpen && (
           <React.Suspense fallback={<div className="h-full w-full bg-black pointer-events-auto"></div>}>
-             <SatelliteBuilder onClose={() => setIsBuilderRunning(false)} />
+             <SatelliteBuilder 
+               onClose={() => {
+                 setIsBuilderOpen(false);
+               }} 
+               onValidate={() => setIsSpacecraftValidated(true)}
+               requiredDeltaV={builderMissionDv} 
+             />
           </React.Suspense>
         )}
       </div>
