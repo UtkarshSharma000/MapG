@@ -1020,6 +1020,7 @@ export default function App() {
           <LandingHero
             isSimulatorRunning={isSimulatorRunning}
             setIsSimulatorRunning={setIsSimulatorRunning}
+            setIsBuilderRunning={setIsBuilderRunning}
             landingScrollRef={landingScrollRef}
           />
 
@@ -1317,7 +1318,7 @@ export default function App() {
         )}
       </div>
 
-      <div className={`absolute inset-0 z-50 pointer-events-none flex transition-opacity duration-1000 ${isBuilderRunning ? "opacity-100" : "opacity-0"}`}>
+      <div className={`absolute inset-0 z-50 flex transition-opacity duration-1000 ${isBuilderRunning ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         {isBuilderRunning && (
           <React.Suspense fallback={<div className="h-full w-full bg-black pointer-events-auto"></div>}>
              <SatelliteBuilder onClose={() => setIsBuilderRunning(false)} />

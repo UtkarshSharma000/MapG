@@ -5,12 +5,14 @@ import UnicornScene from "unicornstudio-react";
 interface LandingHeroProps {
   isSimulatorRunning: boolean;
   setIsSimulatorRunning: (running: boolean) => void;
+  setIsBuilderRunning: (running: boolean) => void;
   landingScrollRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export default function LandingHero({
   isSimulatorRunning,
   setIsSimulatorRunning,
+  setIsBuilderRunning,
   landingScrollRef,
 }: LandingHeroProps) {
   const containerRef = useRef(null);
@@ -62,12 +64,21 @@ export default function LandingHero({
         transition={{ duration: 1, delay: 0.8 }}
         className="absolute bottom-12 right-12 z-30 pointer-events-auto flex flex-col gap-4 items-end"
       >
-        <button 
-          onClick={() => setIsSimulatorRunning(true)}
-          className="bg-primary text-on-primary rounded-none flex items-center justify-center px-6 py-4 hover:bg-primary-fixed-dim transition-colors border-2 border-primary"
-        >
-          <span className="text-sm font-bold uppercase tracking-widest">Initialize System</span>
-        </button>
+        <div className="flex gap-4">
+          <button 
+            onClick={() => setIsBuilderRunning(true)}
+            className="bg-surface-bright text-primary rounded-none flex items-center justify-center px-6 py-4 hover:bg-surface-container-low transition-colors border-2 border-primary"
+          >
+            <span className="text-sm font-bold uppercase tracking-widest">Satellite Builder</span>
+          </button>
+          
+          <button 
+            onClick={() => setIsSimulatorRunning(true)}
+            className="bg-primary text-on-primary rounded-none flex items-center justify-center px-6 py-4 hover:bg-primary-fixed-dim transition-colors border-2 border-primary"
+          >
+            <span className="text-sm font-bold uppercase tracking-widest">Initialize System</span>
+          </button>
+        </div>
 
         <div id="privacy-box" className="bg-surface-container-low px-6 py-4 border-2 border-outline-variant w-[320px] flex flex-col mt-4">
             <p className="text-secondary text-[12px] font-sans mb-4 leading-relaxed">No data is collected or sold. This project is open source at <a href="https://github.com/UtkarshSharma000/MapG" target="_blank" rel="noreferrer" className="underline hover:text-primary">UtkarshSharma000/MapG</a>.<br/><br/>Queries or suggestions: <a href="mailto:utkarsh05nr@gmail.com" className="underline hover:text-primary">utkarsh05nr@gmail.com</a></p>
