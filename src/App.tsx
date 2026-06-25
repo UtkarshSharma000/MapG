@@ -120,7 +120,7 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const isSimulatorRunning = location.pathname.startsWith("/engine");
-  const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  const isBuilderOpen = location.pathname.startsWith("/builder");
   const [builderMissionDv, setBuilderMissionDv] = useState<number>(0);
 
   const setIsSimulatorRunning = (running: boolean) => {
@@ -1288,7 +1288,7 @@ export default function App() {
           selectedTarget={selectedTarget}
           setSelectedTarget={setSelectedTarget}
           planets={PLANETS}
-          onOpenBuilder={() => setIsBuilderOpen(true)}
+          onOpenBuilder={() => setIsBuilderRunning(true)}
           isSpacecraftValidated={isSpacecraftValidated}
         />
       )}
@@ -1845,7 +1845,7 @@ export default function App() {
           >
             <SatelliteBuilder
               onClose={() => {
-                setIsBuilderOpen(false);
+                setIsBuilderRunning(false);
               }}
               onValidate={() => setIsSpacecraftValidated(true)}
               requiredDeltaV={builderMissionDv}
