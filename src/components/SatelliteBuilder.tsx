@@ -1,114 +1,288 @@
-import React, { useState, useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Box, Cylinder, Sphere } from '@react-three/drei';
-import { X, Play, Info, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Box, Cylinder, Sphere, Line } from '@react-three/drei';
+import * as THREE from 'three';
+import { X, Play, AlertTriangle, CheckCircle2, MousePointer2, Link as LinkIcon, Trash2 } from 'lucide-react';
+
+// --- COMPONENT CATALOG ---
+const COMPONENT_CATALOG: Record<string, any[]> = {
+  Power: [
+    { id: 'solar_small', name: 'Small Solar Panel', type: 'Power', gen: 50, draw: 0, mass: 1, cap: 0, color: '#1e3a8a', shape: 'solar' },
+    { id: 'solar_large', name: 'Large Solar Panel', type: 'Power', gen: 200, draw: 0, mass: 3, cap: 0, color: '#1e40af', shape: 'solar_large' },
+    { id: 'battery_base', name: 'Small Battery', type: 'Power', gen: 0, draw: 0, mass: 2, cap: 200, color: '#374151', shape: 'box' },
+    { id: 'battery_adv', name: 'Large Battery', type: 'Power', gen: 0, draw: 0, mass: 4, cap: 500, color: '#4b5563', shape: 'box' },
+  ],
+  Payload: [
+    { id: 'cam_optical', name: 'Optical Camera', type: 'Payload', gen: 0, draw: 20, mass: 2, cap: 0, color: '#047857', shape: 'camera' },
+    { id: 'cam_ir', name: 'Infrared Camera', type: 'Payload', gen: 0, draw: 30, mass: 3, cap: 0, color: '#059669', shape: 'camera' },
+    { id: 'radar', name: 'Radar Sensor', type: 'Payload', gen: 0, draw: 100, mass: 15, cap: 0, color: '#10b981', shape: 'radar' },
+    { id: 'weather', name: 'Atmospheric Sensor', type: 'Payload', gen: 0, draw: 15, mass: 2, cap: 0, color: '#34d399', shape: 'cylinder' },
+  ],
+  Comms: [
+    { id: 'ant_basic', name: 'Basic Antenna', type: 'Comms', gen: 0, draw: 10, mass: 1, cap: 0, color: '#b91c1c', shape: 'antenna' },
+    { id: 'ant_high', name: 'High Gain Antenna', type: 'Comms', gen: 0, draw: 25, mass: 4, cap: 0, color: '#dc2626', shape: 'dish' },
+  ],
+  Control: [
+    { id: 'computer', name: 'Flight Computer', type: 'Control', gen: 0, draw: 15, mass: 1, cap: 0, color: '#7c3aed', shape: 'box' },
+    { id: 'rw', name: 'Reaction Wheel', type: 'Control', gen: 0, draw: 5, mass: 2, cap: 0, color: '#8b5cf6', shape: 'cylinder' },
+  ],
+};
+
+const getCatalogItem = (id: string) => {
+  for (const cat of Object.values(COMPONENT_CATALOG)) {
+    const item = cat.find(i => i.id === id);
+    if (item) return item;
+  }
+  return null;
+};
+
+// --- MISSIONS & ORBITS ---
+const MISSIONS = [
+  { name: 'Earth Observation', req: ['cam_optical', 'cam_ir', 'radar'], idealOrbits: ['LEO', 'SSO'] },
+  { name: 'Weather Monitoring', req: ['weather', 'cam_ir'], idealOrbits: ['Polar', 'SSO', 'GEO'] },
+  { name: 'Communications', req: ['ant_high'], idealOrbits: ['GEO', 'MEO'] },
+  { name: 'Disaster Response', req: ['cam_optical', 'radar', 'ant_high'], idealOrbits: ['LEO', 'SSO'] },
+  { name: 'Scientific Research', req: ['cam_optical', 'radar', 'weather'], idealOrbits: ['HEO', 'Polar', 'LEO'] },
+];
+
+const ORBITS = ['LEO', 'Polar', 'SSO', 'MEO', 'GEO', 'HEO'];
+
+// --- 3D SHAPES ---
+const ComponentShape = ({ item, isGhost = false }: { item: any, isGhost?: boolean }) => {
+  const color = item?.color || '#ccc';
+  const mat = <meshStandardMaterial color={color} transparent={isGhost} opacity={isGhost ? 0.5 : 1} metalness={0.6} roughness={0.4} />;
+  
+  if (!item) return <Box args={[1,1,1]}>{mat}</Box>;
+
+  switch (item.shape) {
+    case 'solar': return <Box args={[1.8, 0.05, 0.8]}>{mat}</Box>;
+    case 'solar_large': return <Box args={[2.8, 0.05, 1.2]}>{mat}</Box>;
+    case 'box': return <Box args={[0.8, 0.8, 0.8]}>{mat}</Box>;
+    case 'camera': 
+      return (
+        <group>
+          <Cylinder args={[0.3, 0.3, 0.6]} position={[0, -0.1, 0]}>{mat}</Cylinder>
+          <Cylinder args={[0.2, 0.2, 0.3]} position={[0, 0.35, 0]}><meshStandardMaterial color="#111" /></Cylinder>
+        </group>
+      );
+    case 'radar':
+      return (
+        <group>
+          <Box args={[0.6, 0.2, 0.6]} position={[0, -0.3, 0]}>{mat}</Box>
+          <Cylinder args={[0.4, 0.4, 0.1]} position={[0, 0, 0]} rotation={[Math.PI/4, 0, 0]}>{mat}</Cylinder>
+        </group>
+      );
+    case 'antenna':
+      return <Cylinder args={[0.05, 0.05, 1.5]} position={[0, 0.5, 0]}>{mat}</Cylinder>;
+    case 'dish':
+      return (
+        <group>
+          <Cylinder args={[0.1, 0.1, 0.5]} position={[0, -0.2, 0]}>{mat}</Cylinder>
+          <Sphere args={[0.6, 16, 16, 0, Math.PI * 2, 0, Math.PI/2]} position={[0, 0.1, 0]} rotation={[Math.PI, 0, 0]}>{mat}</Sphere>
+          <Cylinder args={[0.02, 0.02, 0.6]} position={[0, 0.4, 0]}>{mat}</Cylinder>
+        </group>
+      );
+    case 'cylinder':
+      return <Cylinder args={[0.4, 0.4, 0.8]}>{mat}</Cylinder>;
+    default:
+      return <Box args={[0.8, 0.8, 0.8]}>{mat}</Box>;
+  }
+};
+
+type Mode = 'PLACE' | 'WIRE' | 'DELETE' | 'SELECT';
 
 export default function SatelliteBuilder({ onClose }: { onClose: () => void }) {
-  // State for selected components
-  const [components, setComponents] = useState<any[]>([]);
+  // --- STATE ---
+  const [blocks, setBlocks] = useState<any[]>([{ id: 'bus', type: 'bus', position: [0, 0, 0], rot: [0,0,0] }]);
+  const [connections, setConnections] = useState<{from: string, to: string}[]>([]);
   
-  // State for mission parameters
+  const [mode, setMode] = useState<Mode>('PLACE');
+  const [activeItem, setActiveItem] = useState<string | null>(null);
+  const [wireStart, setWireStart] = useState<string | null>(null);
+  
+  const [hoverCell, setHoverCell] = useState<[number, number, number] | null>(null);
+  const [hoverNormal, setHoverNormal] = useState<THREE.Vector3 | null>(null);
+  
   const [missionType, setMissionType] = useState('Earth Observation');
   const [orbitType, setOrbitType] = useState('LEO');
-  
-  // Simulation results
   const [simulationResult, setSimulationResult] = useState<any>(null);
 
-  // Component Library
-  const COMPONENT_CATALOG = {
-    Power: [
-      { id: 'solar_small', name: 'Small Solar Panel', type: 'Power', gen: 50, draw: 0, mass: 1, cap: 0, color: '#1e3a8a' },
-      { id: 'solar_large', name: 'Large Solar Panel', type: 'Power', gen: 200, draw: 0, mass: 3, cap: 0, color: '#1e40af' },
-      { id: 'battery_base', name: 'Battery Pack', type: 'Power', gen: 0, draw: 0, mass: 2, cap: 400, color: '#374151' },
-      { id: 'battery_adv', name: 'Adv Battery Pack', type: 'Power', gen: 0, draw: 0, mass: 4, cap: 1000, color: '#4b5563' },
-    ],
-    Payload: [
-      { id: 'cam_optical', name: 'Optical Camera', type: 'Payload', gen: 0, draw: 20, mass: 2, cap: 0, color: '#047857' },
-      { id: 'cam_ir', name: 'Infrared Camera', type: 'Payload', gen: 0, draw: 30, mass: 3, cap: 0, color: '#059669' },
-      { id: 'radar', name: 'Radar Sensor', type: 'Payload', gen: 0, draw: 100, mass: 15, cap: 0, color: '#10b981' },
-      { id: 'weather', name: 'Atmospheric Sensor', type: 'Payload', gen: 0, draw: 15, mass: 2, cap: 0, color: '#34d399' },
-    ],
-    Comms: [
-      { id: 'ant_basic', name: 'Basic Antenna', type: 'Comms', gen: 0, draw: 5, mass: 1, cap: 0, color: '#b91c1c' },
-      { id: 'ant_high', name: 'High Gain Antenna', type: 'Comms', gen: 0, draw: 25, mass: 4, cap: 0, color: '#dc2626' },
-    ],
-    Control: [
-      { id: 'rw', name: 'Reaction Wheels', type: 'Control', gen: 0, draw: 10, mass: 2, cap: 0, color: '#8b5cf6' },
-      { id: 'computer', name: 'Flight Computer', type: 'Control', gen: 0, draw: 5, mass: 1, cap: 0, color: '#7c3aed' },
-    ],
+  // --- ACTIONS ---
+  const handleBlockClick = (e: any, blockId: string, position: number[], normal: THREE.Vector3) => {
+    e.stopPropagation();
+    
+    if (mode === 'DELETE') {
+      if (blockId === 'bus') return;
+      setBlocks(prev => prev.filter(b => b.id !== blockId));
+      setConnections(prev => prev.filter(c => c.from !== blockId && c.to !== blockId));
+      return;
+    }
+
+    if (mode === 'WIRE') {
+      if (!wireStart) {
+        setWireStart(blockId);
+      } else {
+        if (wireStart !== blockId) {
+          // Check if connection already exists
+          const exists = connections.some(c => 
+            (c.from === wireStart && c.to === blockId) || 
+            (c.from === blockId && c.to === wireStart)
+          );
+          if (!exists) {
+            setConnections([...connections, { from: wireStart, to: blockId }]);
+          }
+        }
+        setWireStart(null);
+      }
+      return;
+    }
+
+    if (mode === 'PLACE' && activeItem) {
+      const nx = Math.round(normal.x);
+      const ny = Math.round(normal.y);
+      const nz = Math.round(normal.z);
+      const nextPos = [position[0] + nx, position[1] + ny, position[2] + nz];
+      
+      // Check if occupied
+      if (blocks.some(b => b.position[0] === nextPos[0] && b.position[1] === nextPos[1] && b.position[2] === nextPos[2])) {
+        return;
+      }
+
+      // Calculate rotation based on normal so flat things stick to the surface
+      let rot = [0, 0, 0];
+      if (nx === 1) rot = [0, 0, -Math.PI/2];
+      else if (nx === -1) rot = [0, 0, Math.PI/2];
+      else if (nz === 1) rot = [Math.PI/2, 0, 0];
+      else if (nz === -1) rot = [-Math.PI/2, 0, 0];
+      else if (ny === -1) rot = [Math.PI, 0, 0];
+
+      setBlocks([...blocks, {
+        id: `block_${Date.now()}`,
+        type: activeItem,
+        position: nextPos,
+        rot
+      }]);
+    }
   };
 
-  const MISSIONS = [
-    { name: 'Earth Observation', req: ['cam_optical', 'cam_ir', 'radar'], idealOrbits: ['LEO', 'SSO'] },
-    { name: 'Weather Monitoring', req: ['weather', 'cam_ir'], idealOrbits: ['Polar', 'SSO', 'GEO'] },
-    { name: 'Communications', req: ['ant_high'], idealOrbits: ['GEO', 'MEO'] },
-    { name: 'Scientific Research', req: ['cam_optical', 'radar'], idealOrbits: ['HEO', 'Polar'] },
-  ];
-
-  const ORBITS = ['LEO', 'Polar', 'SSO', 'MEO', 'GEO', 'HEO'];
-
-  // Calculated Stats
-  const stats = useMemo(() => {
-    return components.reduce((acc, comp) => {
-      acc.mass += comp.mass;
-      acc.gen += comp.gen;
-      acc.draw += comp.draw;
-      acc.cap += comp.cap;
-      return acc;
-    }, { mass: 50, gen: 0, draw: 10, cap: 100 }); // Base bus stats
-  }, [components]);
-
-  const addComponent = (comp: any) => {
-    setComponents([...components, { ...comp, instanceId: Math.random().toString(36).substr(2, 9) }]);
+  const handlePointerMove = (e: any, position: number[], normal: THREE.Vector3) => {
+    e.stopPropagation();
+    if (mode === 'PLACE' && activeItem) {
+      const nextPos: [number, number, number] = [
+        position[0] + Math.round(normal.x), 
+        position[1] + Math.round(normal.y), 
+        position[2] + Math.round(normal.z)
+      ];
+      setHoverCell(nextPos);
+      setHoverNormal(normal);
+    }
   };
 
-  const removeComponent = (instanceId: string) => {
-    setComponents(components.filter(c => c.instanceId !== instanceId));
-  };
-
+  // --- SIMULATION ---
   const runSimulation = () => {
     const mission = MISSIONS.find(m => m.name === missionType);
     let reasons: string[] = [];
     let score = 100;
-    
-    // 1. Check Power Budget
-    if (stats.gen < stats.draw) {
-      score -= 40;
-      reasons.push(`Power generation (${stats.gen}W) is lower than consumption (${stats.draw}W). Battery will deplete.`);
-    } else if (stats.cap < 200) {
-      score -= 10;
-      reasons.push(`Low battery capacity (${stats.cap}Wh) may cause issues during eclipse phases.`);
-    }
 
-    // 2. Check Orbit Suitability
-    if (mission && !mission.idealOrbits.includes(orbitType)) {
-      score -= 20;
-      reasons.push(`${orbitType} is sub-optimal for ${missionType}. Consider ${mission.idealOrbits.join(' or ')}.`);
-    }
+    // 1. Build Graph
+    const adj: Record<string, string[]> = {};
+    blocks.forEach(b => adj[b.id] = []);
+    connections.forEach(c => {
+      if(adj[c.from] && adj[c.to]) {
+        adj[c.from].push(c.to);
+        adj[c.to].push(c.from);
+      }
+    });
 
-    // 3. Check Payload Suitability
-    let hasReqPayload = false;
-    if (mission) {
-      for (const req of mission.req) {
-        if (components.some(c => c.id === req)) {
-          hasReqPayload = true;
-          break;
+    // 2. Find Connected Networks
+    const visited = new Set();
+    const networks: any[][] = [];
+    blocks.forEach(b => {
+      if (!visited.has(b.id)) {
+        const net = [];
+        const q = [b.id];
+        visited.add(b.id);
+        while(q.length > 0) {
+          const curr = q.shift()!;
+          net.push(blocks.find(x => x.id === curr));
+          adj[curr].forEach(n => {
+            if(!visited.has(n)) {
+              visited.add(n);
+              q.push(n);
+            }
+          });
         }
+        networks.push(net);
       }
-      if (!hasReqPayload) {
-        score -= 30;
-        reasons.push(`Missing suitable payload for ${missionType}. Need at least one relevant sensor.`);
+    });
+
+    let hasGlobalAntenna = false;
+    let hasGlobalComputer = false;
+    let hasReqPayload = false;
+    let anyPowerFailure = false;
+    let unconnectedPayloads = false;
+
+    networks.forEach(net => {
+      let netGen = 0;
+      let netDraw = 0;
+      let netComputer = false;
+      let netAntenna = false;
+      let netPayloads: string[] = [];
+
+      net.forEach(b => {
+        if (!b || b.id === 'bus') return;
+        const cat = getCatalogItem(b.type);
+        if (cat) {
+           netGen += cat.gen;
+           netDraw += cat.draw;
+           if (cat.id === 'computer') netComputer = true;
+           if (cat.type === 'Comms') netAntenna = true;
+           if (cat.type === 'Payload') netPayloads.push(cat.id);
+        }
+      });
+
+      if (netGen < netDraw && netDraw > 0) {
+         score -= 40;
+         anyPowerFailure = true;
+         reasons.push(`Power deficit! A wired group draws ${netDraw}W but generates only ${netGen}W. Components will fail.`);
       }
+
+      if (netPayloads.length > 0 && !netComputer) {
+         score -= 20;
+         unconnectedPayloads = true;
+         reasons.push(`Uncontrolled payload: Camera/Sensor is not wired to a Flight Computer.`);
+      }
+
+      if (netComputer) hasGlobalComputer = true;
+      if (netAntenna) hasGlobalAntenna = true;
+      if (mission && mission.req.some(r => netPayloads.includes(r))) {
+         hasReqPayload = true;
+      }
+    });
+
+    // 3. Global Checks
+    if (!hasGlobalComputer) {
+      score -= 20;
+      reasons.push(`Mission Failed: No flight computer installed on spacecraft.`);
+    }
+    if (!hasGlobalAntenna) {
+      score -= 20;
+      reasons.push(`Mission Failed: Cannot transmit data. Add and wire a communication antenna.`);
+    }
+    if (mission && !hasReqPayload) {
+      score -= 30;
+      reasons.push(`Mission Failed: Missing required payload for ${missionType}.`);
+    }
+    if (mission && !mission.idealOrbits.includes(orbitType)) {
+      score -= 15;
+      reasons.push(`Warning: Orbit ${orbitType} is not ideal for ${missionType}.`);
     }
 
-    // 4. Basic sanity checks
-    if (!components.some(c => c.type === 'Comms')) {
-      score -= 15;
-      reasons.push('No communications system. Cannot transmit data.');
-    }
-    if (!components.some(c => c.id === 'computer')) {
+    // Check for totally unwired components (network of size 1)
+    const unwiredCount = networks.filter(n => n.length === 1 && n[0].id !== 'bus').length;
+    if (unwiredCount > 0) {
       score -= 10;
-      reasons.push('Missing flight computer. Relying on basic analog bus.');
+      reasons.push(`Warning: ${unwiredCount} component(s) are placed but not wired to anything.`);
     }
 
     score = Math.max(0, score);
@@ -124,6 +298,14 @@ export default function SatelliteBuilder({ onClose }: { onClose: () => void }) {
     else if (score >= 70) rating = 'Good';
     else if (score >= 50) rating = 'Marginal';
 
+    if (score >= 85 && reasons.length === 0) {
+      reasons.push(`✓ All systems nominal.`);
+      reasons.push(`✓ Positive power budget.`);
+      reasons.push(`✓ Data links active.`);
+    } else if (score >= 60) {
+      reasons.push(`✓ Core systems functional, but suboptimal.`);
+    }
+
     setSimulationResult({
       score,
       rating,
@@ -133,39 +315,59 @@ export default function SatelliteBuilder({ onClose }: { onClose: () => void }) {
     });
   };
 
+  // --- STATS CALC ---
+  const stats = useMemo(() => {
+    return blocks.reduce((acc, b) => {
+      if (b.id === 'bus') return acc;
+      const cat = getCatalogItem(b.type);
+      if (cat) {
+        acc.mass += cat.mass;
+        acc.gen += cat.gen;
+        acc.draw += cat.draw;
+      }
+      return acc;
+    }, { mass: 50, gen: 0, draw: 0 }); // Bus is 50kg
+  }, [blocks]);
+
   return (
-    <div className="w-full h-full bg-[#0a0a0a] text-white flex flex-col font-mono pointer-events-auto">
-      {/* Header */}
-      <div className="flex justify-between items-center p-4 border-b border-zinc-800 bg-zinc-950">
+    <div className="w-full h-full bg-[#050505] text-white flex flex-col font-mono pointer-events-auto selection:bg-cyan-900">
+      {/* HEADER */}
+      <div className="flex justify-between items-center p-4 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md z-10">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold tracking-widest text-primary-fixed uppercase">Satellite Mission Builder</h1>
-          <div className="px-3 py-1 bg-zinc-900 border border-zinc-800 text-xs text-zinc-400">DESIGN & SIMULATE</div>
+          <h1 className="text-xl font-bold tracking-widest text-cyan-400 uppercase">Satellite Assembly Facility</h1>
+          <div className="px-3 py-1 bg-zinc-900 border border-zinc-800 text-xs text-zinc-400">VAB // SECURE</div>
         </div>
         <button onClick={onClose} className="p-2 hover:bg-zinc-800 transition-colors">
           <X size={20} />
         </button>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel: Component Library */}
-        <div className="w-80 border-r border-zinc-800 bg-zinc-950/50 flex flex-col overflow-y-auto">
-          <div className="p-4 uppercase text-xs font-bold tracking-widest border-b border-zinc-800 text-zinc-400">Component Library</div>
+      <div className="flex flex-1 overflow-hidden relative">
+        
+        {/* LEFT PANEL: LIBRARY */}
+        <div className="w-72 border-r border-zinc-800 bg-zinc-950/90 flex flex-col overflow-y-auto z-10">
+          <div className="p-4 uppercase text-[10px] font-bold tracking-widest border-b border-zinc-800 text-zinc-500">Hardware Catalog</div>
           {Object.entries(COMPONENT_CATALOG).map(([cat, items]) => (
-            <div key={cat} className="mb-2">
-              <div className="px-4 py-2 bg-zinc-900 text-xs uppercase tracking-wider text-primary-fixed">{cat}</div>
-              <div className="p-2 flex flex-col gap-2">
+            <div key={cat} className="mb-4">
+              <div className="px-4 py-2 bg-zinc-900/50 text-[10px] uppercase tracking-wider text-cyan-500 border-y border-zinc-800/50">{cat}</div>
+              <div className="p-2 flex flex-col gap-1">
                 {items.map(item => (
-                  <div key={item.id} className="flex justify-between items-center p-2 border border-zinc-800 bg-black hover:border-zinc-600 transition-colors cursor-pointer" onClick={() => addComponent(item)}>
+                  <div 
+                    key={item.id} 
+                    className={`flex justify-between items-center p-3 border cursor-pointer transition-all ${activeItem === item.id && mode === 'PLACE' ? 'border-cyan-500 bg-cyan-950/30' : 'border-zinc-800 bg-black hover:border-zinc-600'}`}
+                    onClick={() => {
+                      setActiveItem(item.id);
+                      setMode('PLACE');
+                    }}
+                  >
                     <div>
-                      <div className="text-sm font-bold">{item.name}</div>
-                      <div className="text-[10px] text-zinc-500 mt-1">
-                        {item.gen > 0 && `+${item.gen}W `}
-                        {item.draw > 0 && `-${item.draw}W `}
-                        {item.cap > 0 && `${item.cap}Wh `}
-                        {item.mass}kg
+                      <div className="text-xs font-bold text-zinc-200">{item.name}</div>
+                      <div className="text-[9px] text-zinc-500 mt-1 uppercase">
+                        {item.gen > 0 && <span className="text-cyan-400 mr-2">+{item.gen}W</span>}
+                        {item.draw > 0 && <span className="text-yellow-500 mr-2">-{item.draw}W</span>}
+                        {item.mass}KG
                       </div>
                     </div>
-                    <div className="w-4 h-4 rounded-full border border-zinc-600" style={{ backgroundColor: item.color }}></div>
                   </div>
                 ))}
               </div>
@@ -173,180 +375,218 @@ export default function SatelliteBuilder({ onClose }: { onClose: () => void }) {
           ))}
         </div>
 
-        {/* Center: 3D View & Bottom Panel */}
-        <div className="flex-1 flex flex-col relative">
-          <div className="flex-1 relative bg-[#050505]">
-            <div className="absolute inset-0 grid-bg opacity-10 pointer-events-none"></div>
-            <Canvas camera={{ position: [5, 5, 5], fov: 45 }}>
-              <ambientLight intensity={0.5} />
-              <directionalLight position={[10, 10, 5]} intensity={1} />
-              <OrbitControls makeDefault />
-              <group>
-                {/* Base Bus */}
-                <Box args={[2, 2, 2]}>
-                  <meshStandardMaterial color="#222" metalness={0.8} roughness={0.2} />
-                </Box>
-                {/* Dynamically placed components (abstract representation) */}
-                {components.map((comp, i) => {
-                  const angle = (i / components.length) * Math.PI * 2;
-                  const radius = 1.5;
-                  const x = Math.cos(angle) * radius;
-                  const z = Math.sin(angle) * radius;
-                  const y = (i % 2 === 0 ? 0.5 : -0.5);
-                  return (
-                    <Box key={comp.instanceId} position={[x, y, z]} args={[0.5, 0.5, 0.5]}>
-                      <meshStandardMaterial color={comp.color} metalness={0.5} roughness={0.5} />
-                    </Box>
-                  );
-                })}
-              </group>
-            </Canvas>
+        {/* CENTER: 3D CANVAS */}
+        <div className="flex-1 relative bg-gradient-to-b from-[#0a0f16] to-[#020202]">
+          
+          {/* TOOLBAR */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-2 z-10 bg-black/50 p-2 rounded-lg border border-zinc-800 backdrop-blur-md">
+            <button 
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors rounded ${mode === 'PLACE' ? 'bg-cyan-500 text-black' : 'text-zinc-400 hover:text-white'}`}
+              onClick={() => setMode('PLACE')}
+            >
+              <MousePointer2 size={16} /> Build
+            </button>
+            <button 
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors rounded ${mode === 'WIRE' ? 'bg-yellow-500 text-black' : 'text-zinc-400 hover:text-white'}`}
+              onClick={() => { setMode('WIRE'); setWireStart(null); }}
+            >
+              <LinkIcon size={16} /> Wire
+            </button>
+            <button 
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors rounded ${mode === 'DELETE' ? 'bg-red-500 text-white' : 'text-zinc-400 hover:text-white'}`}
+              onClick={() => setMode('DELETE')}
+            >
+              <Trash2 size={16} /> Remove
+            </button>
           </div>
 
-          {/* Bottom Panel: Mission Analysis */}
-          <div className="h-64 border-t border-zinc-800 bg-zinc-950 flex">
-            {/* Controls */}
-            <div className="w-1/3 p-4 border-r border-zinc-800 flex flex-col">
-              <div className="uppercase text-xs font-bold tracking-widest text-zinc-400 mb-4">Mission Setup</div>
-              
-              <div className="mb-4">
-                <label className="text-[10px] text-zinc-500 uppercase tracking-widest block mb-1">Mission Type</label>
-                <select 
-                  value={missionType} 
-                  onChange={e => setMissionType(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 text-white text-sm p-2 focus:border-primary-fixed outline-none"
-                >
-                  {MISSIONS.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
-                </select>
-              </div>
+          <Canvas camera={{ position: [5, 4, 5], fov: 45 }}>
+            <ambientLight intensity={0.6} />
+            <directionalLight position={[10, 10, 5]} intensity={1.5} />
+            <directionalLight position={[-10, -10, -5]} intensity={0.5} color="#444" />
+            
+            <OrbitControls makeDefault maxDistance={20} minDistance={2} />
+            
+            {/* GRID */}
+            <gridHelper args={[20, 20, 0x333333, 0x111111]} position={[0, -2, 0]} />
 
-              <div className="mb-4">
-                <label className="text-[10px] text-zinc-500 uppercase tracking-widest block mb-1">Target Orbit</label>
-                <select 
-                  value={orbitType} 
-                  onChange={e => setOrbitType(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 text-white text-sm p-2 focus:border-primary-fixed outline-none"
-                >
-                  {ORBITS.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
+            {/* PLACED BLOCKS */}
+            <group>
+              {blocks.map(b => {
+                const isSelected = wireStart === b.id;
+                const catItem = getCatalogItem(b.type);
+                
+                return (
+                  <group key={b.id} position={b.position as [number, number, number]} rotation={b.rot as [number, number, number]}>
+                    
+                    {/* Visual Shape */}
+                    {b.id === 'bus' ? (
+                      <Box args={[1, 1, 1]}>
+                        <meshStandardMaterial color="#888" metalness={0.8} roughness={0.2} />
+                      </Box>
+                    ) : (
+                      <ComponentShape item={catItem} />
+                    )}
+
+                    {/* Selection Highlight */}
+                    {isSelected && (
+                      <Box args={[1.05, 1.05, 1.05]}>
+                        <meshBasicMaterial color="yellow" wireframe />
+                      </Box>
+                    )}
+
+                    {/* Interaction Mesh (Invisible grid cube) */}
+                    <mesh 
+                      visible={false}
+                      onPointerMove={(e) => handlePointerMove(e, b.position, e.face!.normal)}
+                      onPointerOut={() => setHoverCell(null)}
+                      onClick={(e) => handleBlockClick(e, b.id, b.position, e.face!.normal)}
+                    >
+                      <boxGeometry args={[1, 1, 1]} />
+                      <meshBasicMaterial />
+                    </mesh>
+                  </group>
+                );
+              })}
+
+              {/* WIRE CONNECTIONS */}
+              {connections.map((c, i) => {
+                const b1 = blocks.find(x => x.id === c.from);
+                const b2 = blocks.find(x => x.id === c.to);
+                if (!b1 || !b2) return null;
+                return (
+                  <Line 
+                    key={i} 
+                    points={[b1.position, b2.position]} 
+                    color="#eab308" 
+                    lineWidth={3} 
+                    dashed 
+                    dashScale={10} 
+                    dashSize={0.2} 
+                    dashOffset={Date.now() / 1000} // slight animation hack if rerendered
+                  />
+                );
+              })}
+
+              {/* GHOST PLACEMENT */}
+              {mode === 'PLACE' && hoverCell && activeItem && (
+                <group position={hoverCell}>
+                  <ComponentShape item={getCatalogItem(activeItem)} isGhost={true} />
+                  <Box args={[1, 1, 1]}>
+                    <meshBasicMaterial color="#00ffff" wireframe opacity={0.3} transparent />
+                  </Box>
+                </group>
+              )}
+            </group>
+          </Canvas>
+          
+          {/* BOTTOM PANEL: MISSION SETTINGS */}
+          <div className="absolute bottom-0 left-0 right-0 h-48 bg-zinc-950/95 border-t border-zinc-800 flex backdrop-blur-md">
+            
+            <div className="w-1/3 p-4 flex flex-col border-r border-zinc-800">
+              <div className="uppercase text-[10px] font-bold tracking-widest text-zinc-500 mb-3">Mission Configuration</div>
+              
+              <div className="flex gap-4 mb-4">
+                <div className="flex-1">
+                  <label className="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1">Objective</label>
+                  <select 
+                    value={missionType} 
+                    onChange={e => setMissionType(e.target.value)}
+                    className="w-full bg-black border border-zinc-800 text-white text-xs p-2 outline-none focus:border-cyan-500"
+                  >
+                    {MISSIONS.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                  </select>
+                </div>
+                <div className="w-32">
+                  <label className="text-[9px] text-zinc-500 uppercase tracking-widest block mb-1">Orbit</label>
+                  <select 
+                    value={orbitType} 
+                    onChange={e => setOrbitType(e.target.value)}
+                    className="w-full bg-black border border-zinc-800 text-white text-xs p-2 outline-none focus:border-cyan-500"
+                  >
+                    {ORBITS.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
               </div>
 
               <button 
                 onClick={runSimulation}
-                className="mt-auto w-full py-3 bg-primary-fixed text-black font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-cyan-400 transition-colors"
+                className="mt-auto w-full py-3 bg-cyan-600 text-white font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-cyan-500 transition-colors rounded"
               >
-                <Play size={16} /> Run Simulation
+                <Play size={14} fill="currentColor" /> Run Validation Simulation
               </button>
             </div>
 
-            {/* Results */}
-            <div className="flex-1 p-4 flex flex-col">
-              <div className="uppercase text-xs font-bold tracking-widest text-zinc-400 mb-4">Simulation Results</div>
-              
-              {!simulationResult ? (
-                <div className="flex-1 flex items-center justify-center text-zinc-600 text-sm italic">
-                  Configure mission and press Run Simulation
-                </div>
-              ) : (
-                <div className="flex-1 flex flex-col">
-                  <div className="flex justify-between items-start mb-6">
-                    <div>
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Mission Status</div>
-                      <div className={`text-2xl font-bold flex items-center gap-2 ${simulationResult.success ? 'text-green-500' : 'text-red-500'}`}>
-                        {simulationResult.success ? <CheckCircle2 /> : <AlertTriangle />}
+            <div className="flex-1 p-4 flex flex-col overflow-hidden">
+               <div className="uppercase text-[10px] font-bold tracking-widest text-zinc-500 mb-3">Telemetry & Analysis</div>
+               
+               {!simulationResult ? (
+                 <div className="flex-1 flex items-center justify-center text-zinc-600 text-xs italic border border-zinc-800/50 bg-black/30 rounded">
+                   Construct spacecraft and press Run Validation Simulation to evaluate design.
+                 </div>
+               ) : (
+                 <div className="flex-1 flex gap-6">
+                    <div className="flex flex-col justify-center">
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Status</div>
+                      <div className={`text-2xl font-black tracking-wider flex items-center gap-2 ${simulationResult.success ? 'text-green-500' : 'text-red-500'}`}>
+                        {simulationResult.success ? <CheckCircle2 size={24} /> : <AlertTriangle size={24} />}
                         {simulationResult.success ? 'SUCCESS' : 'FAILURE'}
                       </div>
+                      <div className="mt-4 text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Score</div>
+                      <div className="text-xl font-bold text-white">{simulationResult.score}/100</div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Mission Score</div>
-                      <div className="text-2xl font-bold text-white">{simulationResult.score}/100</div>
-                      <div className="text-xs text-primary-fixed uppercase tracking-widest">{simulationResult.rating}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Earth Coverage</div>
-                      <div className="text-2xl font-bold text-white">{simulationResult.coverage}%</div>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 border border-zinc-800 bg-black p-3 overflow-y-auto">
-                    <div className="text-xs font-bold uppercase text-zinc-400 mb-2 border-b border-zinc-800 pb-1">Analysis Log</div>
-                    {simulationResult.reasons.length === 0 ? (
-                      <div className="text-green-400 text-sm flex items-center gap-2"><CheckCircle2 size={14}/> All systems nominal. Mission parameters optimal.</div>
-                    ) : (
+                    
+                    <div className="flex-1 border border-zinc-800 bg-black p-3 rounded overflow-y-auto">
                       <ul className="space-y-2">
                         {simulationResult.reasons.map((r: string, i: number) => (
-                          <li key={i} className="text-red-400 text-sm flex items-start gap-2">
-                            <span className="mt-0.5"><AlertTriangle size={14}/></span>
-                            <span>{r}</span>
+                          <li key={i} className={`text-xs flex items-start gap-2 ${r.includes('✓') ? 'text-green-400' : 'text-red-400'}`}>
+                            {r}
                           </li>
                         ))}
                       </ul>
-                    )}
-                  </div>
-                </div>
-              )}
+                    </div>
+                 </div>
+               )}
             </div>
           </div>
         </div>
 
-        {/* Right Panel: Statistics & Active Components */}
-        <div className="w-80 border-l border-zinc-800 bg-zinc-950/50 flex flex-col">
-          <div className="p-4 uppercase text-xs font-bold tracking-widest border-b border-zinc-800 text-zinc-400">System Telemetry</div>
+        {/* RIGHT PANEL: TELEMETRY */}
+        <div className="w-64 border-l border-zinc-800 bg-zinc-950/90 flex flex-col z-10">
+          <div className="p-4 uppercase text-[10px] font-bold tracking-widest border-b border-zinc-800 text-zinc-500">Live Telemetry</div>
           
-          <div className="p-4 grid grid-cols-2 gap-4 border-b border-zinc-800">
+          <div className="p-4 space-y-4 border-b border-zinc-800">
             <div>
-              <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Total Mass</div>
-              <div className="text-xl font-bold">{stats.mass} <span className="text-sm text-zinc-500">kg</span></div>
+              <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">Total Mass</div>
+              <div className="text-xl font-bold">{stats.mass} <span className="text-xs text-zinc-500 font-normal">kg</span></div>
             </div>
             <div>
-              <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Net Power</div>
+              <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">Power Generation</div>
+              <div className="text-xl font-bold text-cyan-400">+{stats.gen} <span className="text-xs text-zinc-500 font-normal">W</span></div>
+            </div>
+            <div>
+              <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">Power Consumption</div>
+              <div className="text-xl font-bold text-yellow-500">-{stats.draw} <span className="text-xs text-zinc-500 font-normal">W</span></div>
+            </div>
+            <div>
+              <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">Net Power Budget</div>
               <div className={`text-xl font-bold ${stats.gen >= stats.draw ? 'text-green-500' : 'text-red-500'}`}>
-                {stats.gen >= stats.draw ? '+' : ''}{stats.gen - stats.draw} <span className="text-sm text-zinc-500">W</span>
+                {stats.gen >= stats.draw ? '+' : ''}{stats.gen - stats.draw} <span className="text-xs text-zinc-500 font-normal">W</span>
               </div>
             </div>
-            <div>
-              <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Generation</div>
-              <div className="text-xl font-bold text-cyan-400">{stats.gen} <span className="text-sm text-zinc-500">W</span></div>
-            </div>
-            <div>
-              <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Consumption</div>
-              <div className="text-xl font-bold text-yellow-500">{stats.draw} <span className="text-sm text-zinc-500">W</span></div>
-            </div>
-            <div className="col-span-2">
-              <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Battery Capacity</div>
-              <div className="text-xl font-bold">{stats.cap} <span className="text-sm text-zinc-500">Wh</span></div>
-            </div>
           </div>
 
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="p-4 uppercase text-[10px] font-bold tracking-widest text-zinc-500">Active Components ({components.length})</div>
-            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
-              {components.map(comp => (
-                <div key={comp.instanceId} className="flex justify-between items-center p-2 border border-zinc-800 bg-black">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: comp.color }}></div>
-                    <span className="text-sm">{comp.name}</span>
-                  </div>
-                  <button onClick={() => removeComponent(comp.instanceId)} className="text-zinc-500 hover:text-red-500 transition-colors">
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-              {components.length === 0 && (
-                <div className="text-zinc-600 text-xs italic text-center py-4">No components installed. Base bus active.</div>
-              )}
-            </div>
+          <div className="flex-1 p-4 overflow-y-auto">
+             <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-2">Instructions</div>
+             <ul className="text-xs text-zinc-400 space-y-2 leading-relaxed">
+               <li><strong className="text-white">Build:</strong> Select a component on the left, then click on the central bus or attached components to place it.</li>
+               <li><strong className="text-white">Wire:</strong> Switch to Wire mode. Click a component, then click another to establish a power/data link.</li>
+               <li><strong className="text-white">Remove:</strong> Switch to Remove mode and click components to delete them.</li>
+             </ul>
           </div>
         </div>
+
       </div>
-      <style>{`
-        .grid-bg {
-          background-size: 40px 40px;
-          background-image: 
-            linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-        }
-      `}</style>
     </div>
   );
 }
