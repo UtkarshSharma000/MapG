@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Box, Cylinder, Sphere, Line } from "@react-three/drei";
 import * as THREE from "three";
+import { useUser } from "@clerk/clerk-react";
 import {
   X,
   Play,
@@ -367,7 +368,43 @@ export default function SatelliteBuilder({
   const [orbitType, setOrbitType] = useState("LEO");
   const [simulationResult, setSimulationResult] = useState<any>(null);
 
+  const { user } = useUser();
+  const [isSaving, setIsSaving] = useState(false);
+
   // --- ACTIONS ---
+  const handleSaveDesign = async () => {
+    if (!user) {
+      alert("Please sign in to save your design.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const design = {
+        name: missionType + " Satellite",
+        missionType,
+        orbitType,
+        blocks,
+        connections,
+        stats,
+      };
+
+      const response = await fetch("/api/designs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, design }),
+      });
+
+      if (!response.ok) throw new Error("Failed to save");
+      alert("Design saved successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Error saving design.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleBlockClick = (
     e: any,
     blockId: string,
@@ -1094,7 +1131,21 @@ export default function SatelliteBuilder({
             </ul>
 
             {simulationResult?.success && (
-              <div className="pt-4 border-t border-zinc-800 mt-4">
+              <div className="pt-4 border-t border-zinc-800 mt-4 flex flex-col gap-2">
+                {user ? (
+                  <button
+                    onClick={handleSaveDesign}
+                    disabled={isSaving}
+                    className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-cyan-400 border border-zinc-700 font-bold text-[10px] uppercase tracking-widest transition-colors rounded cursor-pointer disabled:opacity-50"
+                  >
+                    {isSaving ? "SAVING..." : "SAVE DESIGN TO ARCHIVE"}
+                  </button>
+                ) : (
+                  <div className="text-[10px] text-zinc-500 text-center uppercase tracking-widest py-2 bg-zinc-900 border border-zinc-800 rounded">
+                    SIGN IN TO SAVE DESIGNS
+                  </div>
+                )}
+
                 <button
                   onClick={() => {
                     if (onValidate) onValidate();
