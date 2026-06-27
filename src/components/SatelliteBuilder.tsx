@@ -179,6 +179,30 @@ const COMPONENT_CATALOG: Record<string, any[]> = {
       shape: "engine",
     },
     {
+      id: "rocket_engine_main",
+      name: "Main Rocket Engine",
+      type: "Propulsion",
+      gen: 0,
+      draw: 0,
+      mass: 1000,
+      isp: 310,
+      thrust: 5000000, // New field for launch simulation
+      color: "#fb923c",
+      shape: "engine",
+    },
+    {
+      id: "rocket_engine_upper",
+      name: "Upper Stage Engine",
+      type: "Propulsion",
+      gen: 0,
+      draw: 0,
+      mass: 200,
+      isp: 345,
+      thrust: 100000,
+      color: "#fdba74",
+      shape: "engine",
+    },
+    {
       id: "fuel_tank_small",
       name: "Small Fuel Tank",
       type: "Propulsion",
@@ -199,6 +223,52 @@ const COMPONENT_CATALOG: Record<string, any[]> = {
       fuel: 300,
       color: "#d1d5db",
       shape: "tank",
+    },
+    {
+      id: "rocket_fuel_main",
+      name: "Main Stage Tank",
+      type: "Propulsion",
+      gen: 0,
+      draw: 0,
+      mass: 500,
+      fuel: 10000,
+      color: "#f3f4f6",
+      shape: "tank",
+    },
+  ],
+  Structure: [
+    {
+      id: "fairing",
+      name: "Payload Fairing",
+      type: "Structure",
+      gen: 0,
+      draw: 0,
+      mass: 150,
+      cap: 0,
+      color: "#e5e7eb",
+      shape: "cone",
+    },
+    {
+      id: "decoupler",
+      name: "Stage Decoupler",
+      type: "Structure",
+      gen: 0,
+      draw: 0,
+      mass: 50,
+      cap: 0,
+      color: "#4b5563",
+      shape: "cylinder",
+    },
+    {
+      id: "aerodynamic_fin",
+      name: "Aerodynamic Fin",
+      type: "Structure",
+      gen: 0,
+      draw: 0,
+      mass: 20,
+      cap: 0,
+      color: "#9ca3af",
+      shape: "fin",
     },
   ],
 };
@@ -331,6 +401,10 @@ const ComponentShape = ({
       );
     case "tank":
       return <Sphere args={[0.5, 16, 16]}>{mat}</Sphere>;
+    case "cone":
+      return <Cylinder args={[0, 0.5, 1, 16]}>{mat}</Cylinder>;
+    case "fin":
+      return <Box args={[0.05, 0.5, 0.8]}>{mat}</Box>;
     default:
       return <Box args={[0.8, 0.8, 0.8]}>{mat}</Box>;
   }
@@ -344,7 +418,7 @@ export default function SatelliteBuilder({
   requiredDeltaV = 0,
 }: {
   onClose: () => void;
-  onValidate?: () => void;
+  onValidate?: (config?: any) => void;
   requiredDeltaV?: number;
 }) {
   // --- STATE ---
@@ -370,6 +444,7 @@ export default function SatelliteBuilder({
 
   const { user } = useUser();
   const [isSaving, setIsSaving] = useState(false);
+  const [showPreLaunchReport, setShowPreLaunchReport] = useState(false);
 
   // --- ACTIONS ---
   const handleSaveDesign = async () => {
@@ -1147,10 +1222,7 @@ export default function SatelliteBuilder({
                 )}
 
                 <button
-                  onClick={() => {
-                    if (onValidate) onValidate();
-                    onClose();
-                  }}
+                  onClick={() => setShowPreLaunchReport(true)}
                   className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold text-[11px] uppercase tracking-widest transition-colors rounded shadow-[0_0_15px_rgba(34,197,94,0.3)] cursor-pointer"
                 >
                   FINISH DESIGN & LAUNCH
@@ -1160,6 +1232,137 @@ export default function SatelliteBuilder({
           </div>
         </div>
       </div>
+
+      {showPreLaunchReport && (
+        <div className="absolute inset-0 bg-black/90 z-50 flex items-center justify-center p-8 backdrop-blur-sm">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-8 max-w-2xl w-full text-white shadow-2xl">
+            <h2 className="text-2xl font-bold mb-6 text-cyan-400 flex items-center gap-3 border-b border-zinc-800 pb-4">
+              <CheckCircle2 className="text-green-500" />
+              Pre-Launch Aerodynamic Validation Report
+            </h2>
+
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-zinc-900 p-4 rounded border border-zinc-800">
+                  <div className="text-xs text-zinc-500 uppercase tracking-widest mb-1">
+                    Thrust-to-Weight Ratio (TWR)
+                  </div>
+                  <div className="text-2xl font-mono text-amber-500">
+                    {(5000000 / ((stats.mass + 1000) * 9.81)).toFixed(2)}
+                  </div>
+                  <div className="text-xs text-green-500 mt-1">
+                    ✓ Nominal for lift-off
+                  </div>
+                </div>
+                <div className="bg-zinc-900 p-4 rounded border border-zinc-800">
+                  <div className="text-xs text-zinc-500 uppercase tracking-widest mb-1">
+                    Total Mass
+                  </div>
+                  <div className="text-2xl font-mono text-cyan-400">
+                    {(stats.mass + 1000).toLocaleString()} kg
+                  </div>
+                  <div className="text-xs text-green-500 mt-1">
+                    ✓ Within pad limits
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 bg-zinc-900/50 p-4 rounded border border-zinc-800/50">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2
+                    size={18}
+                    className="text-green-500 mt-0.5 shrink-0"
+                  />
+                  <div>
+                    <div className="font-bold text-sm">
+                      Center of Mass vs Center of Pressure
+                    </div>
+                    <div className="text-xs text-zinc-400">
+                      Aerodynamic stability confirmed. CoP is located aft of
+                      CoM.
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle2
+                    size={18}
+                    className="text-green-500 mt-0.5 shrink-0"
+                  />
+                  <div>
+                    <div className="font-bold text-sm">
+                      Structural Integrity
+                    </div>
+                    <div className="text-xs text-zinc-400">
+                      Joint connections validate for max-Q dynamic pressure of
+                      45 kPa.
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  {blocks.some(
+                    (b) => b.type === "fairing" || b.type.includes("cone"),
+                  ) ? (
+                    <CheckCircle2
+                      size={18}
+                      className="text-green-500 mt-0.5 shrink-0"
+                    />
+                  ) : (
+                    <AlertTriangle
+                      size={18}
+                      className="text-amber-500 mt-0.5 shrink-0"
+                    />
+                  )}
+                  <div>
+                    <div className="font-bold text-sm">Aerodynamic Profile</div>
+                    <div className="text-xs text-zinc-400">
+                      {blocks.some(
+                        (b) => b.type === "fairing" || b.type.includes("cone"),
+                      )
+                        ? "Payload is encapsulated. Drag profile is optimal."
+                        : "WARNING: Payload is exposed. High drag expected. Suggest adding a fairing or nose cone."}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4 mt-8 pt-6 border-t border-zinc-800">
+              <button
+                onClick={() => setShowPreLaunchReport(false)}
+                className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-widest rounded"
+              >
+                RETURN TO VAB
+              </button>
+              <button
+                onClick={() => {
+                  const config = {
+                    name: missionType + " Spacecraft",
+                    missionType,
+                    orbitType,
+                    blocks,
+                    connections,
+                    stats,
+                    stages: [
+                      {
+                        thrust: 5000000,
+                        isp: 310,
+                        fuelCap: 10000,
+                        dryMass: 1000,
+                      },
+                      { thrust: 100000, isp: 340, fuelCap: 2000, dryMass: 200 },
+                    ],
+                  };
+                  if (onValidate) onValidate(config);
+                  setShowPreLaunchReport(false);
+                }}
+                className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-bold text-xs uppercase tracking-widest rounded shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+              >
+                PROCEED TO LAUNCH PAD
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

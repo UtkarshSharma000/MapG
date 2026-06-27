@@ -19,6 +19,7 @@ import { OptimizeResult } from "./TrajectoryOptimizer";
 import { scanPorkchop } from "./workers/trajectory.worker";
 import { LaunchHUD } from "./components/LaunchHUD";
 import StaggeredMenu from "./components/StaggeredMenu";
+import { LaunchSimulator } from "./components/LaunchSimulator";
 
 const OrbitSimulator = React.lazy(() => import("./OrbitSimulator"));
 const Galaxy = React.lazy(() => import("./components/Galaxy"));
@@ -121,7 +122,9 @@ export default function App() {
   const navigate = useNavigate();
   const isSimulatorRunning = location.pathname.startsWith("/engine");
   const isBuilderOpen = location.pathname.startsWith("/builder");
+  const isLaunchSimulatorOpen = location.pathname.startsWith("/launch");
   const [builderMissionDv, setBuilderMissionDv] = useState<number>(0);
+  const [spacecraftConfig, setSpacecraftConfig] = useState<any>(null);
 
   const setIsSimulatorRunning = (running: boolean) => {
     if (running) {
@@ -133,6 +136,13 @@ export default function App() {
   const setIsBuilderRunning = (running: boolean) => {
     if (running) {
       navigate("/builder");
+    } else {
+      navigate("/");
+    }
+  };
+  const setIsLaunchSimulatorOpen = (running: boolean) => {
+    if (running) {
+      navigate("/launch");
     } else {
       navigate("/");
     }
@@ -1265,33 +1275,34 @@ export default function App() {
         />
       </React.Suspense>
 
-      {isSimulatorRunning && ((missionLegs?.length || 0) > 0 || returnWindow) && (
-        <LaunchHUD
-          onSimulateLaunch={handleLaunch}
-          onResetSimulation={() => setIsLaunched(false)}
-          isLaunched={isLaunched}
-          missionStatus={missionStatus}
-          onPlanReturn={planReturn}
-          returnWindow={returnWindow}
-          onApplyReturn={() => {
-            if (returnWindow && returnWindow.legs) {
-              setMissionLegs(returnWindow.legs);
-              setIsLaunched(true);
-            }
-          }}
-          onConcludeMission={() => {
-            setIsLaunched(false);
-            setMissionLegs([]);
-            setReturnWindow(null);
-            setCompletedMissions((prev) => prev + 1);
-          }}
-          selectedTarget={selectedTarget}
-          setSelectedTarget={setSelectedTarget}
-          planets={PLANETS}
-          onOpenBuilder={() => setIsBuilderRunning(true)}
-          isSpacecraftValidated={isSpacecraftValidated}
-        />
-      )}
+      {isSimulatorRunning &&
+        ((missionLegs?.length || 0) > 0 || returnWindow) && (
+          <LaunchHUD
+            onSimulateLaunch={handleLaunch}
+            onResetSimulation={() => setIsLaunched(false)}
+            isLaunched={isLaunched}
+            missionStatus={missionStatus}
+            onPlanReturn={planReturn}
+            returnWindow={returnWindow}
+            onApplyReturn={() => {
+              if (returnWindow && returnWindow.legs) {
+                setMissionLegs(returnWindow.legs);
+                setIsLaunched(true);
+              }
+            }}
+            onConcludeMission={() => {
+              setIsLaunched(false);
+              setMissionLegs([]);
+              setReturnWindow(null);
+              setCompletedMissions((prev) => prev + 1);
+            }}
+            selectedTarget={selectedTarget}
+            setSelectedTarget={setSelectedTarget}
+            planets={PLANETS}
+            onOpenBuilder={() => setIsBuilderRunning(true)}
+            isSpacecraftValidated={isSpacecraftValidated}
+          />
+        )}
 
       {/* Landing Page Content */}
       <div
@@ -1835,6 +1846,35 @@ export default function App() {
       </div>
 
       <div
+        className={`absolute inset-0 z-[60] flex transition-opacity duration-1000 ${isLaunchSimulatorOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+      >
+        {isLaunchSimulatorOpen && spacecraftConfig && (
+          <React.Suspense
+            fallback={
+              <div className="h-full w-full bg-black pointer-events-auto"></div>
+            }
+          >
+            <LaunchSimulator
+              spacecraftConfig={spacecraftConfig}
+              onOrbitReached={() => {
+                setIsLaunchSimulatorOpen(false);
+                setIsSimulatorRunning(true);
+                setV0(7.67);
+                setLaunchPlanet("Earth");
+                setIsLaunched(true);
+                setMissionStartRealTime(Date.now());
+                setMissionStatus("IN TRANSIT");
+              }}
+              onAbort={() => {
+                setIsLaunchSimulatorOpen(false);
+                setIsBuilderRunning(true);
+              }}
+            />
+          </React.Suspense>
+        )}
+      </div>
+
+      <div
         className={`absolute inset-0 z-50 flex transition-opacity duration-1000 ${isBuilderOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
       >
         {isBuilderOpen && (
@@ -1847,7 +1887,12 @@ export default function App() {
               onClose={() => {
                 setIsBuilderRunning(false);
               }}
-              onValidate={() => setIsSpacecraftValidated(true)}
+              onValidate={(config: any) => {
+                setSpacecraftConfig(config);
+                setIsSpacecraftValidated(true);
+                setIsBuilderRunning(false);
+                setIsLaunchSimulatorOpen(true);
+              }}
               requiredDeltaV={builderMissionDv}
             />
           </React.Suspense>
