@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import { Spacecraft } from "./core/spacecraft/Spacecraft";
 import { Validator } from "./core/validation/Validator";
 import { LaunchSimulator } from "./components/LaunchSimulator";
 import SatelliteBuilder from "./components/SatelliteBuilder";
+import LandingHero from "./components/LandingHero";
 
-export default function App() {
+function BuilderFlow() {
   const [spacecraft, setSpacecraft] = useState<Spacecraft | null>(null);
   const [phase, setPhase] = useState<"BUILDER" | "VALIDATING" | "LAUNCH">(
     "BUILDER",
@@ -96,5 +98,37 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+function LandingPage() {
+  const navigate = useNavigate();
+  const [isSimulatorRunning, setIsSimulatorRunning] = useState(false);
+
+  return (
+    <div className="relative min-h-screen bg-black overflow-hidden selection:bg-primary/30">
+      <LandingHero
+        isSimulatorRunning={isSimulatorRunning}
+        setIsSimulatorRunning={setIsSimulatorRunning}
+        setIsBuilderRunning={(val) => {
+          if (val) navigate("/builder");
+        }}
+        landingScrollRef={{ current: null }}
+      />
+      {isSimulatorRunning && (
+        <div className="absolute inset-0 z-10 bg-black flex items-center justify-center text-white">
+          Initializing System...
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/builder" element={<BuilderFlow />} />
+    </Routes>
   );
 }
