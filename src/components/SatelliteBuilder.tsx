@@ -3,6 +3,8 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Box, Cylinder, Sphere, Line } from "@react-three/drei";
 import * as THREE from "three";
 import { useUser } from "@clerk/clerk-react";
+import { Spacecraft } from "../core/spacecraft/Spacecraft";
+import { SpacecraftComponent } from "../core/spacecraft/Component";
 import {
   X,
   Play,
@@ -1335,24 +1337,50 @@ export default function SatelliteBuilder({
               </button>
               <button
                 onClick={() => {
-                  const config = {
-                    name: missionType + " Spacecraft",
-                    missionType,
-                    orbitType,
-                    blocks,
-                    connections,
-                    stats,
-                    stages: [
-                      {
-                        thrust: 5000000,
-                        isp: 310,
-                        fuelCap: 10000,
-                        dryMass: 1000,
-                      },
-                      { thrust: 100000, isp: 340, fuelCap: 2000, dryMass: 200 },
-                    ],
-                  };
-                  if (onValidate) onValidate(config);
+                  const sc = new Spacecraft(missionType + " Spacecraft");
+
+                  // Add stages
+                  sc.stages = [
+                    { id: "stage_0", index: 0, decouplerIds: [] },
+                    { id: "stage_1", index: 1, decouplerIds: [] },
+                  ];
+
+                  blocks.forEach((b) => {
+                    const props = {
+                      type: b.type,
+                      mass: b.mass || 100,
+                      dragCoefficient: b.type.includes("cone")
+                        ? 0.2
+                        : b.type.includes("tank")
+                          ? 0.5
+                          : 1.0,
+                      heatResistance: 2000,
+                      strength: 100000,
+                      fuel: b.fuel || 0,
+                      thrust: b.thrust || 0,
+                      isp: b.isp || 0,
+                    };
+                    const comp = new SpacecraftComponent(b.id, props);
+                    comp.transform.position = {
+                      x: b.position[0],
+                      y: b.position[1],
+                      z: b.position[2],
+                    };
+                    sc.addComponent(comp);
+                  });
+
+                  // Add connections (simplified)
+                  connections.forEach((c, idx) => {
+                    sc.addConnection({
+                      id: `conn_${idx}`,
+                      parentId: c.from,
+                      childId: c.to,
+                      strength: 100000,
+                      isDecoupler: false,
+                    });
+                  });
+
+                  if (onValidate) onValidate(sc);
                   setShowPreLaunchReport(false);
                 }}
                 className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-bold text-xs uppercase tracking-widest rounded shadow-[0_0_15px_rgba(34,197,94,0.3)]"
